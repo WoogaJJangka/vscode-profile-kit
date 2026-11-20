@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   normalizeId,
+  ownExtensions,
   parsePreset,
   parsePresetText,
   PresetError,
+  PRESET_KEYS,
+  PROFILE_KEYS,
   profileNames,
   resolveProfile,
 } from '../src/core/preset';
@@ -104,5 +107,120 @@ describe('parsePresetText', () => {
   it('ignores a UTF-8 BOM', () => {
     const text = String.fromCharCode(0xfeff) + JSON.stringify({ profiles: { P: {} } });
     expect(profileNames(parsePresetText(text))).toEqual(['P']);
+  });
+});
+
+describe('settings and match', () => {
+  it('reads common settings, profile settings and match', () => {
+    const preset = parsePreset({
+      settings: { 'editor.formatOnSave': true },
+      profiles: {
+        P: {
+          settings: { 'python.analysis.typeCheckingMode': 'basic' },
+          match: { languages: ['python'], files: ['pyproject.toml', '*.ipynb'], keywords: ['data'] },
+        },
+      },
+    });
+    expect(preset.settings).toEqual({ 'editor.formatOnSave': true });
+    expect(preset.profiles.P.settings).toEqual({ 'python.analysis.typeCheckingMode': 'basic' });
+    expect(preset.profiles.P.match).toEqual({
+      languages: ['python'],
+      files: ['pyproject.toml', '*.ipynb'],
+      keywords: ['data'],
+    });
+  });
+
+  it('defaults common settings to {}', () => {
+    expect(parsePreset({ profiles: { P: {} } }).settings).toEqual({});
+  });
+
+  it.each([
+    [
+      'shareFromDefault.settings with settings',
+      { P: { shareFromDefault: { settings: true }, settings: { a: 1 } } },
+      'profiles.P: settings cannot be used together with shareFromDefault.settings: true',
+    ],
+    [
+      'settings not an object',
+      { P: { settings: [] } },
+      'profiles.P.settings must be an object of { "setting.key": value }',
+    ],
+    ['empty setting key', { P: { settings: { ' ': 1 } } }, 'profiles.P.settings: setting key must not be empty'],
+    ['unknown match key', { P: { match: { exts: ['x'] } } }, 'profiles.P.match: unknown key "exts"'],
+    [
+      'match list of numbers',
+      { P: { match: { languages: [1] } } },
+      'profiles.P.match.languages must be an array of non-empty strings',
+    ],
+    [
+      'path in match.files',
+      { P: { match: { files: ['src/*.py'] } } },
+      'profiles.P.match.files[0] must be a name without / or \\: "src/*.py"',
+    ],
+  ])('rejects %s', (_, profiles, issue) => {
+    expect(issuesOf({ profiles })).toContain(issue);
+  });
+
+  it('allows shareFromDefault.settings: false with settings', () => {
+    expect(issuesOf({ profiles: { P: { shareFromDefault: { settings: false }, settings: { a: 1 } } } })).toEqual([]);
+  });
+
+  it('rejects common settings that are not an object', () => {
+    expect(issuesOf({ settings: 'x', profiles: { P: {} } })).toContain(
+      'settings must be an object of { "setting.key": value }',
+    );
+  });
+});
+
+describe('schema', () => {
+  interface Schema {
+    properties: Record<string, unknown> & {
+      profiles: { additionalProperties: { properties: Record<string, unknown> } };
+    };
+  }
+  const schema = JSON.parse(readFileSync(join(__dirname, '..', 'schema', 'preset.schema.json'), 'utf8')) as Schema;
+
+  it('has the same top-level keys as parsePreset', () => {
+    expect(Object.keys(schema.properties).sort()).toEqual([...PRESET_KEYS].sort());
+  });
+
+  it('rejects the same match.files names as parsePreset', () => {
+    const match = (
+      schema.properties.profiles.additionalProperties.properties.match as {
+        properties: { files: { items: { pattern: string } } };
+      }
+    ).properties.files.items.pattern;
+    const re = new RegExp(match);
+    const backslash = String.fromCharCode(92);
+    expect(['*.py', 'go.mod', 'Dockerfile', '.devcontainer'].map((n) => re.test(n))).toEqual([true, true, true, true]);
+    expect([`src${backslash}a.py`, 'src/a.py', ' ', ''].map((n) => re.test(n))).toEqual([false, false, false, false]);
+  });
+
+  it('has the same profile keys as parsePreset', () => {
+    expect(Object.keys(schema.properties.profiles.additionalProperties.properties).sort()).toEqual(
+      [...PROFILE_KEYS].sort(),
+    );
+  });
+});
+
+describe('parsePresetText (JSONC)', () => {
+  it('accepts comments and trailing commas', () => {
+    const text = '{\n  // my profiles\n  "profiles": { "P": { /* none */ }, },\n}';
+    expect(profileNames(parsePresetText(text))).toEqual(['P']);
+  });
+
+  it('turns a syntax error into PresetError', () => {
+    expect(() => parsePresetText('{ "profiles": { "P": {} ')).toThrow(PresetError);
+  });
+});
+
+describe('ownExtensions', () => {
+  it('leaves out core extensions', () => {
+    const preset = parsePreset({
+      core: ['a.one'],
+      groups: { g: ['A.ONE', 'b.two'] },
+      profiles: { P: { groups: ['g'], extensions: ['c.three'] } },
+    });
+    expect(ownExtensions(preset, 'P')).toEqual(['b.two', 'c.three']);
   });
 });
