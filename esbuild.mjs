@@ -12,6 +12,8 @@ const common = {
   // VS Code 1.95 runs extensions on Node 20 (engines.vscode)
   target: 'node20',
   format: 'cjs',
+  // jsonc-parser's UMD build (main) requires ./impl/* at run time, which esbuild cannot bundle; use its ESM build
+  mainFields: ['module', 'main'],
   sourcemap: !production,
   minify: production,
   logLevel: 'info',
