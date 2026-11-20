@@ -111,6 +111,12 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "profileKit.installToProfiles",
+        "title": "Install to Profiles...",
+        "category": "Profile Kit",
+        "icon": "$(add)"
+      },
+      {
         "command": "profileKit.applyProfile",
         "title": "Apply Preset to Profile...",
         "category": "Profile Kit",
@@ -141,6 +147,11 @@
           "command": "profileKit.refresh",
           "when": "view == profileKit.profiles",
           "group": "navigation@1"
+        },
+        {
+          "command": "profileKit.installToProfiles",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@0"
         },
         {
           "command": "profileKit.applyAll",

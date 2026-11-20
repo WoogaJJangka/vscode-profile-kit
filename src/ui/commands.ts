@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
 import { buildPlans, executePlans, type ProfileReport, reportOk } from '../host/apply';
 import { ensureProfile, installExtensions, type InstallResult, installSucceeded } from '../host/installer';
+import { installToProfiles } from './installFlow';
 import { DEFAULT_PROFILE, type Kit } from './kit';
 import { switchProfile } from './switch';
 import type { ProfileNode } from './tree';
@@ -285,6 +286,7 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
       ),
     ),
     reg('profileKit.installMissing', (arg) => installMissing(kit, arg)),
+    reg('profileKit.installToProfiles', (arg) => installToProfiles(kit, arg)),
     reg('profileKit.applyProfile', async (arg) => {
       const name = profileOf(arg) ?? (await pickDeclared(kit, t('Apply the preset to...')));
       if (name) await apply(kit, [name]);

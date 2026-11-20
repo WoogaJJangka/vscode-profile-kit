@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 
 import { registerCommands } from './ui/commands';
+import { InstallWatcher } from './ui/installFlow';
 import { Kit } from './ui/kit';
 import { ProfileStatusBar } from './ui/switch';
 import { ProfilesTree } from './ui/tree';
@@ -18,6 +19,7 @@ export function activate(context: vscode.ExtensionContext): void {
     kit,
     view,
     new ProfileStatusBar(kit),
+    new InstallWatcher(kit),
     ...registerCommands(kit),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('profileKit.presetPath')) void kit.loadPreset().then(() => kit.refresh());
