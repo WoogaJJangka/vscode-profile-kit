@@ -1,0 +1,66 @@
+name: CI
+
+# typecheck, lint, format, unit tests, build and the VSIX on every push and pull request
+
+on:
+  push:
+  pull_request:
+
+# read-only token: nothing here writes to the repository
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # same major as environment.yml
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: CLI smoke (plan, no VS Code needed)
+        run: node dist/cli.js plan presets/example.json --profile Core
+
+      - name: Package VSIX
+        if: matrix.os == 'ubuntu-latest'
+        run: npx vsce package --no-dependencies -o vscode-profile-kit.vsix
+
+      - name: Upload VSIX
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vsix
+          path: vscode-profile-kit.vsix
