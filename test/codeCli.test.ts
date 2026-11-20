@@ -1,0 +1,54 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  classifyInstallOutput,
+  installExtensionArgs,
+  isTransient,
+  listExtensionsArgs,
+  parseListExtensions,
+} from '../src/core/codeCli';
+
+describe('classifyInstallOutput', () => {
+  // shapes seen in install-log-*.txt / run-output*.txt of the PowerShell runs
+  it.each([
+    [
+      "Installing extensions...\nInstalling extension 'golang.go'...\nExtension 'golang.go' v0.50.0 was successfully installed.",
+      'installed',
+    ],
+    [
+      "Installing extensions...\nExtension 'golang.go' v0.50.0 is already installed. Use '--force' option to update to latest version.",
+      'already-installed',
+    ],
+    ["Profile 'Core' not found.", 'profile-not-found'],
+    [
+      'Installing extensions...\ngetaddrinfo ENOTFOUND marketplace.visualstudio.com\nError while installing extensions: getaddrinfo ENOTFOUND marketplace.visualstudio.com',
+      'network',
+    ],
+    ['Installing extensions...\nError while installing extensions: AggregateError [ETIMEDOUT]:', 'network'],
+    ['Installing extensions...\nFailed Installing Extensions: anthropic.claude-code', 'unknown'],
+    ['Installing extensions...', 'unknown'],
+  ] as const)('%j -> %s', (output, expected) => {
+    expect(classifyInstallOutput(output)).toBe(expected);
+  });
+
+  it('retries only network errors', () => {
+    expect(isTransient('network')).toBe(true);
+    expect(isTransient('unknown')).toBe(false);
+    expect(isTransient('profile-not-found')).toBe(false);
+  });
+});
+
+describe('parseListExtensions', () => {
+  it('keeps only extension lines, with or without versions', () => {
+    const output = 'Extensions installed on WSL:\r\nGolang.Go@0.50.0\r\nms-python.python\r\n\r\nsome warning text\n';
+    expect(parseListExtensions(output)).toEqual(['golang.go', 'ms-python.python']);
+  });
+});
+
+describe('argument builders', () => {
+  it('builds code CLI arguments', () => {
+    expect(listExtensionsArgs()).toEqual(['--list-extensions']);
+    expect(listExtensionsArgs('Web-JS')).toEqual(['--profile', 'Web-JS', '--list-extensions']);
+    expect(installExtensionArgs('Go', 'golang.go')).toEqual(['--profile', 'Go', '--install-extension', 'golang.go']);
+  });
+});

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/WoogaJJangka/vscode-profile-kit/schema/preset.schema.json",
+  "title": "Profile Kit preset",
+  "description": "Core extensions + named groups + VS Code profiles built from them. Keep in step with the checks in src/core/preset.ts.",
+  "type": "object",
+  "required": ["profiles"],
+  "additionalProperties": false,
+  "definitions": {
+    "extensionId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*\\.[A-Za-z0-9][A-Za-z0-9-]*$",
+      "description": "publisher.name, as shown by code --list-extensions"
+    },
+    "extensionList": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/extensionId" }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "core": {
+      "$ref": "#/definitions/extensionList",
+      "description": "Extensions every profile gets (unless skipCore)"
+    },
+    "groups": {
+      "type": "object",
+      "description": "Named sets of extensions that profiles pick from",
+      "additionalProperties": { "$ref": "#/definitions/extensionList" }
+    },
+    "profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "VS Code profiles to create. The Default profile cannot be declared.",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]*$",
+        "not": { "pattern": "^[Dd][Ee][Ff][Aa][Uu][Ll][Tt]$" }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "groups": { "type": "array", "items": { "type": "string" } },
+          "extensions": { "$ref": "#/definitions/extensionList" },
+          "skipCore": { "type": "boolean", "default": false },
+          "shareFromDefault": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "settings": { "type": "boolean" },
+              "keybindings": { "type": "boolean" },
+              "snippets": { "type": "boolean" },
+              "tasks": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
