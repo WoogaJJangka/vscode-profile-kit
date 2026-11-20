@@ -45,13 +45,27 @@ export interface RunResult {
 
 export type CodeRunner = (args: string[]) => Promise<RunResult>;
 
+/** Opens a window in the profile; VS Code creates the profile if it does not exist (PLAN.md section 8, #2). */
+export function newWindowArgs(profile: string): string[] {
+  return ['--profile', profile, '--new-window'];
+}
+
+export interface CodeRunnerOptions {
+  /** Put before every call, e.g. `--user-data-dir <dir>` for an isolated VS Code. */
+  baseArgs?: string[];
+  /** Kill the call after this long (a hung install must not hang apply). Default: no limit. */
+  timeoutMs?: number;
+}
+
 /**
  * Default runner. On Windows `code` is `code.cmd`, which Node only starts through a shell, so arguments are
- * quoted here. Callers pass only validated profile names and extension IDs (see preset.ts).
- * Phase 2 checks whether calling Code.exe + cli.js directly is more robust (docs/PLAN.md, gate 3).
+ * quoted here. Callers pass only validated profile names and extension IDs (see preset.ts) and paths.
+ * Calling `code.cmd` from the extension host works as is (PLAN.md section 8, #1).
  */
-export function createCodeRunner(command = 'code'): CodeRunner {
-  return async (args) => {
+export function createCodeRunner(command = 'code', options: CodeRunnerOptions = {}): CodeRunner {
+  const baseArgs = options.baseArgs ?? [];
+  return async (callArgs) => {
+    const args = [...baseArgs, ...callArgs];
     const { spawn } = await import('node:child_process');
     const isWindows = process.platform === 'win32';
     return new Promise<RunResult>((resolve, reject) => {
@@ -69,8 +83,20 @@ export function createCodeRunner(command = 'code'): CodeRunner {
       let stderr = '';
       child.stdout.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
       child.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
-      child.on('error', reject);
-      child.on('close', (exitCode) => resolve({ stdout, stderr, exitCode }));
+      const timer = options.timeoutMs
+        ? setTimeout(() => {
+            stderr += `\n[profile-kit] killed after ${options.timeoutMs} ms`;
+            child.kill();
+          }, options.timeoutMs)
+        : undefined;
+      child.on('error', (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+      child.on('close', (exitCode) => {
+        clearTimeout(timer);
+        resolve({ stdout, stderr, exitCode });
+      });
     });
   };
 }

@@ -1,8 +1,9 @@
 /**
- * profile-kit CLI.
- *   profile-kit plan   <preset.json> [--profile <name>]   what each profile should contain (no VS Code calls)
- *   profile-kit verify <preset.json> [--profile <name>]   declared vs installed, via `code --list-extensions` (read-only)
- * `apply` (create profiles + install) comes after Phase 2 (docs/PLAN.md).
+ * profile-kit CLI: the batch side of Profile Kit (new PC, CI checks). Day-to-day work is in the extension's GUI.
+ *   profile-kit plan   <preset.json> [--profile <name>]           what each profile should contain (no VS Code calls)
+ *   profile-kit verify <preset.json> [--profile <name>]           declared vs installed (read-only)
+ *   profile-kit apply  <preset.json> [--profile <name>] [--yes]   create profiles, install, write settings
+ * `apply` only previews unless `--yes` is given. Nothing is uninstalled and the Default profile is never changed.
  */
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -10,18 +11,33 @@ import { parseArgs } from 'node:util';
 import {
   createCodeRunner,
   diffExtensions,
+  formatPlan,
   listExtensionsArgs,
   parseListExtensions,
   parsePresetText,
+  planIsEmpty,
   type Preset,
   PresetError,
   profileNames,
   resolveProfile,
 } from '../core';
+import { buildPlans, executePlans, reportOk } from '../host/apply';
+import { installSucceeded } from '../host/installer';
+import { defaultUserDataDir, userDataPaths } from '../host/paths';
 
 const USAGE = `Usage:
   profile-kit plan   <preset.json> [--profile <name>]
-  profile-kit verify <preset.json> [--profile <name>] [--code <path to code CLI>]`;
+  profile-kit verify <preset.json> [--profile <name>] [VS Code options]
+  profile-kit apply  <preset.json> [--profile <name>] [--yes] [--no-create] [VS Code options]
+
+apply previews the changes; add --yes to carry them out.
+  --no-create   do not create missing profiles (creating one opens a VS Code window)
+
+VS Code options:
+  --code <path>              code CLI to call (default: code on PATH)
+  --user-data-dir <dir>      passed to code, and where settings.json / storage.json are read
+  --extensions-dir <dir>     passed to code
+  --shared-data-dir <dir>    passed to code`;
 
 function loadPreset(path: string): Preset {
   return parsePresetText(readFileSync(path, 'utf8'));
@@ -40,6 +56,11 @@ async function main(argv: string[]): Promise<number> {
     options: {
       profile: { type: 'string' },
       code: { type: 'string' },
+      'user-data-dir': { type: 'string' },
+      'extensions-dir': { type: 'string' },
+      'shared-data-dir': { type: 'string' },
+      yes: { type: 'boolean', short: 'y' },
+      'no-create': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -61,8 +82,14 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  const baseArgs = [
+    ...(values['user-data-dir'] ? ['--user-data-dir', values['user-data-dir']] : []),
+    ...(values['extensions-dir'] ? ['--extensions-dir', values['extensions-dir']] : []),
+    ...(values['shared-data-dir'] ? ['--shared-data-dir', values['shared-data-dir']] : []),
+  ];
+
   if (command === 'verify') {
-    const run = createCodeRunner(values.code);
+    const run = createCodeRunner(values.code, { baseArgs });
     let missingTotal = 0;
     for (const name of names) {
       const result = await run(listExtensionsArgs(name));
@@ -81,6 +108,43 @@ async function main(argv: string[]): Promise<number> {
       for (const id of diff.extra) console.log(`  + extra   ${id}`);
     }
     return missingTotal === 0 ? 0 : 1;
+  }
+
+  if (command === 'apply') {
+    // a hung install must not hang the whole run
+    const env = {
+      run: createCodeRunner(values.code, { baseArgs, timeoutMs: 5 * 60_000 }),
+      paths: userDataPaths(values['user-data-dir'] ?? defaultUserDataDir()),
+    };
+    const { plans, problems } = await buildPlans(env, preset, names);
+    for (const p of problems) console.log(`! ${p}`);
+    for (const line of formatPlan(plans)) console.log(line);
+    const todo = plans.filter((p) => !planIsEmpty(p));
+    if (todo.length === 0) {
+      console.log('\nNothing to do.');
+      return 0;
+    }
+    if (!values.yes) {
+      console.log('\nPreview only. Run again with --yes to apply.');
+      return 0;
+    }
+    console.log('');
+    const reports = await executePlans(env, preset, todo, {
+      createProfiles: !values['no-create'],
+      onEvent: (m) => console.log(m),
+    });
+    console.log('\n== Result ==');
+    for (const r of reports) {
+      const ok = r.installs.filter((i) => installSucceeded(i.outcome)).length;
+      const failed = r.installs.filter((i) => !installSucceeded(i.outcome));
+      console.log(
+        `${reportOk(r) ? 'ok  ' : 'FAIL'} ${r.name}: ${r.created ? 'created, ' : ''}${ok}/${r.installs.length} installed, ${r.settingsChanged} setting(s)${r.backup ? `, backup ${r.backup}` : ''}`,
+      );
+      for (const f of failed)
+        console.log(`     ${f.id}: ${f.outcome} after ${f.attempts} tr${f.attempts === 1 ? 'y' : 'ies'}`);
+      for (const p of r.problems) console.log(`     ${p}`);
+    }
+    return reports.every(reportOk) ? 0 : 1;
   }
 
   console.error(`Unknown command "${command}"\n${USAGE}`);

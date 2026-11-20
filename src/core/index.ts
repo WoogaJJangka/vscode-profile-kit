@@ -1,3 +1,4 @@
+export * from './applyPlan';
 export * from './codeCli';
 export * from './diff';
 export * from './preset';
