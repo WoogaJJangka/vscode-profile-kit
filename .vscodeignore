@@ -1,0 +1,10 @@
+**
+!dist/extension.js
+!dist/cli.js
+!schema/**
+!presets/example.json
+!media/**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE

@@ -1,0 +1,32 @@
+# build / test output
+node_modules/
+dist/
+out/
+coverage/
+.vscode-test/
+*.vsix
+
+# outputs of the PowerShell scripts (scripts/legacy): personal extension lists, logs, settings backups
+extensions-backup-*
+install-log-*
+repair-log-*
+repair-output*
+run-output*
+backup-*/
+default-profile-disable-list.txt
+
+# secrets
+.env
+.env.*
+
+# IDE (D:\dev rule). .vscode launch/tasks/extensions stay: they run and debug the extension
+.idea/
+.vs/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# local Claude Code files
+.claude/settings.local.json
+.claude/worktrees/

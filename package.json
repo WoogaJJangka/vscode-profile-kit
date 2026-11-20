@@ -1,0 +1,77 @@
+{
+  "name": "vscode-profile-kit",
+  "displayName": "Profile Kit",
+  "description": "Declare core + per-purpose extension groups once, then create and check VS Code profiles from that preset",
+  "version": "0.0.1",
+  "preview": true,
+  "publisher": "woogajjangka",
+  "license": "MIT",
+  "author": {
+    "name": "siwon Jeon",
+    "url": "https://github.com/WoogaJJangka"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WoogaJJangka/vscode-profile-kit.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "profiles",
+    "extensions",
+    "preset"
+  ],
+  "main": "./dist/extension.js",
+  "bin": {
+    "profile-kit": "./dist/cli.js"
+  },
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "profileKit.showPlan",
+        "title": "Show Plan from Preset File",
+        "category": "Profile Kit"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "*.profile-kit.json",
+        "url": "./schema/preset.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:prod": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "cli": "node dist/cli.js",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run typecheck && npm run build:prod"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@types/vscode": "~1.95.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.10.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  }
+}

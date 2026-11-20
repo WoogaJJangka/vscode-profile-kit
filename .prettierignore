@@ -1,0 +1,8 @@
+dist/
+out/
+coverage/
+node_modules/
+package-lock.json
+scripts/legacy/
+docs/PLAN.md
+docs/ROADMAP.md

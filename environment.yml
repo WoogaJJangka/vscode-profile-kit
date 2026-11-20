@@ -1,0 +1,5 @@
+name: vscode-profile-kit
+channels:
+  - conda-forge
+dependencies:
+  - nodejs=24
