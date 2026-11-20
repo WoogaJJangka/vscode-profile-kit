@@ -59,6 +59,23 @@
 - [ ] 현재 PC: repair-extensions.ps1 완료 여부 확인, 프로필별 개수 검증, 남은 실패 건 원인 분석
 - [ ] 현재 PC: share-settings.ps1 -DryRun 으로 확인 후 실행 여부 결정 (VS Code 완전 종료 + 백업 확인)
 - [ ] 현재 PC: Default 정리 방식 결정 (Disable All 후 Core만 켜기 / Core 프로필을 새 창 기본으로 / state.vscdb 편집은 비권장)
-- [ ] 타당성 검증 후 구조(A/B/C) 결정
-- [ ] 저장소 초기화, CI, 문서, 테스트
+- [x] 타당성 검증 후 구조 결정 → 8절 (확장 중심 GUI + 공유 core + 보조 CLI)
+- [x] 저장소 초기화, CI, 문서, 테스트
 - [ ] 배포: publisher 생성과 계정 작업은 사용자가 직접
+
+## 8. Phase 2 실험 결과 (2026-11-21, VS Code 1.147.0, Windows)
+
+격리 폴더(`--user-data-dir`, `--extensions-dir`, `--shared-data-dir` 모두 임시 폴더)에서 실험용 확장을 띄워 확인했다. 실제 사용자 VS Code는 건드리지 않았다.
+mac/Linux와 VS Code 1.95(엔진 하한)는 확인하지 않았다.
+
+| # | 질문 | 결과 | 설계에 반영 |
+|---|------|------|-------------|
+| 1 | 확장 호스트에서 `code --profile X --install-extension / --list-extensions` | 된다. CLI 위치는 `vscode.env.appRoot`(`<설치>/<commit>/resources/app`)에서 세 단계 위의 `bin/code.cmd`다. 확장 호스트 환경(`ELECTRON_RUN_AS_NODE` 등)을 그대로 넘겨도 동작한다. | `host/codeLocator.ts`: appRoot 기준 2·3단계 위 `bin`을 차례로 찾는다 |
+| 2 | 프로필 생성 | 프로필이 없으면 CLI에서 `Profile 'X' not found.`가 나온다(창 없이는 못 만든다). VS Code가 실행 중일 때 `code --profile X --new-window`를 보내면 1초 안에 storage.json `userDataProfiles`에 `{location, name}`이 생긴다(새 창이 열린다). | 프로필 생성은 "새 창이 열립니다" 확인 후 실행하고, 만들어졌는지는 storage.json을 읽어 확인한다 |
+| 3 | 현재 창의 프로필 식별 | `globalStorageUri`는 프로필과 상관없이 `User/globalStorage/<ext>`라서 쓸 수 없다. `profileAssociations`는 `--profile`로 연 확장 개발 창에서 실제 프로필과 달랐다. **각 프로필 settings.json에 넣은 마커 설정**은 정확히 읽혔다. | 관리하는 프로필의 settings.json에 `profileKit.profile: "<이름>"`을 쓰고 `getConfiguration`으로 읽는다. 마커가 없으면(Default 설정 공유 등) "알 수 없음"으로 표시한다 |
+| 4 | 현재 창 전환 | 내부 명령 `workbench.profiles.actions.profileEntry.<location>`을 일반 창에서 실행하면 같은 창이 약 3초 안에 그 프로필로 바뀐다(확장 호스트 재시작). 그 폴더의 `profileAssociations`도 새 프로필로 바뀐다. 확장 개발 창(F5)에서는 명령이 오류 없이 끝나지만 전환되지 않는다. `workbench.action.openProfile.<이름>`, `workbench.profiles.actions.switchProfile`(VS Code 자체 선택창)도 있다. | 문서화되지 않은 ID라서 `getCommands`로 있는지 먼저 본다. 없으면 `switchProfile` 선택창, 그것도 없으면 `code --profile X <폴더>` 순서로 대신한다 |
+| 5 | 다른 프로필 settings.json 직접 수정 | `User/profiles/<location>/settings.json`을 고치면 열린 창에 약 2초 뒤 반영된다. 파일이 없으면 새로 만들어도 된다. | `host/settingsWriter.ts` 방식 그대로 |
+| 6 | 설치 감지 | 현재 프로필에 CLI로 설치하면 `extensions.onDidChange`가 발생하고 `getExtension`으로 바로 보인다. 다른 프로필에 설치할 때는 발생하지 않는다. 마켓플레이스 Install도 같은 이벤트를 쓴다(API 문서: 설치·제거·활성화 변경 시 발생). `workbench.extensions.installExtension` 명령은 이 환경에서 `Canceled`로 끝나 확인하지 못했다. | 설치 후 알림은 `onDidChange` + 직전 목록 스냅샷 비교로 하고, 도구가 직접 설치한 ID는 알림에서 뺀다 |
+| 7 | 마켓플레이스 메타데이터 | `POST https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery`, `filterType: 7`(ID), `flags: 0x1\|0x4\|0x10\|0x200`로 categories, tags(`__ext_<확장자>` 포함), 버전 속성(`ExtensionDependencies`, `ExtensionPack`)을 받는다. 없는 ID는 결과에서 빠질 뿐 오류가 나지 않는다. | `Install to Profiles…`의 추천 입력으로 쓴다. 실패하면 ID만으로 진행한다 |
+
+결론: 계획(`확장 = GUI 주 화면, core 공유, CLI 보조`)과 어긋나는 결과는 없다. 3번만 바뀌었다(globalStorageUri 대신 마커 설정).
