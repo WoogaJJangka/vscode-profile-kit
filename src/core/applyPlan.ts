@@ -115,6 +115,26 @@ export function formatPlan(plans: readonly ProfileApplyPlan[]): string[] {
   return lines;
 }
 
+/**
+ * Why each extension is in a profile, for display: `core`, `group <name>` or `profile`.
+ * First reason wins, in the order resolveProfile uses (core, groups, own extensions).
+ */
+export function extensionOrigins(preset: Preset, name: string): Map<string, string> {
+  const spec = preset.profiles[name];
+  const origins = new Map<string, string>();
+  if (!spec) return origins;
+  const add = (ids: readonly string[], why: string) => {
+    for (const id of ids) {
+      const key = id.toLowerCase();
+      if (!origins.has(key)) origins.set(key, why);
+    }
+  };
+  if (!spec.skipCore) add(preset.core, 'core');
+  for (const g of spec.groups ?? []) add(preset.groups[g] ?? [], `group ${g}`);
+  add(spec.extensions ?? [], 'profile');
+  return origins;
+}
+
 /** Apply settings changes to settings.json text with jsonc-parser edits: comments and other keys stay as they are. */
 export function editSettingsText(text: string, changes: readonly SettingsChange[]): string {
   const body0 = stripBom(text);

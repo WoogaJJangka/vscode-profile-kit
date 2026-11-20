@@ -129,8 +129,14 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     console.log('');
+    // A window call joins the running VS Code only when it names the same data folders; with --user-data-dir but no
+    // --shared-data-dir it would start a VS Code on the default shared data (sign-ins), so do not open windows then.
+    const unsafeWindows = !!values['user-data-dir'] && !values['shared-data-dir'];
     const reports = await executePlans(env, preset, todo, {
-      createProfiles: !values['no-create'],
+      createProfiles: !values['no-create'] && !unsafeWindows,
+      ...(unsafeWindows
+        ? { createBlockedReason: 'with --user-data-dir, also pass --shared-data-dir to let apply open windows' }
+        : {}),
       onEvent: (m) => console.log(m),
     });
     console.log('\n== Result ==');

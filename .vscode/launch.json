@@ -8,6 +8,25 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "preLaunchTask": "npm: build"
+    },
+    {
+      // Your real profiles stay untouched: all three data folders point into .vscode-test/.
+      // PROFILE_KIT_CODE_ARGS tells the extension the same folders for its `code` calls (it cannot read them itself).
+      // Switching profiles in place does not work in an Extension Development Host (docs/PLAN.md section 8, #4).
+      "name": "Run Extension (isolated profiles)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--user-data-dir=${workspaceFolder}/.vscode-test/u",
+        "--extensions-dir=${workspaceFolder}/.vscode-test/x",
+        "--shared-data-dir=${workspaceFolder}/.vscode-test/s"
+      ],
+      "env": {
+        "PROFILE_KIT_CODE_ARGS": "[\"--user-data-dir\", \"${workspaceFolder}/.vscode-test/u\", \"--extensions-dir\", \"${workspaceFolder}/.vscode-test/x\", \"--shared-data-dir\", \"${workspaceFolder}/.vscode-test/s\"]"
+      },
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "npm: build"
     }
   ]
 }

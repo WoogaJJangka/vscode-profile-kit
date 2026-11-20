@@ -30,15 +30,167 @@
   "bin": {
     "profile-kit": "./dist/cli.js"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
+    "configuration": {
+      "title": "Profile Kit",
+      "properties": {
+        "profileKit.presetPath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "markdownDescription": "Preset file (`*.profile-kit.json`) that declares core extensions, groups, profiles and settings. The same file is used in every profile."
+        },
+        "profileKit.profile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Written by Profile Kit into each profile's own settings: the profile's name, so Profile Kit can tell which profile a window uses. Do not edit."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "profileKit",
+          "title": "Profile Kit",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "profileKit": [
+        {
+          "id": "profileKit.profiles",
+          "name": "Profiles",
+          "contextualTitle": "Profile Kit"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "profileKit.profiles",
+        "contents": "No preset file yet. A preset declares the extensions every profile gets (core), named groups, and profiles built from them.\n[Open Preset File](command:profileKit.openPreset)\n[Create Preset from This Profile](command:profileKit.createPreset)",
+        "when": "!profileKit.hasPreset"
+      }
+    ],
     "commands": [
       {
         "command": "profileKit.showPlan",
         "title": "Show Plan from Preset File",
         "category": "Profile Kit"
+      },
+      {
+        "command": "profileKit.openPreset",
+        "title": "Open Preset File...",
+        "category": "Profile Kit",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "profileKit.createPreset",
+        "title": "Create Preset from This Profile...",
+        "category": "Profile Kit"
+      },
+      {
+        "command": "profileKit.editPreset",
+        "title": "Edit Preset",
+        "category": "Profile Kit",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "profileKit.refresh",
+        "title": "Refresh",
+        "category": "Profile Kit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "profileKit.installMissing",
+        "title": "Install Missing Extensions",
+        "category": "Profile Kit",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "profileKit.applyProfile",
+        "title": "Apply Preset to Profile...",
+        "category": "Profile Kit",
+        "icon": "$(check)"
+      },
+      {
+        "command": "profileKit.applyAll",
+        "title": "Apply Preset to All Profiles...",
+        "category": "Profile Kit",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "profileKit.switchProfile",
+        "title": "Switch Profile...",
+        "category": "Profile Kit",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "profileKit.switchTo",
+        "title": "Switch to This Profile",
+        "category": "Profile Kit",
+        "icon": "$(arrow-swap)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "profileKit.refresh",
+          "when": "view == profileKit.profiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "profileKit.applyAll",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@2"
+        },
+        {
+          "command": "profileKit.editPreset",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@3"
+        },
+        {
+          "command": "profileKit.openPreset",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@1"
+        },
+        {
+          "command": "profileKit.createPreset",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "profileKit.installMissing",
+          "when": "view == profileKit.profiles && viewItem =~ /:missing\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "profileKit.switchTo",
+          "when": "view == profileKit.profiles && viewItem =~ /^profile:exists\\b/ && viewItem =~ /:other\\b/",
+          "group": "inline@2"
+        },
+        {
+          "command": "profileKit.applyProfile",
+          "when": "view == profileKit.profiles && viewItem =~ /:declared\\b/",
+          "group": "1_apply@1"
+        },
+        {
+          "command": "profileKit.installMissing",
+          "when": "view == profileKit.profiles && viewItem =~ /:missing\\b/",
+          "group": "1_apply@2"
+        },
+        {
+          "command": "profileKit.switchTo",
+          "when": "view == profileKit.profiles && viewItem =~ /^profile:exists\\b/ && viewItem =~ /:other\\b/",
+          "group": "2_switch@1"
+        }
+      ]
+    },
     "jsonValidation": [
       {
         "fileMatch": "*.profile-kit.json",

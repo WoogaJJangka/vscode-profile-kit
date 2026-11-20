@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   editSettingsText,
+  extensionOrigins,
   formatPlan,
   parsePreset,
   parseSettingsText,
@@ -111,5 +112,23 @@ describe('editSettingsText', () => {
     expect(out.charCodeAt(0)).toBe(0xfeff);
     expect(out).toContain('\n    "x": 1');
     expect(parseSettingsText(out)).toEqual({ x: 1 });
+  });
+});
+
+describe('extensionOrigins', () => {
+  it('names the first place each extension comes from', () => {
+    const p = parsePreset({
+      core: ['A.Core', 'b.both'],
+      groups: { g: ['b.both', 'c.group'] },
+      profiles: { X: { groups: ['g'], extensions: ['d.own', 'c.group'] }, Bare: { skipCore: true } },
+    });
+    expect([...extensionOrigins(p, 'X')]).toEqual([
+      ['a.core', 'core'],
+      ['b.both', 'core'],
+      ['c.group', 'group g'],
+      ['d.own', 'profile'],
+    ]);
+    expect(extensionOrigins(p, 'Bare').size).toBe(0);
+    expect(extensionOrigins(p, 'Nope').size).toBe(0);
   });
 });

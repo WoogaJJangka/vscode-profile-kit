@@ -83,6 +83,8 @@ export interface ProfileReport {
 export interface ApplyOptions {
   /** Create missing profiles (opens a VS Code window each). Default true. */
   createProfiles?: boolean;
+  /** Reported for each profile that is not created because `createProfiles` is false. */
+  createBlockedReason?: string;
   install?: InstallOptions;
   ensure?: Parameters<typeof ensureProfile>[3];
   onEvent?: (message: string) => void;
@@ -120,7 +122,9 @@ export async function executePlans(
     let profile: StoredProfile | undefined = readStorage(env.paths).profiles.find((p) => p.name === plan.name);
     if (!profile) {
       if (options.createProfiles === false) {
-        report.problems.push('profile does not exist and creating profiles is turned off');
+        report.problems.push(
+          `profile does not exist and was not created: ${options.createBlockedReason ?? 'creating profiles is turned off'}`,
+        );
         continue;
       }
       say(`${plan.name}: creating the profile (a VS Code window opens)`);

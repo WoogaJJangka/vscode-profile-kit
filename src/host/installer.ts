@@ -31,6 +31,8 @@ export interface InstallOptions {
   baseDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
   onProgress?: (id: string, index: number, total: number) => void;
+  /** Checked before each extension; true stops the run (what was installed so far stays). */
+  shouldStop?: () => boolean;
 }
 
 class TransientInstallError extends Error {
@@ -50,6 +52,7 @@ export async function installExtensions(
 ): Promise<InstallResult[]> {
   const results: InstallResult[] = [];
   for (const [index, id] of ids.entries()) {
+    if (options.shouldStop?.()) break;
     options.onProgress?.(id, index, ids.length);
     let attempts = 0;
     let result: InstallResult;

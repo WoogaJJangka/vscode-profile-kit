@@ -186,3 +186,15 @@ describe('apply (fake code CLI, temp user data folder)', () => {
     expect(readFileSync(settingsFile, 'utf8')).toBe('{ "broken": ');
   });
 });
+
+describe('installExtensions shouldStop', () => {
+  it('stops before the next extension and keeps what was done', async () => {
+    let stop = false;
+    const run: CodeRunner = async (args) => {
+      stop = true;
+      return ok(`Extension '${args[args.length - 1]}' v1 was successfully installed.`);
+    };
+    const results = await installExtensions(run, 'P', ['a.b', 'c.d'], { shouldStop: () => stop });
+    expect(results.map((r) => r.id)).toEqual(['a.b']);
+  });
+});
