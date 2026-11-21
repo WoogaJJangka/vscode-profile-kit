@@ -89,12 +89,69 @@
   },
   "profiles": {
     "Core": {},
-    "Python-Data": { "groups": ["python-data"] },
-    "Java": { "groups": ["java"] },
-    "C-Cpp": { "groups": ["c-cpp"] },
-    "Web-JS": { "groups": ["web-js"] },
-    "CSharp-Unity": { "groups": ["csharp-unity"] },
-    "Go": { "groups": ["go"] },
-    "Docker-Infra": { "groups": ["docker-infra"] }
+    "Python-Data": {
+      "groups": ["python-data"],
+      "match": {
+        "languages": ["python", "jupyter"],
+        "files": ["pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "Pipfile", "*.py", "*.ipynb"],
+        "keywords": ["python", "jupyter", "notebook", "data science", "pandas"]
+      }
+    },
+    "Java": {
+      "groups": ["java"],
+      "match": {
+        "languages": ["java"],
+        "files": ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "gradlew", "*.java"],
+        "keywords": ["java", "maven", "gradle", "spring"]
+      }
+    },
+    "C-Cpp": {
+      "groups": ["c-cpp"],
+      "match": {
+        "languages": ["c", "cpp", "cuda-cpp"],
+        "files": ["CMakeLists.txt", "meson.build", "*.c", "*.cpp", "*.cc", "*.h", "*.hpp"],
+        "keywords": ["c", "c++", "cpp", "cmake"]
+      }
+    },
+    "Web-JS": {
+      "groups": ["web-js"],
+      "match": {
+        "languages": ["javascript", "typescript", "javascriptreact", "typescriptreact", "html", "css", "mdx"],
+        "files": ["package.json", "tsconfig.json", "*.js", "*.ts", "*.html"],
+        "keywords": ["javascript", "typescript", "node", "html", "css", "react"]
+      }
+    },
+    "CSharp-Unity": {
+      "groups": ["csharp-unity"],
+      "match": {
+        "languages": ["csharp"],
+        "files": ["*.sln", "*.csproj", "*.cs", "ProjectSettings"],
+        "keywords": ["c#", "csharp", "dotnet", ".net", "unity"]
+      }
+    },
+    "Go": {
+      "groups": ["go"],
+      "match": {
+        "languages": ["go", "go.mod"],
+        "files": ["go.mod", "go.work", "*.go"],
+        "keywords": ["go", "golang"]
+      }
+    },
+    "Docker-Infra": {
+      "groups": ["docker-infra"],
+      "match": {
+        "languages": ["dockerfile", "dockercompose"],
+        "files": [
+          "Dockerfile",
+          "compose.yaml",
+          "compose.yml",
+          "docker-compose.yml",
+          "docker-compose.yaml",
+          "*.dockerfile",
+          ".devcontainer"
+        ],
+        "keywords": ["docker", "containers", "devcontainer", "kubernetes", "kafka"]
+      }
+    }
   }
 }

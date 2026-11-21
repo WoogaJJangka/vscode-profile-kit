@@ -1,40 +1,51 @@
 /**
- * Thin VS Code UI over src/core (structure A, docs/PLAN.md section 6).
- * For now: show what a preset file declares. Calls into the `code` CLI come after Phase 2.
+ * Profile Kit extension: the GUI (docs/PLAN.md section 8, structure decided 2026-11-21).
+ * Activity Bar tree of profiles, status bar with this window's profile, commands to install, apply and switch.
+ * Work that touches other profiles goes through src/host (the `code` CLI, settings.json files), shared with the CLI.
  */
 import * as vscode from 'vscode';
 
-import { parsePresetText, PresetError, profileNames, resolveProfile } from './core';
+import { registerCommands } from './ui/commands';
+import { FolderAdvisor } from './ui/folders';
+import { InstallWatcher } from './ui/installFlow';
+import { Kit } from './ui/kit';
+import { ProfileStatusBar } from './ui/switch';
+import { ProfilesTree } from './ui/tree';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const output = vscode.window.createOutputChannel('Profile Kit');
+  const kit = new Kit(context);
+  const tree = new ProfilesTree(kit);
+  const folders = new FolderAdvisor(kit);
+  const view = vscode.window.createTreeView('profileKit.profiles', { treeDataProvider: tree, showCollapseAll: true });
   context.subscriptions.push(
-    output,
-    vscode.commands.registerCommand('profileKit.showPlan', async () => {
-      const picked = await vscode.window.showOpenDialog({
-        canSelectMany: false,
-        filters: { 'Profile Kit preset': ['json'] },
-        openLabel: 'Show plan',
-      });
-      if (!picked?.[0]) return;
-      try {
-        const bytes = await vscode.workspace.fs.readFile(picked[0]);
-        const preset = parsePresetText(new TextDecoder().decode(bytes));
-        output.clear();
-        for (const name of profileNames(preset)) {
-          const ids = resolveProfile(preset, name);
-          output.appendLine(`== ${name} (${ids.length}) ==`);
-          for (const id of ids) output.appendLine(`  ${id}`);
-        }
-        output.show(true);
-      } catch (error) {
-        const message = error instanceof PresetError || error instanceof Error ? error.message : String(error);
-        void vscode.window.showErrorMessage(`Profile Kit: ${message}`);
-      }
+    kit,
+    view,
+    new ProfileStatusBar(kit),
+    new InstallWatcher(kit),
+    folders,
+    ...registerCommands(kit),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('profileKit.presetPath'))
+        void kit
+          .loadPreset()
+          .then(() => kit.refresh())
+          .then(() => folders.check());
+      // the marker changes when Profile Kit writes this profile's settings
+      else if (e.affectsConfiguration('profileKit.profile')) void kit.refresh();
+    }),
+    // installs and uninstalls in this window's profile (other profiles do not fire this, PLAN.md section 8, #6)
+    vscode.extensions.onDidChange(() => {
+      const current = kit.currentProfile()?.name;
+      if (current) void kit.refreshProfile(current);
     }),
   );
+  // folder suggestion after the profile list is known (it needs storage.json for "does it exist")
+  void kit
+    .loadPreset()
+    .then(() => kit.refresh())
+    .then(() => folders.check());
 }
 
 export function deactivate(): void {
-  // nothing to clean up: everything is in context.subscriptions
+  // everything is in context.subscriptions
 }

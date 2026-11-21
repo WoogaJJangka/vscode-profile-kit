@@ -1,7 +1,7 @@
 {
   "name": "vscode-profile-kit",
-  "displayName": "Profile Kit",
-  "description": "Declare core + per-purpose extension groups once, then create and check VS Code profiles from that preset",
+  "displayName": "%displayName%",
+  "description": "%description%",
   "version": "0.0.1",
   "preview": true,
   "publisher": "woogajjangka",
@@ -27,18 +27,193 @@
     "preset"
   ],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "bin": {
     "profile-kit": "./dist/cli.js"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "profileKit.presetPath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "markdownDescription": "%config.presetPath%"
+        },
+        "profileKit.profile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.profile%"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "profileKit",
+          "title": "%view.container%",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "profileKit": [
+        {
+          "id": "profileKit.profiles",
+          "name": "%view.profiles%",
+          "contextualTitle": "%view.container%"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome%",
+        "when": "!profileKit.hasPreset"
+      }
+    ],
     "commands": [
       {
         "command": "profileKit.showPlan",
-        "title": "Show Plan from Preset File",
-        "category": "Profile Kit"
+        "title": "%cmd.showPlan%",
+        "category": "%category%"
+      },
+      {
+        "command": "profileKit.openPreset",
+        "title": "%cmd.openPreset%",
+        "category": "%category%",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "profileKit.createPreset",
+        "title": "%cmd.createPreset%",
+        "category": "%category%"
+      },
+      {
+        "command": "profileKit.editPreset",
+        "title": "%cmd.editPreset%",
+        "category": "%category%",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "profileKit.refresh",
+        "title": "%cmd.refresh%",
+        "category": "%category%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "profileKit.installMissing",
+        "title": "%cmd.installMissing%",
+        "category": "%category%",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "profileKit.openManager",
+        "title": "%cmd.openManager%",
+        "category": "%category%",
+        "icon": "$(table)"
+      },
+      {
+        "command": "profileKit.installToProfiles",
+        "title": "%cmd.installToProfiles%",
+        "category": "%category%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "profileKit.applyProfile",
+        "title": "%cmd.applyProfile%",
+        "category": "%category%",
+        "icon": "$(check)"
+      },
+      {
+        "command": "profileKit.applyAll",
+        "title": "%cmd.applyAll%",
+        "category": "%category%",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "profileKit.switchProfile",
+        "title": "%cmd.switchProfile%",
+        "category": "%category%",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "profileKit.switchTo",
+        "title": "%cmd.switchTo%",
+        "category": "%category%",
+        "icon": "$(arrow-swap)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "profileKit.refresh",
+          "when": "view == profileKit.profiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "profileKit.installToProfiles",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@0"
+        },
+        {
+          "command": "profileKit.openManager",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@1"
+        },
+        {
+          "command": "profileKit.applyAll",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@2"
+        },
+        {
+          "command": "profileKit.editPreset",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@3"
+        },
+        {
+          "command": "profileKit.openPreset",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@1"
+        },
+        {
+          "command": "profileKit.createPreset",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "profileKit.installMissing",
+          "when": "view == profileKit.profiles && viewItem =~ /:missing\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "profileKit.switchTo",
+          "when": "view == profileKit.profiles && viewItem =~ /^profile:exists\\b/ && viewItem =~ /:other\\b/",
+          "group": "inline@2"
+        },
+        {
+          "command": "profileKit.applyProfile",
+          "when": "view == profileKit.profiles && viewItem =~ /:declared\\b/",
+          "group": "1_apply@1"
+        },
+        {
+          "command": "profileKit.installMissing",
+          "when": "view == profileKit.profiles && viewItem =~ /:missing\\b/",
+          "group": "1_apply@2"
+        },
+        {
+          "command": "profileKit.switchTo",
+          "when": "view == profileKit.profiles && viewItem =~ /^profile:exists\\b/ && viewItem =~ /:other\\b/",
+          "group": "2_switch@1"
+        }
+      ]
+    },
     "jsonValidation": [
       {
         "fileMatch": "*.profile-kit.json",
@@ -73,5 +248,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
   }
 }

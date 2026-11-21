@@ -1,0 +1,23 @@
+{
+  "displayName": "Profile Kit",
+  "description": "Declare core + per-purpose extension groups once, then create and check VS Code profiles from that preset",
+  "config.title": "Profile Kit",
+  "config.presetPath": "Preset file (`*.profile-kit.json`) that declares core extensions, groups, profiles and settings. The same file is used in every profile.",
+  "config.profile": "Written by Profile Kit into each profile's own settings: the profile's name, so Profile Kit can tell which profile a window uses. Do not edit.",
+  "view.container": "Profile Kit",
+  "view.profiles": "Profiles",
+  "view.welcome": "No preset file yet. A preset declares the extensions every profile gets (core), named groups, and profiles built from them.\n[Open Preset File](command:profileKit.openPreset)\n[Create Preset from This Profile](command:profileKit.createPreset)",
+  "cmd.showPlan": "Show Plan from Preset File",
+  "cmd.openPreset": "Open Preset File...",
+  "cmd.createPreset": "Create Preset from This Profile...",
+  "cmd.editPreset": "Edit Preset",
+  "cmd.refresh": "Refresh",
+  "cmd.installMissing": "Install Missing Extensions",
+  "cmd.openManager": "Open Manager",
+  "cmd.installToProfiles": "Install to Profiles...",
+  "cmd.applyProfile": "Apply Preset to Profile...",
+  "cmd.applyAll": "Apply Preset to All Profiles...",
+  "cmd.switchProfile": "Switch Profile...",
+  "cmd.switchTo": "Switch to This Profile",
+  "category": "Profile Kit"
+}

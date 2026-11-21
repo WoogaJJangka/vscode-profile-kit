@@ -1,6 +1,7 @@
 **
 !dist/extension.js
 !dist/cli.js
+!dist/webview.js
 !schema/**
 !presets/example.json
 !media/**
@@ -8,3 +9,6 @@
 !README.md
 !CHANGELOG.md
 !LICENSE
+!l10n/**
+!package.nls.json
+!package.nls.*.json

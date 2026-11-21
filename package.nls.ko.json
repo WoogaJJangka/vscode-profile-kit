@@ -1,0 +1,23 @@
+{
+  "displayName": "Profile Kit",
+  "description": "공통(core)과 용도별 확장 그룹을 한 번 선언하고, 그 선언으로 VS Code 프로필을 만들고 점검합니다",
+  "config.title": "Profile Kit",
+  "config.presetPath": "공통(core) 확장, 그룹, 프로필, 설정을 선언하는 프리셋 파일(`*.profile-kit.json`). 모든 프로필에서 같은 파일을 씁니다.",
+  "config.profile": "Profile Kit가 각 프로필의 설정에 쓰는 프로필 이름입니다. 창이 어느 프로필인지 알아내는 데 씁니다. 직접 고치지 마세요.",
+  "view.container": "Profile Kit",
+  "view.profiles": "프로필",
+  "view.welcome": "프리셋 파일이 아직 없습니다. 프리셋에는 모든 프로필이 받는 확장(core), 이름 붙인 그룹, 그 둘로 만든 프로필을 선언합니다.\n[프리셋 파일 열기](command:profileKit.openPreset)\n[이 프로필로 프리셋 만들기](command:profileKit.createPreset)",
+  "cmd.showPlan": "프리셋 파일의 계획 보기",
+  "cmd.openPreset": "프리셋 파일 열기...",
+  "cmd.createPreset": "이 프로필로 프리셋 만들기...",
+  "cmd.editPreset": "프리셋 편집",
+  "cmd.refresh": "새로 고침",
+  "cmd.installMissing": "빠진 확장 설치",
+  "cmd.openManager": "관리 화면 열기",
+  "cmd.installToProfiles": "프로필에 설치...",
+  "cmd.applyProfile": "프로필에 프리셋 적용...",
+  "cmd.applyAll": "모든 프로필에 프리셋 적용...",
+  "cmd.switchProfile": "프로필 전환...",
+  "cmd.switchTo": "이 프로필로 전환",
+  "category": "Profile Kit"
+}

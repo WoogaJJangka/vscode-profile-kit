@@ -15,6 +15,15 @@
     "extensionList": {
       "type": "array",
       "items": { "$ref": "#/definitions/extensionId" }
+    },
+    "settings": {
+      "type": "object",
+      "description": "settings.json keys and values. Only keys written by Profile Kit are managed; other keys are left alone.",
+      "propertyNames": { "minLength": 1, "pattern": "\\S" }
+    },
+    "nameList": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
     }
   },
   "properties": {
@@ -27,6 +36,10 @@
       "type": "object",
       "description": "Named sets of extensions that profiles pick from",
       "additionalProperties": { "$ref": "#/definitions/extensionList" }
+    },
+    "settings": {
+      "$ref": "#/definitions/settings",
+      "description": "Settings written to every declared profile (profiles.X.settings override them)"
     },
     "profiles": {
       "type": "object",
@@ -52,7 +65,35 @@
               "snippets": { "type": "boolean" },
               "tasks": { "type": "boolean" }
             }
+          },
+          "settings": {
+            "$ref": "#/definitions/settings",
+            "description": "Settings for this profile only, written over the common settings"
+          },
+          "match": {
+            "type": "object",
+            "description": "Signals used to recommend this profile for an extension or a folder",
+            "additionalProperties": false,
+            "properties": {
+              "languages": { "$ref": "#/definitions/nameList", "description": "VS Code language IDs" },
+              "files": {
+                "type": "array",
+                "description": "File or folder names at the top of a folder: exact names or simple globs like *.py",
+                "items": { "type": "string", "minLength": 1, "pattern": "^[^\\\\/]*[^\\\\/\\s][^\\\\/]*$" }
+              },
+              "keywords": { "$ref": "#/definitions/nameList" }
+            }
           }
+        },
+        "if": {
+          "required": ["shareFromDefault"],
+          "properties": {
+            "shareFromDefault": { "required": ["settings"], "properties": { "settings": { "const": true } } }
+          }
+        },
+        "then": {
+          "not": { "required": ["settings"] },
+          "description": "A profile that shares settings with Default has no settings.json of its own"
         }
       }
     }
