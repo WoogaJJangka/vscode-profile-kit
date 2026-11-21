@@ -22,6 +22,7 @@
 3. GitHub environment(권장): 저장소 Settings → Environments → `marketplace`를 만들고 Required reviewers에 본인을 넣는다.
    그러면 태그를 push해도 승인하기 전에는 게시되지 않는다. 만들지 않으면 첫 실행 때 보호 규칙 없는 environment가 자동으로 생긴다.
    - private 저장소에서 environment 보호 규칙은 GitHub Pro 이상에서만 쓸 수 있다. 무료 계정이면 승인 단계 없이 태그 push가 곧 게시다.
+   - 이 저장소는 Deployment branches and tags를 "Selected branches and tags" + 태그 `v*`로 두었다(2026-11-21). 다른 브랜치·태그에서 도는 job은 이 environment를 쓸 수 없다.
 
 ## 매번 하는 게시
 
