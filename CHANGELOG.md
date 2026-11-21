@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [1.0.0]
+
+First release (not a pre-release). The features are those of 0.5.0.
+
+### Security
+
+- Windows: an argument for `code` that cmd.exe would change even inside quotes (`"`, `%`, a line break) is refused with an error instead of being passed on altered; a trailing backslash (a drive root such as `D:\`) no longer escapes the closing quote.
+- The manager panel checks extension IDs before they reach the preset or `code`.
+- Development only: `@vscode/vsce` now uses minimatch 11.0.9 (GHSA-g3hv-75wg-m249). Nothing from it is in the VSIX.
+
+### Changed
+
+- The Marketplace listing no longer says Preview.
+
 ## [0.5.0] - pre-release
 
 ### Added

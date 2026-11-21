@@ -1,6 +1,6 @@
 # Profile Kit
 
-> Pre-release (0.x). Marketplace: `woogajjangka.vscode-profile-kit`.
+> Release (1.x). Marketplace: `woogajjangka.vscode-profile-kit`.
 
 [한국어](#한국어) · [English](#english)
 

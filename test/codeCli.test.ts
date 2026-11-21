@@ -9,7 +9,32 @@ import {
   listExtensionsArgs,
   parseListExtensions,
   saysAlreadyInstalled,
+  windowsCommandLine,
 } from '../src/core/codeCli';
+
+describe('windowsCommandLine', () => {
+  it('quotes every argument and the command only when it has spaces', () => {
+    expect(windowsCommandLine('code', ['--profile', 'Web JS', '--install-extension', 'a.b'])).toBe(
+      'code "--profile" "Web JS" "--install-extension" "a.b"',
+    );
+    expect(windowsCommandLine('C:\\Program Files\\VS Code\\bin\\code.cmd', ['--list-extensions'])).toBe(
+      '"C:\\Program Files\\VS Code\\bin\\code.cmd" "--list-extensions"',
+    );
+  });
+
+  it('keeps cmd.exe operators inside the quotes as text', () => {
+    expect(windowsCommandLine('code', ['D:\\a&b|c^d<e>f'])).toBe('code "D:\\a&b|c^d<e>f"');
+  });
+
+  it('doubles trailing backslashes so the closing quote is not escaped', () => {
+    expect(windowsCommandLine('code', ['D:\\'])).toBe('code "D:\\\\"');
+    expect(windowsCommandLine('code', ['D:\\a\\b'])).toBe('code "D:\\a\\b"');
+  });
+
+  it.each(['a"b', 'D:\\100%', '%PATH%', 'a\nb', 'a\rb', 'a\0b'])('refuses %j instead of changing it', (arg) => {
+    expect(() => windowsCommandLine('code', ['--profile', arg])).toThrow(/not passed to code/);
+  });
+});
 
 describe('classifyInstallOutput', () => {
   // shapes seen in install-log-*.txt / run-output*.txt of the PowerShell runs

@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import {
   addExtension,
   isAppliedToAllProfiles,
+  isExtensionId,
   membershipEdits,
   normalizeId,
   parsePresetText,
@@ -271,6 +272,8 @@ export class ManagerPanel implements vscode.Disposable {
           : t('"{0}" extensions', x.name ?? '');
 
     for (const change of changes) {
+      // the webview is ours, but an ID still reaches the preset and the `code` command line only when it is valid
+      if (!isExtensionId(change.id)) throw new Error(t('"{0}" is not an extension ID.', String(change.id)));
       const id = normalizeId(change.id);
       const edits = membershipEdits(preset, id, change.profiles);
       for (const target of edits.remove) {
