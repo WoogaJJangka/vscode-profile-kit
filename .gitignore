@@ -3,6 +3,7 @@ node_modules/
 dist/
 out/
 coverage/
+sonar-project.properties
 .vscode-test/
 *.vsix
 

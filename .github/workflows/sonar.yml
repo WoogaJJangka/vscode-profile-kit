@@ -1,0 +1,85 @@
+name: SonarQube Cloud
+
+# CI analysis on SonarQube Cloud with the unit-test coverage; a failed quality gate fails this check.
+#
+# Off until it is switched on (docs/REVIEW-2026-11-21.md, stage A-0):
+#   1. SonarQube Cloud: organization woogajjangka > Analyze new project > this repository,
+#      then the project > Administration > Analysis Method: turn Automatic Analysis off
+#      (SonarQube Cloud runs either Automatic Analysis or a CI analysis, not both),
+#   2. add the repository secret SONAR_TOKEN (SonarQube Cloud > My Account > Security),
+#   3. only when they differ from the defaults below: repository variables SONAR_ORGANIZATION, SONAR_PROJECT_KEY.
+# Without SONAR_TOKEN (and for pull requests from forks, which get no secrets) the analysis is skipped.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enabled:
+    name: CI analysis enabled?
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SONAR_TOKEN is not set: SonarQube Cloud analysis is skipped (see sonar.yml to switch it on)."
+          fi
+
+  analysis:
+    name: Analysis + quality gate
+    needs: enabled
+    if: needs.enabled.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # whole history: new code of a pull request and the blame of the issues
+          fetch-depth: 0
+          persist-credentials: false
+
+      # same major as environment.yml
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
+      # the scanner reads sonar-project.properties
+      - name: Analysis settings
+        run: cp .sonarcloud.properties sonar-project.properties
+
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'woogajjangka' }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'WoogaJJangka_vscode-profile-kit' }}
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=600
