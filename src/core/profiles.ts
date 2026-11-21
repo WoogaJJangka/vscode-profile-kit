@@ -12,6 +12,7 @@
 import { parse, type ParseError } from 'jsonc-parser';
 
 import { isRecord, stripBom } from './preset';
+import { trimTrailingSlashes } from './text';
 
 /** Profile ID VS Code uses for Default in `profileAssociations`. */
 export const DEFAULT_PROFILE_ID = '__default__profile__';
@@ -152,7 +153,7 @@ export function folderKey(uriOrPath: string): string {
       // keep the raw text if it has a broken % escape
     }
   }
-  s = s.replace(/\\/g, '/').replace(/\/+$/, '');
+  s = trimTrailingSlashes(s.replace(/\\/g, '/'));
   if (/^[A-Za-z]:/.test(s)) s = `/${s}`;
   if (/^\/[A-Za-z]:/.test(s)) s = s.toLowerCase();
   return s;

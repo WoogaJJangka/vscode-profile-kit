@@ -109,3 +109,17 @@ Settings Sync가 목록과 프로필 파일을 다른 PC로 어떻게 옮기는�
 - 한 키는 공통이거나 프로필별, 둘 중 하나다. 프리셋의 `profiles.X.settings` 키가 목록에 있으면 무시되니 경고한다.
 - 목록을 바꾼 뒤에는 열린 창을 다시 열라고 안내한다.
 - 공유를 끄는 순서: 백업 → 화면에서 공유 끄기 → 그다음 프로필 파일 쓰기(끌 때 VS Code가 파일을 어떻게 하든 결과가 같도록).
+
+## 9. SonarQube Cloud (2026-11-21~)
+
+CI 분석(`sonar.yml`, secret `SONAR_TOKEN`, Automatic Analysis 끔). 수동 실행: `gh workflow run sonar.yml --ref main`.
+Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis while Automatic Analysis is enabled"로 실패한다(첫 실행에서 겪음).
+첫 분석(main `000f7ff`, 4,317줄): 품질 게이트 통과(새 코드), 커버리지 82.5%, 중복 0%, 핫스팟 0, 이슈 17개(버그 5, 취약점 11, 냄새 1).
+
+자주 나오는 지적과 이 저장소의 답 (`a-file-icon-vscode`와 같은 답):
+- 비교 함수 없는 `sort()`(S2871): `core/text.ts` `compareCodeUnits`. `localeCompare`를 쓰지 않는다: `profileKit.managedKeys`처럼 Sync로 PC 사이를 오가는 목록의 순서가 PC 로캘에 따라 달라지면 안 된다.
+- 끝의 `/` 지우는 정규식 백트래킹(S8786): `trimTrailingSlashes`(반복문).
+- 웹뷰 `message`의 출처(S2819): `event.origin !== window.origin`이면 버린다. VS Code는 확장 메시지를 웹뷰와 같은 출처의 호스트 프레임에서 `postMessage(…, window.origin)`로 넘긴다(`a-file-icon-vscode`에서 1.95·1.147로 확인).
+- CSP nonce에 `Math.random`(S2245): `crypto.randomBytes`.
+- Actions의 `npm ci`·`npx`(S6505, S8543): `npm ci --ignore-scripts`, vsce는 `./node_modules/.bin/vsce`(설치된 고정 버전). esbuild는 설치 스크립트 없이도 플랫폼 패키지로 동작한다(로컬 `npm ci --ignore-scripts` → check·build·package 확인).
+- "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫는다.

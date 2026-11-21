@@ -45,7 +45,8 @@ jobs:
           node-version: 24
 
       - name: Install
-        run: npm ci
+        # no lifecycle scripts (SonarQube S6505); esbuild works from its platform package without them
+        run: npm ci --ignore-scripts
 
       - name: Check (typecheck, lint, format, unit tests)
         run: npm run check
@@ -65,7 +66,7 @@ jobs:
 
       # vscode:prepublish runs typecheck and the production build
       - name: Package VSIX
-        run: npx vsce package --no-dependencies ${{ steps.version.outputs.flag }} -o vscode-profile-kit.vsix
+        run: ./node_modules/.bin/vsce package --no-dependencies ${{ steps.version.outputs.flag }} -o vscode-profile-kit.vsix
 
       - name: Upload VSIX
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -74,4 +75,4 @@ jobs:
           path: vscode-profile-kit.vsix
 
       - name: Publish to the Marketplace (OIDC)
-        run: npx vsce publish --oidc --packagePath vscode-profile-kit.vsix ${{ steps.version.outputs.flag }}
+        run: ./node_modules/.bin/vsce publish --oidc --packagePath vscode-profile-kit.vsix ${{ steps.version.outputs.flag }}

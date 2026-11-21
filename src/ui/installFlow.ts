@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 
 import {
   addExtension,
+  compareCodeUnits,
   CORE_TARGET,
   type ExtensionMeta,
   extensionMetaFromManifest,
@@ -277,7 +278,7 @@ export async function installToProfiles(kit: Kit, arg?: unknown): Promise<void> 
   }
   let id = typeof arg === 'string' && isExtensionId(arg) ? arg.toLowerCase() : undefined;
   if (!id) {
-    const local = [...localExtensionIds(kit)].sort();
+    const local = [...localExtensionIds(kit)].sort(compareCodeUnits);
     const items: ExtensionPick[] = [
       { label: `$(edit) ${t('Enter an extension ID...')}`, description: t('publisher.name, as on the Marketplace') },
       { label: t('Installed in this profile'), kind: vscode.QuickPickItemKind.Separator },
