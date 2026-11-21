@@ -10,6 +10,8 @@
   Phase 5 준비(2026-11-21): 버전 0.1.0(pre-release), `.github/workflows/release.yml`(태그 `vX.Y.Z` push → 점검 → VSIX → `vsce publish --oidc`, environment `marketplace`), 절차 `docs/RELEASE.md`.
   시험 게시 끝(2026-11-21): 태그 `v0.1.0` → Marketplace `woogajjangka.vscode-profile-kit` 0.1.0 pre-release, public·validated.
   단계 E 게시(2026-11-21): PR #19(version 0.3.0, CHANGELOG) → 태그 `v0.3.0` → Release 성공, Marketplace 0.3.0 pre-release. minor 홀수 = pre-release, 짝수 = 정식(0.2.0은 건너뜀, 사용자 결정).
+  내장 프리셋과 추천 머지(PR #21): 내장 프리셋 9개(`src/core/starters.ts`), 환영 화면 추천, "Start from a Built-in Preset...". 격리 VS Code에서 확인.
+  0.5.0 게시(2026-11-21): PR #22(version 0.5.0, CHANGELOG) → 태그 `v0.5.0` → Release 성공("Published ... v0.5.0"), Marketplace 0.5.0 pre-release(0.4.0은 건너뜀).
   다음 계획(피드백 검토, 게시 목록 문제 R1~R6, SonarQube Cloud 도입, 단계 A~E)은 `docs/REVIEW-2026-11-21.md`. 범위는 좁히지 않는다(사용자 결정).
   단계 A(코드)·B·D 머지됨(PR #14·#16·#17). 단계 C(`.code-profile` 내보내기·가져오기, 내장 템플릿, "모든 프로필에 적용" 표시, Sync 문구) 머지됨(PR #18), `docs/PLAN.md` 8-2절.
   남은 것: 프로필 설정 공유 문제(아래), 저장소 public 전환(R2, 사용자 결정), 정식 1.0 시점.
