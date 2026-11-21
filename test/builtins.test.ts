@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
@@ -9,7 +9,6 @@ import {
   exportCodeProfiles,
   fetchTemplates,
   readApplicationScoped,
-  realFileInside,
   readTemplatesUrl,
   syncedBefore,
 } from '../src/host/builtins';
@@ -36,13 +35,8 @@ describe('files VS Code leaves on disk (read only)', () => {
     expect(broken.problem).toMatch(/could not be read/);
   });
 
-  it('reads a file only when its real path is inside the folder', () => {
-    const inner = path.join(dir, 'ext');
-    mkdirSync(inner);
-    expect(realFileInside(inner, 'extensions.json')).toBeUndefined();
-    writeFileSync(path.join(inner, 'extensions.json'), '[]');
-    expect(realFileInside(inner, 'extensions.json')).toBe(realpathSync(path.join(inner, 'extensions.json')));
-    expect(realFileInside(inner, path.join('..', 'outside.json'))).toBeUndefined();
+  it('a missing folder means none; extensions.json linking outside the folder is not read', () => {
+    expect(readApplicationScoped(path.join(dir, 'no-such-folder'))).toEqual({ ids: [] });
 
     // a symbolic link to a file elsewhere (needs symlink rights; Windows without them skips this part)
     const outside = path.join(dir, 'outside.json');
@@ -54,7 +48,6 @@ describe('files VS Code leaves on disk (read only)', () => {
     } catch {
       return;
     }
-    expect(realFileInside(linkDir, 'extensions.json')).toBeUndefined();
     const read = readApplicationScoped(linkDir);
     expect(read.ids).toEqual([]);
     expect(read.problem).toMatch(/points outside/);

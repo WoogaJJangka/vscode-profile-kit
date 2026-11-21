@@ -26,29 +26,21 @@ import type { UserDataPaths } from './paths';
 import { writeFileAtomic } from './settingsWriter';
 
 /**
- * The real path of `<dir>/<name>`, or undefined when that file does not exist or resolves outside `dir`
- * (a symbolic link to somewhere else). Canonical path, then the containment check (SonarQube S8707).
+ * Extensions VS Code applies to all profiles, from `<extensionsDir>/extensions.json`.
+ * A missing file means none; a broken one, or one that links outside the folder, is reported and treated as none.
+ * The file is read by its real path and only when that is inside the folder (canonical path, then containment
+ * check, then use: the order SonarQube S8707 asks for).
  */
-export function realFileInside(dir: string, name: string): string | undefined {
+export function readApplicationScoped(extensionsDir: string): { ids: string[]; problem?: string } {
   let base: string;
   let file: string;
   try {
-    base = realpathSync(dir);
-    file = realpathSync(path.join(base, name));
+    base = realpathSync(extensionsDir);
+    file = realpathSync(path.join(base, EXTENSIONS_MANIFEST));
   } catch {
-    return undefined;
+    return { ids: [] }; // no such folder or file
   }
-  return file.startsWith(base + path.sep) ? file : undefined;
-}
-
-/**
- * Extensions VS Code applies to all profiles, from `<extensionsDir>/extensions.json`.
- * A missing file means none; a broken one, or one that links outside the folder, is reported and treated as none.
- */
-export function readApplicationScoped(extensionsDir: string): { ids: string[]; problem?: string } {
-  if (!existsSync(path.join(extensionsDir, EXTENSIONS_MANIFEST))) return { ids: [] };
-  const file = realFileInside(extensionsDir, EXTENSIONS_MANIFEST);
-  if (!file)
+  if (!file.startsWith(base + path.sep))
     return {
       ids: [],
       problem: `${EXTENSIONS_MANIFEST} in ${extensionsDir} points outside that folder, so it is not read`,
