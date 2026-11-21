@@ -14,7 +14,10 @@
   0.5.0 게시(2026-11-21): PR #22(version 0.5.0, CHANGELOG) → 태그 `v0.5.0` → Release 성공("Published ... v0.5.0"), Marketplace 0.5.0 pre-release(0.4.0은 건너뜀).
   다음 계획(피드백 검토, 게시 목록 문제 R1~R6, SonarQube Cloud 도입, 단계 A~E)은 `docs/REVIEW-2026-11-21.md`. 범위는 좁히지 않는다(사용자 결정).
   단계 A(코드)·B·D 머지됨(PR #14·#16·#17). 단계 C(`.code-profile` 내보내기·가져오기, 내장 템플릿, "모든 프로필에 적용" 표시, Sync 문구) 머지됨(PR #18), `docs/PLAN.md` 8-2절.
-  남은 것: 프로필 설정 공유 문제(아래), 저장소 public 전환(R2, 사용자 결정), 정식 1.0 시점.
+  1.0.0 정식(2026-11-21, 사용자 결정): 보안 점검(Windows `code.cmd` 인자 `"`·`%`·줄바꿈 거부, 끝 `\` 이중화, 관리 화면 ID 검사,
+  vsce의 minimatch를 overrides로 11.0.9) + version 1.0.0, `preview` 제거. Sonar S8707(settingsWriter, CLI 인자 경로) 3건은
+  `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
+  남은 것: 프로필 설정 공유 문제(아래), 저장소 public 전환(R2, 사용자 결정).
 - 2026-11-21 실제 VS Code `apply` 미리보기: 할 일 없음. 다만 8개 프로필 모두 Default 설정을 공유해서(`useDefaultFlags.settings`)
   프리셋 설정과 마커 `profileKit.profile`을 쓸 수 없다. 그래서 현재 프로필은 폴더 연결로만 알 수 있다. 공유를 끌지는 사용자 결정.
 - 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). 관리 키 목록은 각 settings.json의 `profileKit.managedKeys`(Sync로 같이 이동). 옛 `globalStorage/.../managed-settings.json`은 읽기만. UI에서 추가하면 프리셋도 고친다.

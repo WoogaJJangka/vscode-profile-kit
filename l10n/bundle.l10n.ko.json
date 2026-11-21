@@ -1,6 +1,7 @@
 {
   "\"{0}\" extensions": "\"{0}\"의 extensions",
   "\"{0}\" has every declared extension.": "\"{0}\"에 선언한 확장이 모두 있습니다.",
+  "\"{0}\" is not an extension ID.": "\"{0}\"은(는) 확장 ID가 아닙니다.",
   "(Known from the folder link; apply the preset to this profile to be sure.)": "(폴더 연결로 알아낸 값입니다. 확실히 하려면 이 프로필에 프리셋을 적용하세요.)",
   "Add Extension...": "확장 추가...",
   "Add Setting": "설정 추가",

@@ -77,8 +77,26 @@ export interface CodeRunnerOptions {
 }
 
 /**
- * Default runner. On Windows `code` is `code.cmd`, which Node only starts through a shell, so arguments are
- * quoted here. Callers pass only validated profile names and extension IDs (see preset.ts) and paths.
+ * The cmd.exe command line for `command args` on Windows. Every argument is put in double quotes, where cmd.exe
+ * treats `&`, `|`, `<`, `>`, `^` and spaces as text. What quotes do not protect is refused instead of changed:
+ * `"` (would end the quotes), `%` (cmd.exe expands `%NAME%` even inside quotes), line breaks and NUL.
+ * Trailing backslashes are doubled so `"D:\"` does not become an escaped quote for Code.exe.
+ * The command is quoted only when it has spaces: a quoted `"code"` makes code.cmd's %~dp0 point at the
+ * current folder instead of VS Code's bin folder ("..\Code.exe is not recognized").
+ */
+export function windowsCommandLine(command: string, args: readonly string[]): string {
+  const quote = (a: string) => {
+    if (/["%\r\n\0]/.test(a)) throw new Error(`argument not passed to code: it contains " % or a line break (${a})`);
+    let end = a.length;
+    while (end > 0 && a[end - 1] === '\\') end--;
+    return `"${a}${a.slice(end)}"`;
+  };
+  return [/\s/.test(command) ? quote(command) : command, ...args.map(quote)].join(' ');
+}
+
+/**
+ * Default runner. On Windows `code` is `code.cmd`, which Node only starts through a shell, so the command line is
+ * built by `windowsCommandLine`. Callers pass validated profile names and extension IDs (see preset.ts) and paths.
  * Calling `code.cmd` from the extension host works as is (PLAN.md section 8, #1).
  */
 export function createCodeRunner(command = 'code', options: CodeRunnerOptions = {}): CodeRunner {
@@ -87,17 +105,14 @@ export function createCodeRunner(command = 'code', options: CodeRunnerOptions = 
     const args = [...baseArgs, ...callArgs];
     const { spawn } = await import('node:child_process');
     const isWindows = process.platform === 'win32';
+    // built before the promise so a refused argument rejects the call instead of throwing out of the executor
+    const line = isWindows ? windowsCommandLine(command, args) : undefined;
     return new Promise<RunResult>((resolve, reject) => {
       // One command string, not args + shell: Node 24 warns (DEP0190) because it would only concatenate them.
-      // Quote the command only when it has spaces: a quoted `"code"` makes code.cmd's %~dp0 point at the
-      // current folder instead of VS Code's bin folder ("..\Code.exe is not recognized").
-      const quote = (a: string) => `"${a.replace(/"/g, '')}"`;
-      const child = isWindows
-        ? spawn([/\s/.test(command) ? quote(command) : command, ...args.map(quote)].join(' '), {
-            shell: true,
-            windowsHide: true,
-          })
-        : spawn(command, args, { windowsHide: true });
+      const child =
+        line !== undefined
+          ? spawn(line, { shell: true, windowsHide: true })
+          : spawn(command, args, { windowsHide: true });
       let stdout = '';
       let stderr = '';
       child.stdout.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
