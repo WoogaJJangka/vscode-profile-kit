@@ -79,9 +79,9 @@
 - remote `origin` = `WoogaJJangka/vscode-profile-kit`. 작업 브랜치는 같은 이름의 origin 브랜치를 추적(`git push -u origin <branch>`).
 - `.vscode/{launch,tasks,extensions}.json`은 확장 실행에 쓰여 예외로 커밋. `.idea/`·`.vscode/settings.json`은 추적하지 않는다.
 - Actions `uses:`는 커밋 SHA + 버전 주석, 기본 `permissions: contents: read`.
-- GitHub 저장소 설정(2026-11-21): ruleset `main: CI must pass`가 main에 CI 체크 `ubuntu-latest`·`windows-latest`·`macos-latest`를 필수로 한다(예외 없음).
+- GitHub 저장소 설정(2026-11-21): ruleset `main: CI must pass`가 main에 CI 체크 `ubuntu-latest`·`windows-latest`·`macos-latest`와 SonarQube `Analysis + quality gate`(2026-11-21 추가)를 필수로 한다(예외 없음).
   그래서 main에 직접 push할 수 없고 브랜치 + PR로만 머지한다. auto-merge 허용, 머지된 PR 브랜치는 원격에서 자동 삭제(로컬은 `git branch -d`), 로컬 `fetch.prune=true`.
-  `ci.yml`의 job 이름(matrix `os`)을 바꾸면 ruleset의 체크 이름도 같이 바꾼다. 안 바꾸면 PR이 머지되지 않는다.
+  `ci.yml`의 job 이름(matrix `os`)이나 `sonar.yml`의 job 이름을 바꾸면 ruleset의 체크 이름도 같이 바꾼다. 안 바꾸면 PR이 머지되지 않는다.
 - SonarQube Cloud(조직 `woogajjangka`, 프로젝트 `WoogaJJangka_vscode-profile-kit`): `sonar.yml` CI 분석 + 커버리지(`npm run test:coverage` → `coverage/lcov.info`) + 품질 게이트.
   secret `SONAR_TOKEN`이 있을 때만 돈다. Automatic Analysis는 꺼 둔다(켜면 CI 스캔 실패). 설정은 `.sonarcloud.properties`(CI가 `sonar-project.properties`로 복사).
   프로젝트 생성·토큰 등록은 사용자가 직접. 결과는 SonarQube MCP로 읽는다.

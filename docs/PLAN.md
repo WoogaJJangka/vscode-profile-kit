@@ -43,6 +43,7 @@
 - 프로필은 설정/단축키/스니펫/작업/확장 중 일부만 포함할 수 있고 빠진 항목은 Default에서 온다. 복사해 만든 프로필은 원본과 연결이 유지되지 않는다. 개별 항목은 "Apply Setting to all Profiles", "Apply Extension to all Profiles"로 공유 가능.
 - 다른 PC: Settings Sync에서 Profiles 항목을 체크해야 프로필이 따라온다(최대 20개, Microsoft/GitHub 계정). machine 범위 설정은 동기화 안 됨, 단축키는 OS별로 따로 동기화. 폴더-프로필 연결 동기화 여부는 문서에 없음. 파일 이동은 프로필 Export(.code-profile, gist) / Import.
 - 확장 API 한계(가장 중요): 확장 API는 프로필 관련 기능을 노출하지 않으며 Microsoft도 바꿀 계획이 없다고 알려져 있음. 다른 확장을 비활성화하는 API도 없음. 기존 사례들은 CLI 호출이나 globalStorage/storage.json 읽기 같은 우회에 의존.
+  2026-11-21 재확인: 프로필 생성·전환·목록의 공개 API도 제안(proposed) API도 아직 없다. 그래서 지금 방식(`code --profile X --new-window`, 내부 명령 `workbench.profiles.actions.profileEntry.<location>`, storage.json 읽기)을 유지하고, 의존하는 비공개 동작 6가지는 `docs/REVIEW-2026-11-21.md` 2절 P9 표로 관리한다.
 - 선행 사례: aaronpowell/vscode-profile-switcher(내장 프로필 도입으로 보관됨), robole/vscode-profile-status(storage.json 읽기), vsix-manager(그룹 정의), better-extension-manager(설치/삭제 방식), vs-code-preset, vscode-profile-extension-manager(PyPI, CLI).
 - 배포: `npm i -g @vscode/vsce` -> publisher 생성 -> `vsce package` / `vsce publish`. 전역 PAT 방식은 권장되지 않고 2026-12-01 폐기 예정이라, GitHub Actions의 Trusted Publishing(OIDC, `vsce publish --oidc`)을 권장. Open VSX는 해당 문서에 언급이 없으므로 별도 확인 필요.
 
@@ -122,4 +123,5 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - 웹뷰 `message`의 출처(S2819): `event.origin !== window.origin`이면 버린다. VS Code는 확장 메시지를 웹뷰와 같은 출처의 호스트 프레임에서 `postMessage(…, window.origin)`로 넘긴다(`a-file-icon-vscode`에서 1.95·1.147로 확인).
 - CSP nonce에 `Math.random`(S2245): `crypto.randomBytes`.
 - Actions의 `npm ci`·`npx`(S6505, S8543): `npm ci --ignore-scripts`, vsce는 `./node_modules/.bin/vsce`(설치된 고정 버전). esbuild는 설치 스크립트 없이도 플랫폼 패키지로 동작한다(로컬 `npm ci --ignore-scripts` → check·build·package 확인).
-- "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫는다.
+- "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫았다(2026-11-21, 4개).
+- PR #15 머지 뒤(2026-11-21) 열린 이슈 0, 품질 게이트 통과. `Analysis + quality gate`는 main ruleset 필수 검사다.
