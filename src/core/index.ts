@@ -8,4 +8,5 @@ export * from './profiles';
 export * from './recommend';
 export * from './retry';
 export * from './settings';
+export * from './text';
 export * from './workspace';

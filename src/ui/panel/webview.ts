@@ -2,6 +2,7 @@
  * Manager panel UI (runs in the webview, bundled to dist/webview.js). Plain DOM, VS Code theme variables.
  * It only keeps the user's pending wishes; the extension computes previews and does the work.
  */
+import { compareCodeUnits } from '../../core/text';
 import type {
   ExtensionChange,
   FromWebview,
@@ -285,7 +286,7 @@ function settingsTab(st: ManagerState): HTMLElement {
     ),
   );
   const tbody = el('tbody');
-  for (const key of [...keys].sort()) {
+  for (const key of [...keys].sort(compareCodeUnits)) {
     const shared = st.settings.allProfiles.includes(key);
     const cells = scopes.map((c) => {
       const cur = currentValue(st, c.scope, key);
@@ -456,6 +457,9 @@ function render(): void {
 }
 
 window.addEventListener('message', (event: MessageEvent<ToWebview>) => {
+  // VS Code hands the extension's messages over from a host frame of the same origin as this page
+  // (postMessage(..., window.origin)); anything else is not from Profile Kit (SonarQube S2819)
+  if (event.origin !== window.origin) return;
   const m = event.data;
   switch (m.type) {
     case 'state':

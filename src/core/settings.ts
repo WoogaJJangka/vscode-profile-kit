@@ -3,6 +3,7 @@
  * Profile Kit only manages the keys it wrote before (the "managed" list kept by the host); every other key stays as is.
  */
 import { isRecord, parseJsonc, stripBom, type Preset, type SettingsMap } from './preset';
+import { compareCodeUnits } from './text';
 
 /** `[python]`, `[javascript][typescript]`: language-specific blocks, which VS Code itself merges key by key. */
 const LANGUAGE_BLOCK = /^\[[^\]]+\](\[[^\]]+\])*$/;
@@ -110,8 +111,8 @@ export function diffSettings(
   }
   for (const key of wasManaged)
     if (!has(desired, key) && has(current, key)) changes.push({ key, kind: 'remove', before: current[key] });
-  changes.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  return { changes, managed: Object.keys(desired).sort() };
+  changes.sort((a, b) => compareCodeUnits(a.key, b.key));
+  return { changes, managed: Object.keys(desired).sort(compareCodeUnits) };
 }
 
 /**

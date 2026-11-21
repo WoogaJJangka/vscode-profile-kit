@@ -1,4 +1,5 @@
 import { normalizeId } from './preset';
+import { compareCodeUnits } from './text';
 
 export interface ExtensionDiff {
   /** Declared but not installed in the profile. */
@@ -16,7 +17,7 @@ export function diffExtensions(wanted: readonly string[], installed: readonly st
   const wantSet = new Set(want);
   return {
     missing: want.filter((id) => !have.has(id)),
-    extra: [...have].filter((id) => !wantSet.has(id)).sort(),
+    extra: [...have].filter((id) => !wantSet.has(id)).sort(compareCodeUnits),
     present: want.filter((id) => have.has(id)),
   };
 }

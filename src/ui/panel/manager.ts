@@ -3,7 +3,7 @@
  * The webview only collects wishes; every edit and install is computed and done here, again at apply time
  * (the preview's token makes sure the preset file did not change in between).
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import * as vscode from 'vscode';
 
@@ -110,7 +110,7 @@ export class ManagerPanel implements vscode.Disposable {
 
   private html(media: vscode.Uri, dist: vscode.Uri): string {
     const webview = this.panel.webview;
-    const nonce = createHash('sha256').update(`${Date.now()}${Math.random()}`).digest('base64').slice(0, 24);
+    const nonce = randomBytes(18).toString('base64');
     const css = webview.asWebviewUri(vscode.Uri.joinPath(media, 'manager.css'));
     const js = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.js'));
     return `<!DOCTYPE html>

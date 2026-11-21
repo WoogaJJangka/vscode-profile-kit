@@ -6,7 +6,7 @@ import * as path from 'node:path';
 
 import * as vscode from 'vscode';
 
-import { formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
+import { compareCodeUnits, formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
 import { buildPlans, executePlans, type ProfileReport, reportOk } from '../host/apply';
 import { ensureProfile, installExtensions, type InstallResult, installSucceeded } from '../host/installer';
 import { installToProfiles } from './installFlow';
@@ -227,7 +227,7 @@ async function createPreset(kit: Kit): Promise<void> {
   const ids = vscode.extensions.all
     .filter((e) => !e.extensionPath.toLowerCase().startsWith(builtinRoot) && e.id.toLowerCase() !== own)
     .map((e) => e.id.toLowerCase())
-    .sort();
+    .sort(compareCodeUnits);
   const current = kit.currentProfile()?.name;
   const profile = current && current !== DEFAULT_PROFILE ? current : 'Core';
   const draft = { core: ids, groups: {}, settings: {}, profiles: { [profile]: {} } };
