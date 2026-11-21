@@ -3,7 +3,7 @@
 선언형 프리셋(core + groups + profiles) 하나로 VS Code 프로필을 만들고 점검하는 도구. 한국어로 답한다.
 배경·결정·겪은 문제는 `docs/PLAN.md`, 단계와 게이트는 `docs/ROADMAP.md`(Phase 0~5).
 
-## 진행 상태 (2026-11-21)
+## 진행 상태 (2026-11-22)
 
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
   단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
@@ -19,7 +19,9 @@
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
   `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
-  남은 것: 두 번째 PC 확인. 저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
+  두 번째 PC 확인 끝(2026-11-22): Sync 뒤 `apply` 미리보기에 설정 변경·"[overrides your value]" 없음(확장 설치 예정 1개만). `docs/REVIEW-2026-11-21.md` 단계 A.
+  주의: 새 PC 첫 Sync에서 Default 설정 충돌이 나면 그 PC 내용이 원격을 덮어 `applyToAllProfiles`가 빠질 수 있다. Default에 목록이 있는지 먼저 보고 확인한다.
+  저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
   (VS Code는 프로필 settings.json을 그대로 둠, 11-20 옛 사본) → `apply --yes`로 8개 프로필에 마커, Web-JS에 `[html]`. 다시 돌린 미리보기 "Nothing to do".
