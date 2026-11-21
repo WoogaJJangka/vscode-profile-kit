@@ -98,25 +98,37 @@ async function main(): Promise<void> {
 
   // stage C-2: VS Code applies language packs to all profiles. Installed into Default, one is marked
   // isApplicationScoped in the extensions folder's extensions.json and shows up in the other profile's list.
+  // Failure details below are summaries (IDs, counts, error kinds), not file or download contents.
   const install = await run(['--install-extension', LANGUAGE_PACK]);
   const scoped = readApplicationScoped(extensionsDir);
   check('extensions.json marks extensions applied to all profiles', scoped.ids.includes(LANGUAGE_PACK), {
-    scoped,
-    install: install.stdout + install.stderr,
+    applicationScoped: scoped.ids,
+    readProblem: !!scoped.problem,
+    installExitCode: install.exitCode,
   });
   const listed = await listInstalled(run, PROFILE);
   check('an extension applied to all profiles is listed in every profile', !!listed?.includes(LANGUAGE_PACK), listed);
 
   // stage C-4: the template list VS Code shows under New Profile, and each template in the .code-profile format
   const url = readTemplatesUrl(appRoot);
-  check('product.json has profileTemplatesUrl', !!url, url);
+  check('product.json has profileTemplatesUrl', !!url);
   if (url) {
-    const templates = await fetchTemplates(url).catch((error: unknown) => String(error));
-    check(
-      'profile templates are .code-profile files Profile Kit can read',
-      Array.isArray(templates) && templates.length > 0 && templates.every((x) => !!x.profile?.extensions.length),
-      templates,
-    );
+    let templates: Awaited<ReturnType<typeof fetchTemplates>> | undefined;
+    try {
+      templates = await fetchTemplates(url);
+    } catch (error) {
+      // The list is on VS Code's own CDN; older builds name a host that no longer answers (seen on 1.95.0).
+      // VS Code's New Profile > template list is then empty too, and Profile Kit only shows no suggestions.
+      console.log(
+        `SKIP  profile templates: the list in this build's product.json is not reachable (${error instanceof Error ? error.message : 'error'})`,
+      );
+    }
+    if (templates)
+      check(
+        'profile templates are .code-profile files Profile Kit can read',
+        templates.length > 0 && templates.every((x) => !!x.profile?.extensions.length),
+        templates.map((x) => ({ name: x.name, extensions: x.profile?.extensions.length ?? 0, failed: !!x.error })),
+      );
   }
 }
 
