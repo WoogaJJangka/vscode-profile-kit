@@ -168,6 +168,18 @@ export class Kit implements vscode.Disposable {
     this.changed.fire();
   }
 
+  private suggestion: { folder: string; profile: string; matched: string[] } | undefined;
+
+  /** The profile the preset suggests for this window's folder (`match.files`), set by FolderAdvisor. */
+  get folderSuggestion(): { folder: string; profile: string; matched: string[] } | undefined {
+    return this.suggestion;
+  }
+
+  setFolderSuggestion(s: { folder: string; profile: string; matched: string[] } | undefined): void {
+    this.suggestion = s;
+    this.changed.fire();
+  }
+
   /** Re-read storage.json and every profile's `--list-extensions` (in parallel). */
   refresh(): Promise<void> {
     this.refreshing ??= (async () => {

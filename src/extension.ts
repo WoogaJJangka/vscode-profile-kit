@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 
 import { registerCommands } from './ui/commands';
+import { FolderAdvisor } from './ui/folders';
 import { InstallWatcher } from './ui/installFlow';
 import { Kit } from './ui/kit';
 import { ProfileStatusBar } from './ui/switch';
@@ -14,15 +15,21 @@ import { ProfilesTree } from './ui/tree';
 export function activate(context: vscode.ExtensionContext): void {
   const kit = new Kit(context);
   const tree = new ProfilesTree(kit);
+  const folders = new FolderAdvisor(kit);
   const view = vscode.window.createTreeView('profileKit.profiles', { treeDataProvider: tree, showCollapseAll: true });
   context.subscriptions.push(
     kit,
     view,
     new ProfileStatusBar(kit),
     new InstallWatcher(kit),
+    folders,
     ...registerCommands(kit),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('profileKit.presetPath')) void kit.loadPreset().then(() => kit.refresh());
+      if (e.affectsConfiguration('profileKit.presetPath'))
+        void kit
+          .loadPreset()
+          .then(() => kit.refresh())
+          .then(() => folders.check());
       // the marker changes when Profile Kit writes this profile's settings
       else if (e.affectsConfiguration('profileKit.profile')) void kit.refresh();
     }),
@@ -32,7 +39,11 @@ export function activate(context: vscode.ExtensionContext): void {
       if (current) void kit.refreshProfile(current);
     }),
   );
-  void kit.loadPreset().then(() => kit.refresh());
+  // folder suggestion after the profile list is known (it needs storage.json for "does it exist")
+  void kit
+    .loadPreset()
+    .then(() => kit.refresh())
+    .then(() => folders.check());
 }
 
 export function deactivate(): void {

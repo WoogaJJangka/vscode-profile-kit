@@ -27,8 +27,14 @@ export class ProfileStatusBar implements vscode.Disposable {
     const current = this.kit.currentProfile();
     const row = current && this.kit.rows().find((r) => r.name === current.name);
     const missing = row?.diff?.missing.length ?? 0;
-    this.item.text = `$(layers) ${current?.name ?? t('Profile ?')}${missing ? ` $(warning) ${missing}` : ''}`;
+    const suggested = this.kit.folderSuggestion;
+    const other = suggested && suggested.profile !== current?.name ? suggested : undefined;
+    this.item.text = `$(layers) ${current?.name ?? t('Profile ?')}${missing ? ` $(warning) ${missing}` : ''}${other ? ' $(lightbulb)' : ''}`;
     const md = new vscode.MarkdownString(undefined, true);
+    if (other)
+      md.appendMarkdown(
+        `$(lightbulb) ${t('This folder suggests the profile **{0}** ({1}).', other.profile, other.matched.join(', '))}\n\n`,
+      );
     if (current) {
       md.appendMarkdown(`${t('This window uses the profile **{0}**.', current.name)}\n\n`);
       if (current.how === 'folder')
@@ -60,16 +66,22 @@ export async function switchProfile(kit: Kit, target?: string): Promise<void> {
   let location: string | undefined;
   if (!name) {
     const rows = new Map(kit.rows().map((r) => [r.name, r]));
+    const suggested = kit.folderSuggestion;
+    const profiles = [...kit.profiles].sort(
+      (a, b) => Number(b.name === suggested?.profile) - Number(a.name === suggested?.profile),
+    );
     const items: ProfilePick[] = [
-      ...kit.profiles.map((p) => {
+      ...profiles.map((p) => {
         const row = rows.get(p.name);
         const missing = row?.diff?.missing.length ?? 0;
+        const isSuggested = p.name === suggested?.profile;
         return {
           name: p.name,
           location: p.location,
-          label: `${p.name === current ? '$(account)' : '$(layers)'} ${p.name}`,
+          label: `${p.name === current ? '$(account)' : isSuggested ? '$(lightbulb)' : '$(layers)'} ${p.name}`,
           description: [
             p.name === current ? t('this window') : '',
+            isSuggested ? t('suggested for this folder ({0})', suggested.matched.join(', ')) : '',
             row?.declared ? '' : t('not in the preset'),
             missing ? t('{0} missing', missing) : '',
           ]
