@@ -152,7 +152,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫았다(2026-11-21, 4개).
 - workflow의 `curl` 다운로드(S6506): `--proto '=https' --proto-redir '=https' --tlsv1.2`로 리다이렉트도 HTTPS만.
 - 커버리지: `scripts/**`(호환성 점검은 실제 VS Code로 `compat.yml`에서 돈다)와 `esbuild.mjs`는 커버리지에서 뺀다. PR 분석에서 S8707이 다시 열리면 같은 이유로 Accept.
-- PR #18(단계 C): S8707 4개(`host/builtins.ts`: extensions 폴더의 extensions.json 읽기, appRoot의 product.json 읽기, 내보내기 폴더 쓰기)는 같은 이유. "로그에 민감 정보"(S8689, `scripts/compat/check.ts`): 실패 내용에 내려받은 템플릿·CLI 출력을 통째로 찍던 것을 ID·개수 요약으로 바꿨다.
+- PR #18(단계 C): S8707 4개(`host/builtins.ts`). product.json 읽기·내보내기 폴더 쓰기 2개는 같은 이유로 Accept. extensions.json 읽기 2개는 규칙이 권하는 대로 고쳤다: `realFileInside`가 실제 경로(`realpathSync`)를 구해 그 폴더 안(`폴더 + 구분자`로 시작)일 때만 읽는다. 다른 곳을 가리키는 심볼릭 링크는 읽지 않고 알린다. "로그에 민감 정보"(S8689, `scripts/compat/check.ts`): 실패 내용에 내려받은 템플릿·CLI 출력을 통째로 찍던 것을 ID·개수 요약으로 바꿨다.
 - 호환성 점검: 1.95.0의 product.json에 있는 템플릿 목록 주소는 응답하지 않는다(`fetch failed`). VS Code 자체의 템플릿 목록도 비게 되고 Profile Kit은 제안 없이 진행하므로, 목록을 못 받으면 FAIL이 아니라 SKIP으로 둔다.
 - PR #15 머지 뒤(2026-11-21) 열린 이슈 0, 품질 게이트 통과. `Analysis + quality gate`는 main ruleset 필수 검사다.
 

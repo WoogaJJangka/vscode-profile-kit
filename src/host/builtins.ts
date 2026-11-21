@@ -3,7 +3,7 @@
  * Read only for VS Code's files: Default's extensions.json, product.json, the Settings Sync folder.
  * Shared by the CLI and the extension. docs/PLAN.md section 8-2.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import * as path from 'node:path';
 
 import {
@@ -26,12 +26,33 @@ import type { UserDataPaths } from './paths';
 import { writeFileAtomic } from './settingsWriter';
 
 /**
+ * The real path of `<dir>/<name>`, or undefined when that file does not exist or resolves outside `dir`
+ * (a symbolic link to somewhere else). Canonical path, then the containment check (SonarQube S8707).
+ */
+export function realFileInside(dir: string, name: string): string | undefined {
+  let base: string;
+  let file: string;
+  try {
+    base = realpathSync(dir);
+    file = realpathSync(path.join(base, name));
+  } catch {
+    return undefined;
+  }
+  return file.startsWith(base + path.sep) ? file : undefined;
+}
+
+/**
  * Extensions VS Code applies to all profiles, from `<extensionsDir>/extensions.json`.
- * A missing file means none; a broken one is reported and treated as none.
+ * A missing file means none; a broken one, or one that links outside the folder, is reported and treated as none.
  */
 export function readApplicationScoped(extensionsDir: string): { ids: string[]; problem?: string } {
-  const file = path.join(extensionsDir, EXTENSIONS_MANIFEST);
-  if (!existsSync(file)) return { ids: [] };
+  if (!existsSync(path.join(extensionsDir, EXTENSIONS_MANIFEST))) return { ids: [] };
+  const file = realFileInside(extensionsDir, EXTENSIONS_MANIFEST);
+  if (!file)
+    return {
+      ids: [],
+      problem: `${EXTENSIONS_MANIFEST} in ${extensionsDir} points outside that folder, so it is not read`,
+    };
   try {
     return { ids: parseApplicationScoped(readFileSync(file, 'utf8')) };
   } catch (error) {
