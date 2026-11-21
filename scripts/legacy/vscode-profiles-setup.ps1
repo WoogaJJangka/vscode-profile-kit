@@ -19,7 +19,7 @@ $core = @(
  'cardinal90.multi-cursor-case-preserve','alefragnani.project-manager','tomoki1207.pdf','mechatroner.rainbow-csv',
  'sonarsource.sonarlint-vscode',
  'ms-vscode-remote.remote-ssh','ms-vscode-remote.remote-ssh-edit','ms-vscode.remote-explorer','ms-vscode-remote.remote-wsl',
- 'be5invis.vscode-custom-css','brandonkirbyson.vscode-animations'
+ 'be5invis.vscode-custom-css','brandonkirbyson.vscode-animations','pkief.material-icon-theme'
 )
 
 $sets = [ordered]@{

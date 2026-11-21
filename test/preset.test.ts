@@ -71,14 +71,14 @@ describe('resolveProfile', () => {
     const preset = parsePreset(example);
     const counts = Object.fromEntries(profileNames(preset).map((n) => [n, resolveProfile(preset, n).length]));
     expect(counts).toEqual({
-      Core: 27,
-      'Python-Data': 42,
-      Java: 34,
-      'C-Cpp': 34,
-      'Web-JS': 33,
-      'CSharp-Unity': 31,
-      Go: 28,
-      'Docker-Infra': 31,
+      Core: 28,
+      'Python-Data': 43,
+      Java: 35,
+      'C-Cpp': 35,
+      'Web-JS': 34,
+      'CSharp-Unity': 32,
+      Go: 29,
+      'Docker-Infra': 32,
     });
   });
 
