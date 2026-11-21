@@ -41,6 +41,8 @@ export interface UserDataPaths {
   /** `<userData>/User`: Default profile's files and `profiles/`. */
   user: string;
   storageJson: string;
+  /** Default profile's settings.json: read only (for `workbench.settings.applyToAllProfiles`), never written. */
+  defaultSettings: string;
   /** Profile Kit's own folder. */
   stateDir: string;
   managedSettingsFile: string;
@@ -61,6 +63,7 @@ export function userDataPaths(userData: string): UserDataPaths {
     userData,
     user,
     storageJson: path.join(user, 'globalStorage', 'storage.json'),
+    defaultSettings: path.join(user, 'settings.json'),
     stateDir,
     managedSettingsFile: path.join(stateDir, 'managed-settings.json'),
     profileSettings: (location) => {

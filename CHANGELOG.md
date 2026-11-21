@@ -10,6 +10,7 @@
 - **Manager** panel: extensions × profiles matrix and a settings table (common and per-profile), each with preview and apply.
 - Folder suggestion from `match.files`, once per folder; the switch list puts the suggested profile first.
 - Apply the preset to one or all profiles: create profiles, install missing extensions, write settings (backups first), with a preview and a confirmation.
+- Settings listed in VS Code's **Apply Setting to all Profiles** (`workbench.settings.applyToAllProfiles`) are left to Default: not written to profiles, marked in the settings table, noted in the preview when the preset differs, and a reload prompt when the list changes.
 - Open or create a preset (draft from this profile's extensions); `*.profile-kit.json` files get the preset schema.
 - English and Korean UI.
 

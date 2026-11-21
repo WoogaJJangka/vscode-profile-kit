@@ -31,6 +31,25 @@ export function resolveSettings(preset: Preset, name: string): SettingsMap | und
   return mergeSettings(preset.settings, spec.settings ?? {});
 }
 
+/**
+ * VS Code setting, kept in Default's settings.json, listing keys that every profile takes from Default
+ * ("Apply Setting to all Profiles", VS Code 1.81+). Such a key cannot have a per-profile value: a profile's own
+ * value is ignored, and writing it from any profile goes to Default. Language blocks (`"[html]"`) are not shared
+ * this way even when listed. Tested in docs/PLAN.md section 8-1.
+ */
+export const APPLY_TO_ALL_PROFILES_KEY = 'workbench.settings.applyToAllProfiles';
+
+/** The keys Default's settings.json applies to all profiles (`[]` when it lists none or the value is malformed). */
+export function allProfilesKeys(defaultSettings: SettingsMap): string[] {
+  const value = defaultSettings[APPLY_TO_ALL_PROFILES_KEY];
+  return Array.isArray(value) ? value.filter((k): k is string => typeof k === 'string') : [];
+}
+
+/** True when VS Code takes `key` from Default in every profile, so a profile settings.json cannot set it. */
+export function isAppliedToAllProfiles(key: string, allProfiles: readonly string[]): boolean {
+  return !LANGUAGE_BLOCK.test(key) && allProfiles.includes(key);
+}
+
 /** Deep equality for JSON values (object key order does not matter). */
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;

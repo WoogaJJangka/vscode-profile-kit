@@ -5,6 +5,7 @@
  */
 import * as vscode from 'vscode';
 
+import { APPLY_TO_ALL_PROFILES_KEY } from './core/settings';
 import { registerCommands } from './ui/commands';
 import { FolderAdvisor } from './ui/folders';
 import { InstallWatcher } from './ui/installFlow';
@@ -32,6 +33,21 @@ export function activate(context: vscode.ExtensionContext): void {
           .then(() => folders.check());
       // the marker changes when Profile Kit writes this profile's settings
       else if (e.affectsConfiguration('profileKit.profile')) void kit.refresh();
+      // open windows only pick up a changed list after a reload (docs/PLAN.md section 8-1, #9-5)
+      if (e.affectsConfiguration(APPLY_TO_ALL_PROFILES_KEY)) {
+        void kit.refresh();
+        const reload = vscode.l10n.t('Reload Window');
+        void vscode.window
+          .showInformationMessage(
+            vscode.l10n.t(
+              'The settings applied to all profiles changed. Reload open windows so each profile uses the new list.',
+            ),
+            reload,
+          )
+          .then((pick) => {
+            if (pick === reload) void vscode.commands.executeCommand('workbench.action.reloadWindow');
+          });
+      }
     }),
     // installs and uninstalls in this window's profile (other profiles do not fire this, PLAN.md section 8, #6)
     vscode.extensions.onDidChange(() => {

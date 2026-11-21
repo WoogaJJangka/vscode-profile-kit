@@ -22,7 +22,12 @@ export interface ManagerState {
   presetError?: string;
   profiles: PanelProfile[];
   extensions: PanelExtension[];
-  settings: { common: Record<string, unknown>; profiles: Record<string, Record<string, unknown>> };
+  settings: {
+    common: Record<string, unknown>;
+    profiles: Record<string, Record<string, unknown>>;
+    /** Keys Default applies to all profiles (`workbench.settings.applyToAllProfiles`): no per-profile value. */
+    allProfiles: string[];
+  };
   /** Labels in the user's language (vscode.l10n), keyed by the English text. */
   strings: Record<string, string>;
 }

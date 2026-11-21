@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  allProfilesKeys,
+  allProfilesNotes,
+  APPLY_TO_ALL_PROFILES_KEY,
+  desiredSettings,
   editSettingsText,
   extensionOrigins,
   formatPlan,
@@ -130,5 +134,51 @@ describe('extensionOrigins', () => {
     ]);
     expect(extensionOrigins(p, 'Bare').size).toBe(0);
     expect(extensionOrigins(p, 'Nope').size).toBe(0);
+  });
+});
+
+describe('keys Default applies to all profiles (applyToAllProfiles)', () => {
+  const p = parsePreset({
+    settings: { 'editor.fontSize': 14, 'editor.formatOnSave': true, '[html]': { 'editor.tabSize': 2 } },
+    profiles: { Web: { settings: { 'editor.formatOnSave': false, 'editor.wordWrap': 'on' } } },
+  });
+  const listed = ['editor.fontSize', 'editor.formatOnSave', '[html]', PROFILE_MARKER_KEY];
+
+  it('reads the list from Default settings and ignores a malformed value', () => {
+    expect(allProfilesKeys({ [APPLY_TO_ALL_PROFILES_KEY]: ['a', 1, 'b'] })).toEqual(['a', 'b']);
+    expect(allProfilesKeys({ [APPLY_TO_ALL_PROFILES_KEY]: 'a' })).toEqual([]);
+    expect(allProfilesKeys({})).toEqual([]);
+  });
+
+  it('listed keys are not written to a profile; language blocks and the marker still are', () => {
+    expect(desiredSettings(p, 'Web', listed)).toEqual({
+      '[html]': { 'editor.tabSize': 2 },
+      'editor.wordWrap': 'on',
+      [PROFILE_MARKER_KEY]: 'Web',
+    });
+  });
+
+  it('a profile value for a listed key gets a note; a previously written listed key is removed', () => {
+    const plan = planProfile(
+      p,
+      'Web',
+      { stored: stored('Web'), installed: [], settings: { 'editor.fontSize': 14 }, managed: ['editor.fontSize'] },
+      listed,
+    );
+    const notes = plan.notes.join('\n');
+    expect(notes).toContain('editor.formatOnSave: Default applies it to all profiles');
+    expect(notes).not.toContain('editor.wordWrap');
+    expect(plan.settings?.changes.find((c) => c.key === 'editor.fontSize')?.kind).toBe('remove');
+  });
+
+  it('plan-wide notes: common keys whose Default value differs, and a listed marker', () => {
+    const notes = allProfilesNotes(p, {
+      settings: { 'editor.fontSize': 14, [APPLY_TO_ALL_PROFILES_KEY]: listed },
+      allProfiles: listed,
+    });
+    expect(notes).toHaveLength(2);
+    expect(notes[0]).toMatch(/^editor\.formatOnSave: .*not set instead of the preset's true/);
+    expect(notes[1]).toContain(`${PROFILE_MARKER_KEY} is in ${APPLY_TO_ALL_PROFILES_KEY}`);
+    expect(allProfilesNotes(p, { settings: {}, allProfiles: [] })).toEqual([]);
   });
 });

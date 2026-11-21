@@ -286,6 +286,7 @@ function settingsTab(st: ManagerState): HTMLElement {
   );
   const tbody = el('tbody');
   for (const key of [...keys].sort()) {
+    const shared = st.settings.allProfiles.includes(key);
     const cells = scopes.map((c) => {
       const cur = currentValue(st, c.scope, key);
       const pending = pendingSettings.get(skey(c.scope, key));
@@ -297,7 +298,12 @@ function settingsTab(st: ManagerState): HTMLElement {
         placeholder: c.scope && common !== undefined ? `= ${JSON.stringify(common)}` : s('empty = not set'),
         title: s('JSON value, e.g. true, 4, "text"'),
       });
-      input.disabled = c.disabled || !!busy;
+      const locked = shared && !!c.scope;
+      input.disabled = c.disabled || locked || !!busy;
+      if (locked)
+        input.title = s(
+          'Default applies this setting to all profiles (Apply Setting to all Profiles), so a profile cannot have its own value.',
+        );
       const mark = () => {
         const v = input.value.trim();
         const original = cur === undefined ? '' : JSON.stringify(cur);
@@ -315,7 +321,9 @@ function settingsTab(st: ManagerState): HTMLElement {
       }
       return el('td', { class: 'cell' }, input);
     });
-    tbody.append(el('tr', {}, el('td', { class: 'name mono' }, key), ...cells));
+    const name = el('td', { class: 'name mono' }, key);
+    if (shared) name.append(el('small', {}, s('all profiles (from Default)')));
+    tbody.append(el('tr', {}, name, ...cells));
   }
   table.append(tbody);
   wrap.append(el('div', { class: 'scroll' }, table));
