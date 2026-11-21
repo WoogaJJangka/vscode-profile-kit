@@ -165,7 +165,7 @@ describe('formatting', () => {
   it('leaves the example preset valid after an edit, with the same profile counts plus one', () => {
     const example = readFileSync(join(__dirname, '..', 'presets', 'example.json'), 'utf8');
     const out = addExtension(example, { kind: 'group', name: 'go' }, 'acme.go-extra');
-    expect(resolveProfile(parsePresetText(out), 'Go')).toHaveLength(29);
+    expect(resolveProfile(parsePresetText(out), 'Go')).toHaveLength(30);
     // only the go group line changed
     const changed = out.split('\n').filter((line, i) => line !== example.split('\n')[i]);
     expect(changed.join('\n')).toContain('acme.go-extra');

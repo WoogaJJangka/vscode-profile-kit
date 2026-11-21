@@ -27,6 +27,8 @@
   Cool Theme Kit 확장 ID는 `woogajjangka.cool-theme-kit`(PR #32, 옛 `cool-icon-vscode`는 Marketplace에 없음). 첫 번째 PC는 2026-11-22에 바꿈(사용자 요청, uninstall 금지 규칙의 예외):
   `apply --yes`로 8개 프로필에 새 것 설치 → Default·8개 프로필에서 옛 것 uninstall. 테마·아이콘 ID가 같아 설정은 그대로, `verify` 8개 모두 빠진 것 없음.
   되돌리기 기준 `Documents/vscode-profiles-setup/extensions-backup-20261122-082400-before-cool-theme-kit.txt`. 두 번째 PC는 아직(옛 것이 남은 프로필에 새 것만 넣으면 같은 테마 ID가 둘).
+  Material Icon Theme(`pkief.material-icon-theme`)은 Cool Theme Kit의 아이콘 섞기 층(`a-file-icon-vscode.iconThemeLayers`)이라 Core에 넣었다(2026-11-22, Core 28개).
+  첫 번째 PC는 같은 날 Default·8개 프로필에 `code --install-extension`으로 설치함. 두 번째 PC는 아직(`apply --yes`로 설치).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
@@ -79,7 +81,7 @@
 - 현재 프로필은 각 프로필 settings.json의 마커 `profileKit.profile`로 안다(`globalStorageUri`는 프로필마다 같다, PLAN.md 8절).
 - UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.
 - 프리셋 검사 규칙을 바꾸면 `schema/preset.schema.json`도 같이 고친다. `presets/example.json`은 `scripts/legacy/vscode-profiles-setup.ps1`의
-  `$core`/`$sets`와 같고, `preset.test.ts`가 프로필별 개수(Core 27 … Docker-Infra 31)를 지킨다.
+  `$core`/`$sets`와 같고, `preset.test.ts`가 프로필별 개수(Core 28 … Docker-Infra 32)를 지킨다.
 - 성공 판정은 종료 코드가 아니라 출력 파싱(`classifyInstallOutput`), 판단이 안 되면 `--list-extensions`로 확인. 설치는 10개씩 한 호출로 묶고 목록에 없는 것만 하나씩 재시도. 재시도는 네트워크 오류(`getaddrinfo ENOTFOUND`, VSIX 다운로드 중단 `(Error: aborted)` 등)만.
   분류 예시는 실제 로그(`Documents/vscode-profiles-setup/install-log-*.txt`)에서 가져왔다.
 - Windows에서 `code`는 `code.cmd`라 셸로 띄운다. 명령 이름 `code`를 따옴표로 감싸면 `%~dp0`가 현재 폴더가 되어 실패한다(`codeCli.ts` 주석). 시간 초과 시 셸만 죽이면 `Code.exe`가 남아 호출이 안 끝나므로 `taskkill /T /F`로 트리째 끝낸다.

@@ -27,7 +27,8 @@
     "ms-vscode.remote-explorer",
     "ms-vscode-remote.remote-wsl",
     "be5invis.vscode-custom-css",
-    "brandonkirbyson.vscode-animations"
+    "brandonkirbyson.vscode-animations",
+    "pkief.material-icon-theme"
   ],
   "groups": {
     "python-data": [
