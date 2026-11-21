@@ -87,6 +87,11 @@
       "confluentinc.vscode-confluent"
     ]
   },
+  "settings": {
+    "[html]": {
+      "editor.suggest.insertMode": "replace"
+    }
+  },
   "profiles": {
     "Core": {},
     "Python-Data": {
