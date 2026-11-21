@@ -42,6 +42,7 @@
           "type": "string",
           "default": "",
           "scope": "application",
+          "ignoreSync": true,
           "markdownDescription": "%config.presetPath%"
         },
         "profileKit.profile": {

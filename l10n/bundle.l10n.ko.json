@@ -150,5 +150,7 @@
   "{0}: remove {1}": "{0}: {1} 삭제",
   "{0}: {1} = {2}": "{0}: {1} = {2}",
   "{0}: {1} extension(s) installed.": "{0}: 확장 {1}개를 설치했습니다.",
-  "{0}: {1} installed, {2} failed, {3} not tried. Network errors were retried.": "{0}: {1}개 설치, {2}개 실패, {3}개 시도 안 함. 네트워크 오류는 다시 시도했습니다."
+  "{0}: {1} installed, {2} failed, {3} not tried. Network errors were retried.": "{0}: {1}개 설치, {2}개 실패, {3}개 시도 안 함. 네트워크 오류는 다시 시도했습니다.",
+  "Preset file not found on this PC": "이 PC에 프리셋 파일이 없습니다",
+  "The preset file is not on this PC: {0}. Open the preset where it is on this PC (for example, your clone of the repository).": "이 PC에 프리셋 파일이 없습니다: {0}. 이 PC에 있는 프리셋을 여세요(예: 저장소를 clone한 폴더)."
 }

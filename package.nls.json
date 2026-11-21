@@ -2,7 +2,7 @@
   "displayName": "Profile Kit",
   "description": "Declare core + per-purpose extension groups once, then create and check VS Code profiles from that preset",
   "config.title": "Profile Kit",
-  "config.presetPath": "Preset file (`*.profile-kit.json`) that declares core extensions, groups, profiles and settings. The same file is used in every profile.",
+  "config.presetPath": "Preset file (`*.profile-kit.json`) that declares core extensions, groups, profiles and settings. The same file is used in every profile. It is a path on this PC, so Settings Sync does not copy it to other PCs.",
   "config.profile": "Written by Profile Kit into each profile's own settings: the profile's name, so Profile Kit can tell which profile a window uses. Do not edit.",
   "config.managedKeys": "Written by Profile Kit into each profile's own settings: the keys it manages there, so it can update or remove only those. It is kept in the same file so it moves with Settings Sync. Do not edit.",
   "view.container": "Profile Kit",
