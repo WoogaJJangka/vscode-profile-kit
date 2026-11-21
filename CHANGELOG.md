@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - pre-release
+
 ### Added
 
 - **Start from a Built-in Preset...** (Profiles view welcome, view menu): nine general-purpose starter presets (Python · Data, Web · JavaScript, Java, C · C++, C# · .NET, Go, Rust, Docker · Infra, All Languages), each a small core, a `Core` profile and language profiles with `match`. The one that fits is recommended from the open folder's top-level files, the open files' languages and the extensions of this window's profile; All Languages only when two languages each have a strong signal. The chosen one is written to a `*.profile-kit.json` file and used as the preset.
