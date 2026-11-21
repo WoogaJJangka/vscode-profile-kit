@@ -24,8 +24,9 @@
   실제로 11-21 23:12 충돌 뒤 첫 번째 PC의 Default도 두 번째 PC 내용으로 바뀌었다. 2026-11-22에 Sync가 남긴 로컬 백업 `User/sync/settings/20261121T231302.json`(충돌 직전)으로
   되돌리고(백업 `Documents/vscode-profiles-setup/backup-20261122-080613-before-sync-restore`), 그 뒤 생긴 gitlens 키 3개는 남김, 사용자 승인.
   PC마다 다른 `python.defaultInterpreterPath`·`python.condaPath`·`snyk.trustedFolders`는 `settingsSync.ignoredSettings`로 Sync에서 뺐다. 되돌릴 때는 Sync의 로컬 백업을 먼저 본다.
-  Cool Theme Kit 확장 ID는 `woogajjangka.cool-theme-kit`(PR #32, 옛 `cool-icon-vscode`는 Marketplace에 없음). 옛 확장이 남은 프로필에 새 것을 설치하면 같은 테마 ID가 둘 생기므로,
-  실제 PC `apply --yes` 전에 옛 확장 정리를 사용자와 정한다.
+  Cool Theme Kit 확장 ID는 `woogajjangka.cool-theme-kit`(PR #32, 옛 `cool-icon-vscode`는 Marketplace에 없음). 첫 번째 PC는 2026-11-22에 바꿈(사용자 요청, uninstall 금지 규칙의 예외):
+  `apply --yes`로 8개 프로필에 새 것 설치 → Default·8개 프로필에서 옛 것 uninstall. 테마·아이콘 ID가 같아 설정은 그대로, `verify` 8개 모두 빠진 것 없음.
+  되돌리기 기준 `Documents/vscode-profiles-setup/extensions-backup-20261122-082400-before-cool-theme-kit.txt`. 두 번째 PC는 아직(옛 것이 남은 프로필에 새 것만 넣으면 같은 테마 ID가 둘).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
