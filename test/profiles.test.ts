@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PROFILE_ID, folderKey, folderProfile, parseStorageProfiles } from '../src/core/profiles';
+import { DEFAULT_PROFILE_ID } from '../src/core/compat';
+import { folderKey, folderProfile, parseStorageProfiles } from '../src/core/profiles';
 
 /** Trimmed from a real storage.json (VS Code 1.9x); IDs and paths made up. */
 const storage = JSON.stringify({

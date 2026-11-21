@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import {
+  cliProfileNotFound,
   createCodeRunner,
   diffExtensions,
   formatPlan,
@@ -94,7 +95,7 @@ async function main(argv: string[]): Promise<number> {
     for (const name of names) {
       const result = await run(listExtensionsArgs(name));
       const output = `${result.stdout}\n${result.stderr}`;
-      if (/profile '.*' not found/i.test(output)) {
+      if (cliProfileNotFound(output)) {
         console.log(`== ${name}: profile does not exist ==`);
         missingTotal += resolveProfile(preset, name).length;
         continue;

@@ -10,10 +10,12 @@ import * as vscode from 'vscode';
 
 import {
   type CodeRunner,
+  COMPAT_CHECKED_VERSION,
   createCodeRunner,
   diffExtensions,
   type ExtensionDiff,
   folderProfile,
+  mapLimit,
   parsePresetText,
   type Preset,
   PresetError,
@@ -75,6 +77,10 @@ export class Kit implements vscode.Disposable {
     const { baseArgs, windowsBlocked } = this.codeBaseArgs(userData);
     this.windowsBlocked = windowsBlocked;
     this.run = createCodeRunner(this.codeCli ?? 'code', { baseArgs, timeoutMs: 5 * 60_000 });
+    // for bug reports: which VS Code this is, and the version Profile Kit's use of VS Code internals was checked on
+    this.log(
+      `VS Code ${vscode.version}, ${process.platform}; VS Code internals last checked on ${COMPAT_CHECKED_VERSION} (compat.ts)`,
+    );
   }
 
   /**
@@ -193,19 +199,41 @@ export class Kit implements vscode.Disposable {
     this.changed.fire();
   }
 
-  /** Re-read storage.json and every profile's `--list-extensions` (in parallel). */
+  /**
+   * List every profile, not only this window's. Off until something shows all profiles (the tree, the manager):
+   * each list is a `code` process, and every window would start one per profile on start-up (review P5).
+   */
+  private listAll = false;
+
+  /** A view that shows every profile became visible: from now on refresh lists them all. */
+  showAllProfiles(): void {
+    if (this.listAll) return;
+    this.listAll = true;
+    void this.refresh();
+  }
+
+  /**
+   * Re-read storage.json and `--list-extensions`: of every profile once a view shows them all, otherwise of this
+   * window's profile only. At most 3 `code` processes at once.
+   */
   refresh(): Promise<void> {
     this.refreshing ??= (async () => {
       try {
         this.storage = readStorage(this.paths);
-        const names = new Set([...this.storage.profiles.map((p) => p.name), ...this.declaredNames()]);
-        const lists = await Promise.all(
-          [...names].map(async (name) => {
-            const exists = this.storage.profiles.some((p) => p.name === name);
-            return [name, exists ? await listInstalled(this.run, name).catch(() => undefined) : undefined] as const;
-          }),
-        );
-        this.installed = new Map(lists);
+        const existing = new Set(this.storage.profiles.map((p) => p.name));
+        const current = this.currentProfile()?.name;
+        const wanted = this.listAll
+          ? [...new Set([...existing, ...this.declaredNames()])]
+          : current && existing.has(current)
+            ? [current]
+            : [];
+        const lists = await mapLimit(wanted, 3, async (name) => {
+          const list = existing.has(name) ? await listInstalled(this.run, name).catch(() => undefined) : undefined;
+          return [name, list] as const;
+        });
+        const installed = new Map([...this.installed].filter(([name]) => existing.has(name)));
+        for (const [name, list] of lists) installed.set(name, list);
+        this.installed = installed;
       } finally {
         this.refreshing = undefined;
         this.changed.fire();
@@ -231,6 +259,11 @@ export class Kit implements vscode.Disposable {
   installedByKit(id: string, withinMs = 10 * 60_000): boolean {
     const at = this.installingIds.get(id.toLowerCase());
     return at !== undefined && Date.now() - at < withinMs;
+  }
+
+  /** Last `--list-extensions` of a profile; undefined when not listed yet or the profile does not exist. */
+  installedIn(name: string): readonly string[] | undefined {
+    return this.installed.get(name);
   }
 
   /** Re-list one profile only (after installing into it). */

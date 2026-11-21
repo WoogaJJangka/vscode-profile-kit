@@ -29,6 +29,13 @@ import type { Kit } from './kit';
 
 const t = vscode.l10n.t;
 const IGNORED_KEY = 'profileKit.ignoredExtensions';
+/** Which window asks about which extension: shared by the windows of a profile (review P6). */
+const PROMPTS_KEY = 'profileKit.installPrompts';
+const PROMPT_CLAIM_MS = 10 * 60_000;
+/** Time for a claim written by another window to arrive in this one's globalState. */
+const CLAIM_SETTLE_MS = 1500;
+
+type PromptClaims = Record<string, { by: string; at: number }>;
 
 function localExtensionIds(kit: Kit): Set<string> {
   const builtin = vscode.env.appRoot.toLowerCase();
@@ -66,15 +73,38 @@ export class InstallWatcher implements vscode.Disposable {
     const now = localExtensionIds(this.kit);
     const added = [...now].filter((id) => !this.snapshot.has(id));
     this.snapshot = now;
+    // the profile's last `--list-extensions`, read before it is refreshed for this change: it also has disabled
+    // extensions, so one that was only enabled again is not taken for a new install (review P6)
+    const current = this.kit.currentProfile()?.name;
+    const before = new Set(current ? (this.kit.installedIn(current) ?? []) : []);
     const preset = this.kit.preset?.preset;
     if (!preset) return;
     const ignored = new Set(this.kit.context.globalState.get<string[]>(IGNORED_KEY, []));
     for (const id of added) {
-      if (this.kit.installedByKit(id) || ignored.has(id)) continue;
+      if (this.kit.installedByKit(id) || ignored.has(id) || before.has(id)) continue;
       // already declared somewhere: the tree shows where it is missing, nothing to ask
       if (profilesWithExtension(preset, id).length) continue;
+      if (!(await this.claim(id))) continue;
       await this.ask(id);
     }
+  }
+
+  /**
+   * Every window of this profile sees the same install. Each writes "I ask about `id`" into globalState (shared
+   * by those windows), waits for the others' writes to arrive, and only the window whose claim is still there asks.
+   */
+  private async claim(id: string): Promise<boolean> {
+    const state = this.kit.context.globalState;
+    const me = vscode.env.sessionId;
+    const now = Date.now();
+    const fresh = Object.fromEntries(
+      Object.entries(state.get<PromptClaims>(PROMPTS_KEY, {})).filter(([, c]) => now - c.at < PROMPT_CLAIM_MS),
+    );
+    const prior = fresh[id];
+    if (prior && prior.by !== me) return false;
+    await state.update(PROMPTS_KEY, { ...fresh, [id]: { by: me, at: now } });
+    await new Promise((r) => setTimeout(r, CLAIM_SETTLE_MS));
+    return state.get<PromptClaims>(PROMPTS_KEY, {})[id]?.by === me;
   }
 
   private async ask(id: string): Promise<void> {

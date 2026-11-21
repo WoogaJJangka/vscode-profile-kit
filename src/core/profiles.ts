@@ -2,6 +2,7 @@
  * Read VS Code's profile list and folder → profile links from `<userData>/User/globalStorage/storage.json`.
  * Read only: Profile Kit never writes storage.json (PLAN.md). The format is VS Code-internal, so every field
  * is optional here and entries that do not look right are skipped and reported instead of failing.
+ * The key names are in compat.ts with the other VS Code internals.
  *
  * Shape seen in VS Code 1.9x:
  *   "userDataProfiles": [{ "location": "-6a5b1c2d", "name": "Python-Data", "icon"?: "...",
@@ -11,11 +12,9 @@
  */
 import { parse, type ParseError } from 'jsonc-parser';
 
+import { DEFAULT_PROFILE_ID, STORAGE_ASSOCIATIONS_KEY, STORAGE_PROFILES_KEY } from './compat';
 import { isRecord, stripBom } from './preset';
 import { trimTrailingSlashes } from './text';
-
-/** Profile ID VS Code uses for Default in `profileAssociations`. */
-export const DEFAULT_PROFILE_ID = '__default__profile__';
 
 export interface StoredProfile {
   name: string;
@@ -94,12 +93,12 @@ export function parseStorageProfiles(text: string): StorageProfiles {
     return result;
   }
 
-  const raw = json.userDataProfiles;
-  if (raw !== undefined && !Array.isArray(raw)) result.problems.push('userDataProfiles is not a list');
+  const raw = json[STORAGE_PROFILES_KEY];
+  if (raw !== undefined && !Array.isArray(raw)) result.problems.push(`${STORAGE_PROFILES_KEY} is not a list`);
   const seen = new Set<string>();
   const entries: unknown[] = Array.isArray(raw) ? raw : [];
   for (const [i, entry] of entries.entries()) {
-    const where = `userDataProfiles[${i}]`;
+    const where = `${STORAGE_PROFILES_KEY}[${i}]`;
     const problem = (p: string) => result.problems.push(`${where} ${p}`);
     if (!isRecord(entry)) {
       problem('is not an object');
@@ -125,13 +124,18 @@ export function parseStorageProfiles(text: string): StorageProfiles {
   }
 
   const byLocation = new Map(result.profiles.map((p) => [p.location, p.name]));
-  const assoc = json.profileAssociations;
-  if (assoc !== undefined && !isRecord(assoc)) result.problems.push('profileAssociations is not an object');
+  const assoc = json[STORAGE_ASSOCIATIONS_KEY];
+  if (assoc !== undefined && !isRecord(assoc)) result.problems.push(`${STORAGE_ASSOCIATIONS_KEY} is not an object`);
   else if (isRecord(assoc)) {
-    result.folders = readAssociations(assoc.workspaces, 'profileAssociations.workspaces', byLocation, result.problems);
+    result.folders = readAssociations(
+      assoc.workspaces,
+      `${STORAGE_ASSOCIATIONS_KEY}.workspaces`,
+      byLocation,
+      result.problems,
+    );
     result.emptyWindows = readAssociations(
       assoc.emptyWindows,
-      'profileAssociations.emptyWindows',
+      `${STORAGE_ASSOCIATIONS_KEY}.emptyWindows`,
       byLocation,
       result.problems,
     );

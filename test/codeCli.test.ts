@@ -4,9 +4,11 @@ import {
   classifyInstallOutput,
   createCodeRunner,
   installExtensionArgs,
+  installExtensionsArgs,
   isTransient,
   listExtensionsArgs,
   parseListExtensions,
+  saysAlreadyInstalled,
 } from '../src/core/codeCli';
 
 describe('classifyInstallOutput', () => {
@@ -36,6 +38,19 @@ describe('classifyInstallOutput', () => {
     expect(classifyInstallOutput(output)).toBe(expected);
   });
 
+  it('does not read an extension ID as an error (review P10)', () => {
+    const output = 'Installing extensions...\nFailed Installing Extensions: acme.vpc-network';
+    expect(classifyInstallOutput(output)).toBe('network');
+    expect(classifyInstallOutput(output, ['acme.vpc-network'])).toBe('unknown');
+    expect(classifyInstallOutput(`${output}\ngetaddrinfo ENOTFOUND x`, ['acme.vpc-network'])).toBe('network');
+  });
+
+  it('finds "already installed" per extension in a batch', () => {
+    const output = "Extension 'A.b' v1 is already installed.\nExtension 'c.d' v1 was successfully installed.";
+    expect(saysAlreadyInstalled(output, 'a.b')).toBe(true);
+    expect(saysAlreadyInstalled(output, 'c.d')).toBe(false);
+  });
+
   it('retries only network errors', () => {
     expect(isTransient('network')).toBe(true);
     expect(isTransient('unknown')).toBe(false);
@@ -55,6 +70,14 @@ describe('argument builders', () => {
     expect(listExtensionsArgs()).toEqual(['--list-extensions']);
     expect(listExtensionsArgs('Web-JS')).toEqual(['--profile', 'Web-JS', '--list-extensions']);
     expect(installExtensionArgs('Go', 'golang.go')).toEqual(['--profile', 'Go', '--install-extension', 'golang.go']);
+    expect(installExtensionsArgs('Go', ['a.b', 'c.d'])).toEqual([
+      '--profile',
+      'Go',
+      '--install-extension',
+      'a.b',
+      '--install-extension',
+      'c.d',
+    ]);
   });
 });
 

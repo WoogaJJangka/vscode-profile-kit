@@ -147,7 +147,7 @@ export async function executePlans(
         );
         continue;
       }
-      say(`${plan.name}: creating the profile (a VS Code window opens)`);
+      say(`${plan.name}: creating the profile (a VS Code window opens; close it once the profile exists)`);
       const ensured = await ensureProfile(env.run, plan.name, () => readStorage(env.paths).profiles, options.ensure);
       if (ensured.status === 'timeout') {
         report.problems.push('profile was not created in time (is VS Code able to start?)');

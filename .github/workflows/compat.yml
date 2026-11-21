@@ -1,0 +1,90 @@
+name: VS Code compatibility
+
+# Runs Profile Kit's host functions against real VS Code builds (scripts/compat/check.ts, review P9 / stage D-2):
+# the code CLI location, "profile not found", creating a profile with --new-window and reading storage.json,
+# batched installs and --list-extensions. A failure means a VS Code internal in src/core/compat.ts changed.
+# Not a required check: it downloads VS Code and the Marketplace extensions it installs, so it can also fail
+# on the network. Weekly, by hand, and on pull requests that touch the code it checks.
+
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/core/compat.ts
+      - src/core/codeCli.ts
+      - src/core/profiles.ts
+      - src/host/**
+      - scripts/compat/**
+      - .github/workflows/compat.yml
+
+permissions:
+  contents: read
+
+jobs:
+  compat:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # engines.vscode floor, latest stable and insiders on Linux; latest stable on Windows
+          - { os: ubuntu-latest, version: 1.95.0, quality: stable }
+          - { os: ubuntu-latest, version: latest, quality: stable }
+          - { os: ubuntu-latest, version: latest, quality: insider }
+          - { os: windows-latest, version: latest, quality: stable }
+    name: ${{ matrix.os }} ${{ matrix.version }} ${{ matrix.quality }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build the check
+        run: npm run build:compat
+
+      # the same download URL @vscode/test-electron uses
+      - name: Download VS Code (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          curl -fsSL -o vscode.tar.gz "https://update.code.visualstudio.com/${{ matrix.version }}/linux-x64/${{ matrix.quality }}"
+          mkdir vscode && tar -xzf vscode.tar.gz -C vscode --strip-components=1
+          cli=vscode/bin/code; [ -f "$cli" ] || cli=vscode/bin/code-insiders
+          echo "CODE_CLI=$PWD/$cli" >> "$GITHUB_ENV"
+          echo "APP_ROOT=$PWD/vscode/resources/app" >> "$GITHUB_ENV"
+          # Ubuntu 24.04 blocks the unprivileged user namespaces Electron's sandbox needs
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          sudo apt-get install -y --no-install-recommends xvfb > /dev/null
+
+      - name: Download VS Code (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL -o vscode.zip "https://update.code.visualstudio.com/${{ matrix.version }}/win32-x64-archive/${{ matrix.quality }}"
+          mkdir vscode && unzip -q vscode.zip -d vscode
+          app=$(find vscode -maxdepth 3 -type d -path '*/resources/app' | head -1)
+          cli=vscode/bin/code.cmd; [ -f "$cli" ] || cli=vscode/bin/code-insiders.cmd
+          echo "CODE_CLI=$(cygpath -w "$PWD/$cli")" >> "$GITHUB_ENV"
+          echo "APP_ROOT=$(cygpath -w "$PWD/$app")" >> "$GITHUB_ENV"
+
+      - name: Run the check (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node out/compat.js --code "$CODE_CLI" --app-root "$APP_ROOT" --data "$RUNNER_TEMP/compat"
+
+      - name: Run the check (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: node out/compat.js --code "$env:CODE_CLI" --app-root "$env:APP_ROOT" --data "$env:RUNNER_TEMP\compat"
