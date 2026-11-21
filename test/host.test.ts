@@ -334,3 +334,63 @@ describe('installExtensions shouldStop', () => {
     expect(results.map((r) => r.id)).toEqual(['a.b']);
   });
 });
+
+describe('executePlans creating profiles', () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(path.join(tmpdir(), 'pk-create-'));
+  });
+  afterEach(() => rmSync(tmp, { recursive: true, force: true }));
+
+  const setup = () => {
+    const paths = userDataPaths(tmp);
+    mkdirSync(path.dirname(paths.storageJson), { recursive: true });
+    writeFileSync(paths.storageJson, JSON.stringify({ userDataProfiles: [] }));
+    const calls: string[][] = [];
+    const installed = new Set<string>();
+    const run: CodeRunner = async (args) => {
+      calls.push(args);
+      // `--new-window` creates the profile: VS Code adds it to storage.json
+      if (args.includes('--new-window'))
+        writeFileSync(paths.storageJson, JSON.stringify({ userDataProfiles: [{ name: 'New', location: 'n1' }] }));
+      if (args.includes('--list-extensions')) return ok([...installed].join('\n'));
+      const id = args[args.indexOf('--install-extension') + 1];
+      installed.add(id);
+      return ok(`Extension '${id}' v1 was successfully installed.`);
+    };
+    const preset = parsePreset({ profiles: { New: { extensions: ['a.b'] } } });
+    return { env: { run, paths }, calls, preset };
+  };
+
+  it('creates a missing profile, then installs into it', async () => {
+    const { env, calls, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const events: string[] = [];
+    const [report] = await executePlans(env, preset, plans, {
+      ensure: { sleep: noSleep },
+      onEvent: (m) => events.push(m),
+    });
+    expect(report.created).toBe(true);
+    expect(report.installs.map((i) => i.outcome)).toEqual(['installed']);
+    expect(calls[0]).toEqual(['--profile', 'New', '--new-window']);
+    expect(events.some((m) => m.includes('close it once the profile exists'))).toBe(true);
+  });
+
+  it('reports a missing profile without opening a window when creating is turned off', async () => {
+    const { env, calls, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const [report] = await executePlans(env, preset, plans, { createProfiles: false, createBlockedReason: 'blocked' });
+    expect(report.problems).toEqual(['profile does not exist and was not created: blocked']);
+    expect(calls.some((a) => a.includes('--new-window'))).toBe(false);
+  });
+
+  it('reports a profile that does not show up in time', async () => {
+    const { env, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const quiet: CodeRunner = async () => ok('');
+    const [report] = await executePlans({ ...env, run: quiet }, preset, plans, {
+      ensure: { sleep: noSleep, timeoutMs: 3, intervalMs: 1 },
+    });
+    expect(report.problems).toEqual(['profile was not created in time (is VS Code able to start?)']);
+  });
+});

@@ -60,7 +60,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          curl -fsSL -o vscode.tar.gz "https://update.code.visualstudio.com/${{ matrix.version }}/linux-x64/${{ matrix.quality }}"
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.tar.gz "https://update.code.visualstudio.com/${{ matrix.version }}/linux-x64/${{ matrix.quality }}"
           mkdir vscode && tar -xzf vscode.tar.gz -C vscode --strip-components=1
           cli=vscode/bin/code; [ -f "$cli" ] || cli=vscode/bin/code-insiders
           echo "CODE_CLI=$PWD/$cli" >> "$GITHUB_ENV"
@@ -73,7 +73,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          curl -fsSL -o vscode.zip "https://update.code.visualstudio.com/${{ matrix.version }}/win32-x64-archive/${{ matrix.quality }}"
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.zip "https://update.code.visualstudio.com/${{ matrix.version }}/win32-x64-archive/${{ matrix.quality }}"
           mkdir vscode && unzip -q vscode.zip -d vscode
           app=$(find vscode -maxdepth 3 -type d -path '*/resources/app' | head -1)
           cli=vscode/bin/code.cmd; [ -f "$cli" ] || cli=vscode/bin/code-insiders.cmd

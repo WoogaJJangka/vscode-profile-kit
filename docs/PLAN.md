@@ -124,6 +124,8 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - CSP nonce에 `Math.random`(S2245): `crypto.randomBytes`.
 - Actions의 `npm ci`·`npx`(S6505, S8543): `npm ci --ignore-scripts`, vsce는 `./node_modules/.bin/vsce`(설치된 고정 버전). esbuild는 설치 스크립트 없이도 플랫폼 패키지로 동작한다(로컬 `npm ci --ignore-scripts` → check·build·package 확인).
 - "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫았다(2026-11-21, 4개).
+- workflow의 `curl` 다운로드(S6506): `--proto '=https' --proto-redir '=https' --tlsv1.2`로 리다이렉트도 HTTPS만.
+- 커버리지: `scripts/**`(호환성 점검은 실제 VS Code로 `compat.yml`에서 돈다)와 `esbuild.mjs`는 커버리지에서 뺀다. PR 분석에서 S8707이 다시 열리면 같은 이유로 Accept.
 - PR #15 머지 뒤(2026-11-21) 열린 이슈 0, 품질 게이트 통과. `Analysis + quality gate`는 main ruleset 필수 검사다.
 
 ## 10. VS Code 내부 의존과 호환성 점검 (2026-11-21~, 단계 D)
