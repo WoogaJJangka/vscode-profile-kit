@@ -22,7 +22,7 @@ VS Code 프로필 프리셋 도구를 제대로 된 프로젝트로 만든다: �
 - repair-extensions.ps1 실행 결과를 검증하고, 프로필별 확장 개수가 PLAN.md의 목표(Core 27, Python-Data 42, Java 34, C-Cpp 34, Web-JS 33, CSharp-Unity 31, Go 28, Docker-Infra 31, 의존성 때문에 약간 더 많을 수 있음)와 맞는지 확인한다.
 - 실패 항목은 로그로 원인을 분류한다(네트워크/DNS, 이미 설치됨, 기타).
 - share-settings.ps1은 반드시 -DryRun부터 보여주고, storage.json 직접 편집(useDefaultFlags)의 위험을 설명한 뒤 내 승인 후 실행한다. 실행 전 VS Code가 완전히 종료돼 있어야 한다. [게이트 2]
-- Cool Theme Kit(woogajjangka.cool-icon-vscode, 내가 만든 확장) 테마가 각 프로필에서 보이게 한다: workbench.colorTheme="Cool Islands Dark", workbench.iconTheme="a-file-icon-vscode", workbench.productIconTheme="cool-islands-product-icons".
+- Cool Theme Kit(woogajjangka.cool-theme-kit, 내가 만든 확장) 테마가 각 프로필에서 보이게 한다: workbench.colorTheme="Cool Islands Dark", workbench.iconTheme="a-file-icon-vscode", workbench.productIconTheme="cool-islands-product-icons".
 
 ### Phase 2. 타당성 검증 (결정 게이트)
 조사 결과: VS Code 확장 API는 프로필 관련 기능을 노출하지 않고, 다른 확장을 비활성화하는 API도 없다. 따라서 아래를 실제로 실험해서 확인하고 표로 보고해줘.

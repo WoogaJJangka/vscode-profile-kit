@@ -7,7 +7,7 @@
 ## 2. 지금까지 결정한 구성
 - 방식: VS Code 내장 Profiles 사용 (별도 전환 확장은 쓰지 않음)
 - 프로필 8개: Core(공통만), Python-Data, Java, C-Cpp, Web-JS, CSharp-Unity, Go, Docker-Infra. 각 프로필 = Core 27개 + 용도별 확장
-- Core 27개: Claude Code, ChatGPT/Codex(2), 한국어 언어팩, GitHub 테마, Cool Theme Kit(woogajjangka.cool-icon-vscode, 직접 만든 확장), GitLens, Git Graph, GitHub PR, gitignore, Git Bash, Prettier, ErrorLens, indent-rainbow, tabout, change-case, multi-cursor-case, Project Manager, PDF, Rainbow CSV, SonarLint, Remote SSH/SSH-Edit/Explorer/WSL, custom-css, animations
+- Core 27개: Claude Code, ChatGPT/Codex(2), 한국어 언어팩, GitHub 테마, Cool Theme Kit(woogajjangka.cool-theme-kit, 직접 만든 확장), GitLens, Git Graph, GitHub PR, gitignore, Git Bash, Prettier, ErrorLens, indent-rainbow, tabout, change-case, multi-cursor-case, Project Manager, PDF, Rainbow CSV, SonarLint, Remote SSH/SSH-Edit/Explorer/WSL, custom-css, animations
 - 어느 프로필에도 안 넣음(평소 꺼둠): vscode-pets, CodeSnap, Log File Highlighter, GitHub Actions, Codespaces, Remote Repositories, Snyk, PowerShell
 - 분류의 원본(single source of truth)은 vscode-profiles-setup.ps1 의 $core / $sets
 
