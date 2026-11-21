@@ -11,6 +11,7 @@ import { buildPlans, executePlans, type ProfileReport, reportOk } from '../host/
 import { ensureProfile, installExtensions, type InstallResult, installSucceeded } from '../host/installer';
 import { installToProfiles } from './installFlow';
 import { DEFAULT_PROFILE, type Kit } from './kit';
+import { ManagerPanel } from './panel/manager';
 import { switchProfile } from './switch';
 import type { ProfileNode } from './tree';
 
@@ -287,6 +288,7 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
     ),
     reg('profileKit.installMissing', (arg) => installMissing(kit, arg)),
     reg('profileKit.installToProfiles', (arg) => installToProfiles(kit, arg)),
+    reg('profileKit.openManager', () => ManagerPanel.show(kit)),
     reg('profileKit.applyProfile', async (arg) => {
       const name = profileOf(arg) ?? (await pickDeclared(kit, t('Apply the preset to...')));
       if (name) await apply(kit, [name]);

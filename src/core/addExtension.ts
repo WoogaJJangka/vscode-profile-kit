@@ -70,3 +70,62 @@ export function profilesWithExtension(preset: Preset, id: string): string[] {
   const want = normalizeId(id);
   return profileNames(preset).filter((p) => resolveProfile(preset, p).includes(want));
 }
+
+export interface MembershipEdits {
+  /** Lists to remove the ID from. */
+  remove: ExtensionTarget[];
+  /** Lists to add the ID to. */
+  add: ExtensionTarget[];
+}
+
+const targetKey = (t: ExtensionTarget) => (t.kind === 'core' ? 'core' : `${t.kind}:${t.name}`);
+
+/**
+ * Preset edits that make exactly `desired` (declared profile names) resolve to `id`, for the manager's matrix.
+ * Keeps core or a group when every profile it covers is still wanted; drops it from core or a group that would
+ * give it to an unwanted profile; adds it to the own `extensions` of wanted profiles not covered otherwise;
+ * removes it from the own `extensions` of unwanted profiles. When the wanted set is exactly the profiles that
+ * take core, core is used.
+ */
+export function membershipEdits(preset: Preset, id: string, desired: readonly string[]): MembershipEdits {
+  const want = normalizeId(id);
+  const all = profileNames(preset);
+  const wanted = all.filter((p) => desired.includes(p));
+  const withCore = all.filter((p) => !preset.profiles[p].skipCore);
+  const inList = (ids: readonly string[] | undefined) => (ids ?? []).some((x) => normalizeId(x) === want);
+
+  interface Container {
+    target: ExtensionTarget;
+    coverage: string[];
+    has: boolean;
+  }
+  const containers: Container[] = [
+    { target: { kind: 'core' }, coverage: withCore, has: inList(preset.core) },
+    ...Object.keys(preset.groups).map((g) => ({
+      target: { kind: 'group' as const, name: g },
+      coverage: all.filter((p) => preset.profiles[p].groups?.includes(g)),
+      has: inList(preset.groups[g]),
+    })),
+  ];
+  const own = (p: string) => inList(preset.profiles[p].extensions);
+  const remove: ExtensionTarget[] = [];
+  const add: ExtensionTarget[] = [];
+
+  if (withCore.length && sameSet(wanted, withCore)) {
+    if (!containers[0].has) add.push({ kind: 'core' });
+    for (const c of containers.slice(1)) if (c.has) remove.push(c.target);
+    for (const p of all) if (own(p)) remove.push({ kind: 'profile', name: p });
+    return { remove, add };
+  }
+
+  const covered = new Set<string>();
+  for (const c of containers) {
+    if (!c.has) continue;
+    if (c.coverage.every((p) => wanted.includes(p))) c.coverage.forEach((p) => covered.add(p));
+    else remove.push(c.target);
+  }
+  for (const p of wanted) if (!covered.has(p) && !own(p)) add.push({ kind: 'profile', name: p });
+  for (const p of all) if (!wanted.includes(p) && own(p)) remove.push({ kind: 'profile', name: p });
+  const seen = new Set<string>();
+  return { remove: remove.filter((t) => !seen.has(targetKey(t)) && seen.add(targetKey(t))), add };
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CORE_TARGET, parsePreset, profilesWithExtension, recordOptions } from '../src/core';
+import { CORE_TARGET, membershipEdits, parsePreset, profilesWithExtension, recordOptions } from '../src/core';
 import { galleryToMeta } from '../src/host/marketplace';
 
 const preset = parsePreset({
@@ -89,5 +89,52 @@ describe('galleryToMeta', () => {
   it('returns undefined for entries without publisher or name', () => {
     expect(galleryToMeta({ extensionName: 'x' })).toBeUndefined();
     expect(galleryToMeta(null)).toBeUndefined();
+  });
+});
+
+describe('membershipEdits', () => {
+  const p = parsePreset({
+    core: ['a.core'],
+    groups: { py: ['ms-python.python', 'x.both'], data: ['x.both'] },
+    profiles: {
+      Python: { groups: ['py'], extensions: ['y.own'] },
+      Data: { groups: ['py', 'data'] },
+      Web: { extensions: ['y.own'] },
+      Bare: { skipCore: true },
+    },
+  });
+  const show = (id: string, want: string[]) => {
+    const e = membershipEdits(p, id, want);
+    const s = (t: { kind: string; name?: string }) => (t.kind === 'core' ? 'core' : `${t.kind} ${t.name}`);
+    return { remove: e.remove.map(s), add: e.add.map(s) };
+  };
+
+  it('no change when the wanted set is what the preset already gives', () => {
+    expect(show('ms-python.python', ['Python', 'Data'])).toEqual({ remove: [], add: [] });
+    expect(show('a.core', ['Python', 'Data', 'Web'])).toEqual({ remove: [], add: [] });
+  });
+
+  it('unchecking one profile of a core extension moves it to the others own lists', () => {
+    expect(show('a.core', ['Python', 'Data'])).toEqual({ remove: ['core'], add: ['profile Python', 'profile Data'] });
+  });
+
+  it('dropping a profile from a group extension does not edit the group for others when coverage still fits', () => {
+    // x.both is in py (Python, Data) and data (Data): keep only Data -> py would give it to Python, so drop it from py
+    expect(show('x.both', ['Data'])).toEqual({ remove: ['group py'], add: [] });
+  });
+
+  it('every profile that takes core: core, and the other lists are cleaned up', () => {
+    expect(show('y.own', ['Python', 'Data', 'Web'])).toEqual({
+      remove: ['profile Python', 'profile Web'],
+      add: ['core'],
+    });
+  });
+
+  it('a new extension goes to the own lists; skipCore profiles too', () => {
+    expect(show('new.ext', ['Web', 'Bare'])).toEqual({ remove: [], add: ['profile Web', 'profile Bare'] });
+  });
+
+  it('unchecked everywhere removes it from every list', () => {
+    expect(show('y.own', [])).toEqual({ remove: ['profile Python', 'profile Web'], add: [] });
   });
 });

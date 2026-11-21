@@ -22,6 +22,15 @@ const common = {
 const builds = [
   { ...common, entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', external: ['vscode'] },
   { ...common, entryPoints: ['src/cli/index.ts'], outfile: 'dist/cli.js', banner: { js: '#!/usr/bin/env node' } },
+  // manager panel UI, runs inside the webview (browser)
+  {
+    ...common,
+    entryPoints: ['src/ui/panel/webview.ts'],
+    outfile: 'dist/webview.js',
+    platform: 'browser',
+    format: 'iife',
+    target: 'es2022',
+  },
 ];
 
 if (watch) {

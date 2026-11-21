@@ -111,6 +111,12 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "profileKit.openManager",
+        "title": "Open Manager",
+        "category": "Profile Kit",
+        "icon": "$(table)"
+      },
+      {
         "command": "profileKit.installToProfiles",
         "title": "Install to Profiles...",
         "category": "Profile Kit",
@@ -152,6 +158,11 @@
           "command": "profileKit.installToProfiles",
           "when": "view == profileKit.profiles && profileKit.hasPreset",
           "group": "navigation@0"
+        },
+        {
+          "command": "profileKit.openManager",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "navigation@1"
         },
         {
           "command": "profileKit.applyAll",

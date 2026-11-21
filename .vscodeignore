@@ -1,6 +1,7 @@
 **
 !dist/extension.js
 !dist/cli.js
+!dist/webview.js
 !schema/**
 !presets/example.json
 !media/**
