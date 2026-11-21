@@ -116,12 +116,11 @@ async function main(): Promise<void> {
     let templates: Awaited<ReturnType<typeof fetchTemplates>> | undefined;
     try {
       templates = await fetchTemplates(url);
-    } catch (error) {
-      // The list is on VS Code's own CDN; older builds name a host that no longer answers (seen on 1.95.0).
-      // VS Code's New Profile > template list is then empty too, and Profile Kit only shows no suggestions.
-      console.log(
-        `SKIP  profile templates: the list in this build's product.json is not reachable (${error instanceof Error ? error.message : 'error'})`,
-      );
+    } catch {
+      // The list is on VS Code's own CDN; older builds name a host that no longer answers (seen on 1.95.0:
+      // "fetch failed"). VS Code's New Profile > template list is then empty too, and Profile Kit only shows no
+      // suggestions. The error text is not logged: it comes from the download (SonarQube S8689).
+      console.log("SKIP  profile templates: the list in this build's product.json could not be downloaded or read");
     }
     if (templates)
       check(
