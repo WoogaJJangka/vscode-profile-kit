@@ -159,6 +159,21 @@ export class Kit implements vscode.Disposable {
     return vscode.workspace.getConfiguration('profileKit').get<string>('presetPath', '').trim();
   }
 
+  /** Use this preset file from now on (application scope: one value for every profile) and load it. */
+  async usePreset(file: string): Promise<void> {
+    await vscode.workspace.getConfiguration('profileKit').update('presetPath', file, vscode.ConfigurationTarget.Global);
+    await this.loadPreset();
+    await this.refresh();
+  }
+
+  /** Extensions installed in this window's profile, lower-case, without VS Code's built-in ones and Profile Kit. */
+  userExtensionIds(): string[] {
+    const builtinRoot = vscode.env.appRoot.toLowerCase();
+    return vscode.extensions.all
+      .filter((e) => !e.extensionPath.toLowerCase().startsWith(builtinRoot) && e.id.toLowerCase() !== this.ownId)
+      .map((e) => e.id.toLowerCase());
+  }
+
   /** Read the preset file named by `profileKit.presetPath` and watch it. Does not call the code CLI. */
   async loadPreset(): Promise<void> {
     this.watcher?.dispose();

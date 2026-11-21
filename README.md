@@ -19,6 +19,7 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 - **설정 호환**: 프리셋의 공통 `settings`와 `profiles.X.settings`를 합쳐 각 프로필의 settings.json에 씁니다. Profile Kit가 쓴 키만 관리하고, 직접 넣은 키와 주석은 그대로 둡니다. 쓰기 전에 백업합니다. Default 설정을 그대로 쓰고 싶은 프로필은 `shareFromDefault.settings: true`로 둡니다.
   모든 프로필에 같은 값을 쓰려면 VS Code의 **모든 프로필에 설정 적용**(`workbench.settings.applyToAllProfiles`)을 쓰세요. 이 목록에 있는 키는 Default 값을 쓰므로 Profile Kit가 프로필 settings.json에 쓰지 않고, 프리셋 값과 다르면 미리보기에서 알려 줍니다. 목록을 바꾼 뒤에는 열린 창을 다시 로드해야 합니다.
 - **VS Code 프로필 파일(`.code-profile`)과 오가기**: **.code-profile로 프로필 내보내기...**는 프리셋의 프로필마다 파일을 만들고 VS Code의 프로필 편집기를 엽니다. 거기에 파일을 끌어다 놓거나 새 프로필 > 프로필 가져오기로 만듭니다. 꼭 **새 프로필로** 가져오세요. 이미 있는 프로필에 가져오면 VS Code가 파일에 없는 확장을 제거합니다. 반대로 **프리셋으로 프로필 가져오기...**는 `.code-profile` 파일이나 VS Code 내장 템플릿(Python, Data Science 등)을 프리셋의 프로필로 넣습니다. 확장과 설정만 가져오고 단축키·스니펫은 가져오지 않습니다.
+- **내장 프리셋으로 시작**: 프리셋이 없을 때 Python · 데이터, 웹 · JavaScript, Java, C · C++, C# · .NET, Go, Rust, Docker · 인프라, 모든 언어 중 하나로 시작합니다. 열린 폴더의 파일, 열린 파일의 언어, 이 프로필에 설치된 확장을 보고 맞는 것을 Profiles 화면과 목록 맨 위에 추천합니다. 고른 프리셋은 파일로 저장되어 그대로 고쳐 쓸 수 있습니다.
 - **VS Code 템플릿에서 시작**: **이 프로필로 프리셋 만들기**에서 VS Code 내장 템플릿을 골라 용도별 프로필로 같이 넣을 수 있습니다.
 - **"모든 프로필에 확장 적용" 표시**: VS Code에서 모든 프로필에 적용한 확장은 모든 프로필 목록에 나오므로, 트리·관리 화면·CLI `verify`에 "모든 프로필 (VS Code)"로 표시합니다. 프리셋에 없어도 직접 넣은 "추가"가 아닙니다.
 - **Settings Sync 안내**: 이 PC에서 Sync가 동기화한 적이 있으면 적용 미리보기에 "켜져 있다면 다른 PC로도 동기화됩니다"를 보여 줍니다. Sync가 켜져 있는지는 VS Code 내부 DB에만 있어 읽지 않습니다.
@@ -82,7 +83,7 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 ### 시작하기
 
 1. Activity Bar의 Profile Kit을 엽니다.
-2. **프리셋 파일 열기** 또는 **이 프로필로 프리셋 만들기**를 누릅니다.
+2. **내장 프리셋으로 시작하기**(추천 프리셋이 맨 위), **프리셋 파일 열기**, **이 프로필로 프리셋 만들기** 중 하나를 누릅니다.
 3. 툴바의 **모든 프로필에 프리셋 적용**으로 미리보기를 확인하고 적용합니다.
 
 ### 새 PC에서 같은 구성 만들기
@@ -129,6 +130,7 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Settings**: common `settings` plus `profiles.X.settings` are written to each profile's settings.json. Only keys Profile Kit wrote are managed; your own keys and comments stay, and files are backed up first.
   Keys in VS Code's **Apply Setting to all Profiles** list (`workbench.settings.applyToAllProfiles`) come from Default in every profile, so Profile Kit does not write them to profiles and says so in the preview when the preset wants a different value. Reload open windows after changing that list.
 - **VS Code profile files (`.code-profile`)**: **Export Profiles as .code-profile...** writes one file per preset profile and opens VS Code's Profiles editor; drop a file on it or use New Profile > Import Profile. Import each as a **new** profile: importing into an existing profile makes VS Code uninstall the extensions the file does not list. **Import Profiles into Preset...** takes `.code-profile` files or VS Code's built-in templates (Python, Data Science, ...) into the preset as profiles (extensions and settings; not keybindings or snippets). **Create Preset from This Profile** can also add profiles from those templates.
+- **Built-in starter presets**: with no preset yet, start from Python · Data, Web · JavaScript, Java, C · C++, C# · .NET, Go, Rust, Docker · Infra or All Languages. The one that fits the open folder's files, the open files' languages and this profile's extensions is recommended in the Profiles view and at the top of the list. It is saved as a file you edit from there.
 - **Extensions applied to all profiles** in VS Code show up in every profile's list; the tree, the manager and CLI `verify` mark them "all profiles (VS Code)" instead of a plain "extra".
 - **Settings Sync note**: when Sync has run on this PC, apply previews say the changes may also reach your other PCs (whether Sync is on is only in VS Code's internal database, which Profile Kit does not read).
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.

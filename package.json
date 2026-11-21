@@ -89,6 +89,56 @@
         "view": "profileKit.profiles",
         "contents": "%view.welcome%",
         "when": "!profileKit.hasPreset"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.python-data%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == python-data"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.web-js%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == web-js"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.java%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == java"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.c-cpp%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == c-cpp"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.csharp%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == csharp"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.go%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == go"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.rust%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == rust"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.docker-infra%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == docker-infra"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.starter.all-languages%",
+        "when": "!profileKit.hasPreset && profileKit.recommendedStarter == all-languages"
+      },
+      {
+        "view": "profileKit.profiles",
+        "contents": "%view.welcome.actions%",
+        "when": "!profileKit.hasPreset"
       }
     ],
     "commands": [
@@ -106,6 +156,11 @@
       {
         "command": "profileKit.createPreset",
         "title": "%cmd.createPreset%",
+        "category": "%category%"
+      },
+      {
+        "command": "profileKit.startFromStarter",
+        "title": "%cmd.startFromStarter%",
         "category": "%category%"
       },
       {
@@ -212,14 +267,19 @@
           "group": "1_preset@2"
         },
         {
-          "command": "profileKit.importCodeProfile",
+          "command": "profileKit.startFromStarter",
           "when": "view == profileKit.profiles",
           "group": "1_preset@3"
         },
         {
+          "command": "profileKit.importCodeProfile",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@4"
+        },
+        {
           "command": "profileKit.exportCodeProfile",
           "when": "view == profileKit.profiles && profileKit.hasPreset",
-          "group": "1_preset@4"
+          "group": "1_preset@5"
         }
       ],
       "view/item/context": [
