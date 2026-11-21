@@ -29,6 +29,8 @@ describe('windowsCommandLine', () => {
   it('doubles trailing backslashes so the closing quote is not escaped', () => {
     expect(windowsCommandLine('code', ['D:\\'])).toBe('code "D:\\\\"');
     expect(windowsCommandLine('code', ['D:\\a\\b'])).toBe('code "D:\\a\\b"');
+    expect(windowsCommandLine('code', ['a\\\\'])).toBe('code "a\\\\\\\\"');
+    expect(windowsCommandLine('code', ['\\'])).toBe('code "\\\\"');
   });
 
   it.each(['a"b', 'D:\\100%', '%PATH%', 'a\nb', 'a\rb', 'a\0b'])('refuses %j instead of changing it', (arg) => {

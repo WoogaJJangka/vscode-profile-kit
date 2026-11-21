@@ -87,7 +87,9 @@ export interface CodeRunnerOptions {
 export function windowsCommandLine(command: string, args: readonly string[]): string {
   const quote = (a: string) => {
     if (/["%\r\n\0]/.test(a)) throw new Error(`argument not passed to code: it contains " % or a line break (${a})`);
-    return `"${a.replace(/(\\+)$/, '$1$1')}"`;
+    let end = a.length;
+    while (end > 0 && a[end - 1] === '\\') end--;
+    return `"${a}${a.slice(end)}"`;
   };
   return [/\s/.test(command) ? quote(command) : command, ...args.map(quote)].join(' ');
 }
