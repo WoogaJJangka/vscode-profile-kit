@@ -63,3 +63,21 @@ VS Code 프로필 프리셋 도구를 제대로 된 프로젝트로 만든다: �
 - Settings Sync: https://code.visualstudio.com/docs/configure/settings-sync
 - 확장 게시: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
 - 선행 사례: https://github.com/aaronpowell/vscode-profile-switcher , https://github.com/robole/vscode-profile-status , https://github.com/zokugun/vscode-vsix-manager
+
+## 2026-11-21 계획 변경: GUI 중심 (M0~M7)
+
+사용자가 새 목표를 줬다: 확장을 설치할 때 넣을 프로필을 고르고 추천받기, 프로필 사이 쉬운 전환, VS Code 전역 설정과 프로필별 추가 설정 같이 쓰기. 모든 기능은 GUI로 보여야 한다.
+구조는 "확장이 주 화면, `src/core`·`src/host`는 CLI와 공유"로 바꿨다. 위 Phase 0~5의 규칙과 게이트(Default 변경, push, 게시는 사전 확인)는 그대로다.
+
+| 단계 | 내용 | 상태 |
+|------|------|------|
+| M0 | Phase 2 실험 (격리 VS Code). 결과는 `docs/PLAN.md` 8절 | 완료 |
+| M1 | core: 프리셋 `settings`·`match`, 추천, 설정 합치기, 프리셋 편집, storage.json 읽기, 폴더 추천 | 완료 |
+| M2 | host + CLI `apply` (미리보기, `--yes`) | 완료 |
+| M3 | GUI: 프로필 트리, 상태 표시줄, 전환, 누락 설치, 적용 | 완료 |
+| M4 | 설치 후 알림, Install to Profiles, 프리셋 갱신 | 완료 |
+| M5 | 관리 화면 (확장 매트릭스, 설정 표) | 완료 |
+| M6 | 폴더 추천 | 완료 |
+| M7 | 문서, 한국어 UI | 완료 |
+
+남은 게이트: Phase 0/1(실제 PC의 Default 상태 확인 등), 실제 VS Code에 적용, Phase 5 배포 준비.

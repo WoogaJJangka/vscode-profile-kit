@@ -6,8 +6,8 @@
 ## 진행 상태 (2026-11-21)
 
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
-  단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천) 완료.
-  다음은 M7(문서·한국어 l10n).
+  단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
+  남은 것: Phase 0/1 게이트, 실제 VS Code에 적용(사용자 확인 후), Phase 5 배포 준비.
 - 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). UI에서 추가하면 프리셋도 고친다.
 - 라이선스 MIT 확정. GitHub `WoogaJJangka/vscode-profile-kit`(private). push·게시는 매번 사용자 승인.
 - 있는 것: CLI `plan`, `verify`, `apply`(미리보기, `--yes`로 실행). GUI: Activity Bar 트리, 상태 표시줄, 전환, 누락 설치, 적용, 프리셋 열기/초안 만들기.
@@ -43,6 +43,7 @@
 - `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.
 - 현재 프로필은 각 프로필 settings.json의 마커 `profileKit.profile`로 안다(`globalStorageUri`는 프로필마다 같다, PLAN.md 8절).
+- UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.
 - 프리셋 검사 규칙을 바꾸면 `schema/preset.schema.json`도 같이 고친다. `presets/example.json`은 `scripts/legacy/vscode-profiles-setup.ps1`의
   `$core`/`$sets`와 같고, `preset.test.ts`가 프로필별 개수(Core 27 … Docker-Infra 31)를 지킨다.
 - 성공 판정은 종료 코드가 아니라 출력 파싱(`classifyInstallOutput`). 재시도는 네트워크 오류(`getaddrinfo ENOTFOUND` 등)만.
