@@ -11,3 +11,13 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # Must match the engine floor (engines.vscode ^1.95.0); newer types would allow APIs 1.95 lacks.
+      - dependency-name: '@types/vscode'
+        versions: ['>=1.96.0']
+      # Kept at 22 for vitest's peer range and the Node 20/22 runtime of supported VS Code versions.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # typescript-eslint 8.x supports TypeScript <6.1.0; lift this when it supports 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
