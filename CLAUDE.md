@@ -19,7 +19,7 @@
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
   `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
-  남은 것: 상태 표시줄이 8개 프로필 모두 마커로 맞게 나오는지 실제 창에서 확인, 두 번째 PC 확인, 저장소 public 전환(R2, 사용자 결정).
+  남은 것: 두 번째 PC 확인, 저장소 public 전환(R2, 사용자 결정). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
   (VS Code는 프로필 settings.json을 그대로 둠, 11-20 옛 사본) → `apply --yes`로 8개 프로필에 마커, Web-JS에 `[html]`. 다시 돌린 미리보기 "Nothing to do".
