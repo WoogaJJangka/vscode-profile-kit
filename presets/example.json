@@ -54,8 +54,7 @@
       "vscjava.vscode-java-dependency",
       "vscjava.vscode-java-test",
       "vscjava.vscode-maven",
-      "vscjava.migrate-java-to-azure",
-      "vscjava.vscode-gradle"
+      "vscjava.migrate-java-to-azure"
     ],
     "c-cpp": [
       "ms-vscode.cpptools",
