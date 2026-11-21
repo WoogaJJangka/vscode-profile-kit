@@ -125,6 +125,9 @@ export class Kit implements vscode.Disposable {
     return this.loaded;
   }
 
+  /** `profileKit.presetPath` is set but the file is not on this PC. */
+  presetMissing = false;
+
   get presetError(): string | undefined {
     return this.loadError;
   }
@@ -147,6 +150,7 @@ export class Kit implements vscode.Disposable {
     this.watcher = undefined;
     this.loaded = undefined;
     this.loadError = undefined;
+    this.presetMissing = false;
     const file = this.presetPath();
     if (file) {
       const uri = vscode.Uri.file(file);
@@ -154,7 +158,16 @@ export class Kit implements vscode.Disposable {
         const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
         this.loaded = { uri, text, preset: parsePresetText(text) };
       } catch (error) {
-        this.loadError = error instanceof PresetError || error instanceof Error ? error.message : String(error);
+        // the path is per PC (profileKit.presetPath is not synced); say so instead of a raw file system error
+        this.presetMissing = error instanceof vscode.FileSystemError && error.code === 'FileNotFound';
+        this.loadError = this.presetMissing
+          ? vscode.l10n.t(
+              'The preset file is not on this PC: {0}. Open the preset where it is on this PC (for example, your clone of the repository).',
+              file,
+            )
+          : error instanceof PresetError || error instanceof Error
+            ? error.message
+            : String(error);
       }
       this.watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(vscode.Uri.file(path.dirname(file)), path.basename(file)),

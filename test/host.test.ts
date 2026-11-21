@@ -1,15 +1,21 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { type CodeRunner, parsePreset, parseSettingsText, PROFILE_MARKER_KEY, type RunResult } from '../src/core';
+import {
+  type CodeRunner,
+  MANAGED_KEYS_KEY,
+  parsePreset,
+  parseSettingsText,
+  PROFILE_MARKER_KEY,
+  type RunResult,
+} from '../src/core';
 import { buildPlans, executePlans } from '../src/host/apply';
 import { codeCliCandidates, findCodeCli } from '../src/host/codeLocator';
 import { ensureProfile, installExtensions } from '../src/host/installer';
 import { defaultUserDataDir, userDataDirFromGlobalStorage, userDataPaths } from '../src/host/paths';
-import { readManagedState } from '../src/host/settingsWriter';
 
 const ok = (stdout: string): RunResult => ({ stdout, stderr: '', exitCode: 0 });
 const noSleep = () => Promise.resolve();
@@ -143,17 +149,15 @@ describe('apply (fake code CLI, temp user data folder)', () => {
     expect(report.backup && readFileSync(report.backup, 'utf8')).toContain('"user.key": 1');
     const text = readFileSync(settingsFile, 'utf8');
     expect(text).toContain('// keep me');
+    // the managed-key list sits in the same settings.json, so Settings Sync carries it along (review P3)
     expect(parseSettingsText(text)).toEqual({
       'user.key': 1,
       'editor.formatOnSave': true,
       'old.key': 'x',
       [PROFILE_MARKER_KEY]: 'Py',
+      [MANAGED_KEYS_KEY]: ['editor.formatOnSave', 'old.key', PROFILE_MARKER_KEY],
     });
-    expect(readManagedState(paths.managedSettingsFile).state.profiles.p1).toEqual([
-      'editor.formatOnSave',
-      'old.key',
-      PROFILE_MARKER_KEY,
-    ]);
+    expect(existsSync(paths.managedSettingsFile)).toBe(false);
 
     const second = parsePreset({
       core: ['esbenp.prettier-vscode'],
@@ -167,7 +171,55 @@ describe('apply (fake code CLI, temp user data folder)', () => {
       'user.key': 1,
       'editor.formatOnSave': true,
       [PROFILE_MARKER_KEY]: 'Py',
+      [MANAGED_KEYS_KEY]: ['editor.formatOnSave', PROFILE_MARKER_KEY],
     });
+  });
+
+  it('uses the list in a settings.json synced from another PC, and the old globalStorage list until then', async () => {
+    const paths = userDataPaths(dir);
+    mkdirSync(path.dirname(paths.storageJson), { recursive: true });
+    writeFileSync(
+      paths.storageJson,
+      JSON.stringify({
+        userDataProfiles: [
+          { name: 'A', location: 'a1' },
+          { name: 'B', location: 'b1' },
+        ],
+      }),
+    );
+    // A: written on another PC; this PC has no globalStorage list for it
+    mkdirSync(path.dirname(paths.profileSettings('a1')), { recursive: true });
+    writeFileSync(
+      paths.profileSettings('a1'),
+      JSON.stringify({ x: 1, old: 2, [PROFILE_MARKER_KEY]: 'A', [MANAGED_KEYS_KEY]: ['old', PROFILE_MARKER_KEY, 'x'] }),
+    );
+    // B: written by an older Profile Kit, whose list is in globalStorage
+    mkdirSync(path.dirname(paths.profileSettings('b1')), { recursive: true });
+    writeFileSync(paths.profileSettings('b1'), JSON.stringify({ x: 1, old: 2, [PROFILE_MARKER_KEY]: 'B' }));
+    mkdirSync(path.dirname(paths.managedSettingsFile), { recursive: true });
+    const legacy = JSON.stringify({ version: 1, profiles: { b1: ['old', PROFILE_MARKER_KEY, 'x'] } });
+    writeFileSync(paths.managedSettingsFile, legacy);
+
+    const env = { run: async () => ok(''), paths };
+    const preset = parsePreset({ settings: { x: 3 }, profiles: { A: {}, B: {} } });
+    const { plans } = await buildPlans(env, preset, ['A', 'B']);
+    for (const plan of plans)
+      expect(plan.settings?.changes).toEqual([
+        { key: 'old', kind: 'remove', before: 2 },
+        { key: 'x', kind: 'change', before: 1, after: 3 },
+      ]);
+    await executePlans(env, preset, plans);
+    for (const [loc, name] of [
+      ['a1', 'A'],
+      ['b1', 'B'],
+    ])
+      expect(parseSettingsText(readFileSync(paths.profileSettings(loc), 'utf8'))).toEqual({
+        x: 3,
+        [PROFILE_MARKER_KEY]: name,
+        [MANAGED_KEYS_KEY]: [PROFILE_MARKER_KEY, 'x'],
+      });
+    // the old file is only read, never rewritten
+    expect(readFileSync(paths.managedSettingsFile, 'utf8')).toBe(legacy);
   });
 
   it('never writes a settings.json that does not parse', async () => {
@@ -205,6 +257,7 @@ describe('apply (fake code CLI, temp user data folder)', () => {
     expect(parseSettingsText(readFileSync(paths.profileSettings('p1'), 'utf8'))).toEqual({
       'editor.tabSize': 4,
       [PROFILE_MARKER_KEY]: 'Py',
+      [MANAGED_KEYS_KEY]: ['editor.tabSize', PROFILE_MARKER_KEY],
     });
     expect(readFileSync(paths.defaultSettings, 'utf8')).toBe(defaultText);
   });

@@ -34,6 +34,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # media/icon.png is in Git LFS; without it the VSIX gets the pointer file instead of the icon
+          lfs: true
           persist-credentials: false
 
       # same major as environment.yml (vsce 4 needs Node 22 or later)

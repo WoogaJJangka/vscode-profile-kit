@@ -45,6 +45,7 @@ export interface UserDataPaths {
   defaultSettings: string;
   /** Profile Kit's own folder. */
   stateDir: string;
+  /** Old list of managed keys, from before it moved into each settings.json (review P3): read only. */
   managedSettingsFile: string;
   profileSettings(location: string): string;
   /** A new backup folder for one apply run. */

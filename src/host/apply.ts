@@ -2,8 +2,7 @@
  * `apply`: collect the current state, build a plan (core/applyPlan.ts), and carry it out.
  * Shared by the CLI and the extension so both do exactly the same thing.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
-import * as path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 
 import {
   allProfilesKeys,
@@ -13,6 +12,8 @@ import {
   diffSettings,
   desiredSettings,
   editSettingsText,
+  managedKeysChange,
+  managedKeysIn,
   type Preset,
   type ProfileApplyPlan,
   type ProfileState,
@@ -30,7 +31,7 @@ import {
   listInstalled,
 } from './installer';
 import type { UserDataPaths } from './paths';
-import { readManagedState, readSettingsFile, writeManagedState, writeProfileSettings } from './settingsWriter';
+import { readManagedState, readSettingsFile, writeProfileSettings } from './settingsWriter';
 
 export interface ApplyEnv {
   run: CodeRunner;
@@ -84,7 +85,8 @@ export async function buildPlans(env: ApplyEnv, preset: Preset, names: readonly 
       } catch (error) {
         problems.push(`${name}: settings.json is not valid JSON, its settings are skipped (${String(error)})`);
       }
-      state.managed = managed.state.profiles[stored.location] ?? [];
+      state.managed =
+        (state.settings && managedKeysIn(state.settings)) ?? managed.state.profiles[stored.location] ?? [];
     }
     const plan = planProfile(preset, name, state, defaults.state.allProfiles);
     if (stored && state.settings === undefined) delete plan.settings;
@@ -128,16 +130,10 @@ export async function executePlans(
   const say = options.onEvent ?? (() => undefined);
   const reports: ProfileReport[] = [];
   const backupDir = env.paths.backupDir();
-  const managedRead = readManagedState(env.paths.managedSettingsFile);
-  const managed = managedRead.state;
+  // the old list in globalStorage: read only, for profiles whose settings.json has no list of its own yet
+  const legacy = readManagedState(env.paths.managedSettingsFile).state;
   // read again: Default may have changed since the preview
   const { allProfiles } = readDefaultSettings(env.paths).state;
-  if (managedRead.problem) {
-    // keep the unreadable file next to this run's backups before it is replaced
-    mkdirSync(backupDir, { recursive: true });
-    copyFileSync(env.paths.managedSettingsFile, path.join(backupDir, 'managed-settings.json'));
-    say(`${managedRead.problem} (copied to ${backupDir})`);
-  }
 
   for (const plan of plans) {
     const report: ProfileReport = { name: plan.name, installs: [], settingsChanged: 0, problems: [] };
@@ -178,19 +174,21 @@ export async function executePlans(
       const file = env.paths.profileSettings(profile.location);
       try {
         const current = readSettingsFile(file);
-        const fresh = diffSettings(current.settings, desired, managed.profiles[profile.location] ?? []);
-        if (fresh.changes.length) {
+        const previous = managedKeysIn(current.settings) ?? legacy.profiles[profile.location] ?? [];
+        const fresh = diffSettings(current.settings, desired, previous);
+        // the list goes into the same file, in the same write (not counted as a setting change)
+        const record = managedKeysChange(current.settings, fresh.managed);
+        const edits = record ? [...fresh.changes, record] : fresh.changes;
+        if (edits.length) {
           report.backup = writeProfileSettings(
             file,
-            editSettingsText(current.text, fresh.changes),
+            editSettingsText(current.text, edits),
             backupDir,
             profile.location,
           );
           report.settingsChanged = fresh.changes.length;
-          say(`${plan.name}: ${fresh.changes.length} setting(s) written`);
+          if (fresh.changes.length) say(`${plan.name}: ${fresh.changes.length} setting(s) written`);
         }
-        managed.profiles[profile.location] = fresh.managed;
-        writeManagedState(env.paths.managedSettingsFile, managed);
       } catch (error) {
         report.problems.push(`settings not written: ${error instanceof Error ? error.message : String(error)}`);
       }

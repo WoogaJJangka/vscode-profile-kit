@@ -26,6 +26,28 @@ import {
  */
 export const PROFILE_MARKER_KEY = 'profileKit.profile';
 
+/**
+ * Keys Profile Kit wrote into a profile's settings.json, kept in that same file. Settings Sync copies settings.json
+ * to other PCs, so the list has to travel with it: a list kept in globalStorage stayed behind, and on the other PC
+ * Profile Kit's own keys looked like the user's and dropped keys were never removed (docs/REVIEW-2026-11-21.md, P3).
+ */
+export const MANAGED_KEYS_KEY = 'profileKit.managedKeys';
+
+/** The managed-key list a settings.json holds, or undefined when it has none or it is malformed. */
+export function managedKeysIn(settings: SettingsMap): string[] | undefined {
+  const value = settings[MANAGED_KEYS_KEY];
+  return Array.isArray(value) && value.every((k) => typeof k === 'string') ? value : undefined;
+}
+
+/** The edit that records `managed` in settings.json, or undefined when the file already has that list. */
+export function managedKeysChange(current: SettingsMap, managed: readonly string[]): SettingsChange | undefined {
+  const before = current[MANAGED_KEYS_KEY];
+  if (jsonEqual(before, managed)) return undefined;
+  return Object.prototype.hasOwnProperty.call(current, MANAGED_KEYS_KEY)
+    ? { key: MANAGED_KEYS_KEY, kind: 'change', before, after: [...managed] }
+    : { key: MANAGED_KEYS_KEY, kind: 'add', after: [...managed] };
+}
+
 export interface ProfileState {
   /** The profile as VS Code stores it; undefined when it does not exist yet. */
   stored?: StoredProfile;
@@ -33,7 +55,7 @@ export interface ProfileState {
   installed?: string[];
   /** Current settings.json content (`{}` when the file does not exist). */
   settings?: SettingsMap;
-  /** Keys Profile Kit wrote last time (managed-settings.json). */
+  /** Keys Profile Kit wrote last time: MANAGED_KEYS_KEY in settings.json, else the old managed-settings.json. */
   managed?: string[];
 }
 
@@ -72,7 +94,10 @@ export function desiredSettings(
 ): SettingsMap | undefined {
   const settings = resolveSettings(preset, name);
   if (settings === undefined) return undefined;
-  const own = Object.fromEntries(Object.entries(settings).filter(([k]) => !isAppliedToAllProfiles(k, allProfiles)));
+  // the managed-key list is Profile Kit's bookkeeping, written next to the changes (host/apply.ts), never a preset value
+  const own = Object.fromEntries(
+    Object.entries(settings).filter(([k]) => k !== MANAGED_KEYS_KEY && !isAppliedToAllProfiles(k, allProfiles)),
+  );
   return { ...own, [PROFILE_MARKER_KEY]: name };
 }
 

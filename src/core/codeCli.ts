@@ -86,10 +86,19 @@ export function createCodeRunner(command = 'code', options: CodeRunnerOptions = 
       let stderr = '';
       child.stdout.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
       child.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
+      // On Windows the child is cmd.exe; killing it leaves code.cmd's Code.exe running, and that process keeps
+      // stdout open, so 'close' would not come until it ends. taskkill /T ends the whole tree.
+      const killTree = () => {
+        if (isWindows && child.pid !== undefined)
+          spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }).on('error', () =>
+            child.kill(),
+          );
+        else child.kill();
+      };
       const timer = options.timeoutMs
         ? setTimeout(() => {
             stderr += `\n[profile-kit] killed after ${options.timeoutMs} ms`;
-            child.kill();
+            killTree();
           }, options.timeoutMs)
         : undefined;
       child.on('error', (error) => {

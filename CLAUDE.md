@@ -13,7 +13,7 @@
   남은 것: 프로필 설정 공유 문제(아래).
 - 2026-11-21 실제 VS Code `apply` 미리보기: 할 일 없음. 다만 8개 프로필 모두 Default 설정을 공유해서(`useDefaultFlags.settings`)
   프리셋 설정과 마커 `profileKit.profile`을 쓸 수 없다. 그래서 현재 프로필은 폴더 연결로만 알 수 있다. 공유를 끌지는 사용자 결정.
-- 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). UI에서 추가하면 프리셋도 고친다.
+- 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). 관리 키 목록은 각 settings.json의 `profileKit.managedKeys`(Sync로 같이 이동). 옛 `globalStorage/.../managed-settings.json`은 읽기만. UI에서 추가하면 프리셋도 고친다.
   Default의 `workbench.settings.applyToAllProfiles`에 있는 키는 프로필에 쓰지 않는다(VS Code가 Default 값을 쓰고 프로필 값은 무시, `docs/PLAN.md` 8-1절). 도구는 Default settings.json을 읽기만 한다.
   공유 문제의 결정(2026-11-21): 설정 공유를 끄고 공통 키는 이 목록으로 묶는다(추천안 C). 도구 수정은 PR #11로 main에 머지됨(2026-11-21), 실제 PC 전환은 아직.
 - 라이선스 MIT 확정. GitHub `WoogaJJangka/vscode-profile-kit`(private). push·게시는 매번 사용자 승인.
@@ -59,7 +59,7 @@
   `$core`/`$sets`와 같고, `preset.test.ts`가 프로필별 개수(Core 27 … Docker-Infra 31)를 지킨다.
 - 성공 판정은 종료 코드가 아니라 출력 파싱(`classifyInstallOutput`). 재시도는 네트워크 오류(`getaddrinfo ENOTFOUND`, VSIX 다운로드 중단 `(Error: aborted)` 등)만.
   분류 예시는 실제 로그(`Documents/vscode-profiles-setup/install-log-*.txt`)에서 가져왔다.
-- Windows에서 `code`는 `code.cmd`라 셸로 띄운다. 명령 이름 `code`를 따옴표로 감싸면 `%~dp0`가 현재 폴더가 되어 실패한다(`codeCli.ts` 주석).
+- Windows에서 `code`는 `code.cmd`라 셸로 띄운다. 명령 이름 `code`를 따옴표로 감싸면 `%~dp0`가 현재 폴더가 되어 실패한다(`codeCli.ts` 주석). 시간 초과 시 셸만 죽이면 `Code.exe`가 남아 호출이 안 끝나므로 `taskkill /T /F`로 트리째 끝낸다.
   프로필 이름은 따옴표만으로 안전하도록 `[A-Za-z0-9 ._-]`로 제한.
 - 엔진 하한 `^1.95.0`(VS Code 1.95의 Node는 20 → esbuild `target: node20`, Node 22 전용 API 쓰지 않음).
   `@types/node`는 vitest 5의 peer 때문에 22.

@@ -47,7 +47,15 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
 
   private roots(): Node[] {
     const out: Node[] = [];
-    if (this.kit.presetError)
+    if (this.kit.presetMissing)
+      out.push({
+        kind: 'message',
+        label: t('Preset file not found on this PC'),
+        icon: 'warning',
+        tooltip: this.kit.presetError ?? '',
+        command: { command: 'profileKit.openPreset', title: t('Open Preset File...') },
+      });
+    else if (this.kit.presetError)
       out.push({
         kind: 'message',
         label: t('Preset has problems'),

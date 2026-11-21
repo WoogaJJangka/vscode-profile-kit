@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Windows: a `code` call that times out now ends the whole process tree; before, only the shell was killed and the call did not return until VS Code's CLI ended on its own.
+- Settings Sync: the list of keys Profile Kit manages is kept in each profile's settings.json (`profileKit.managedKeys`), so it moves with the file. Before, it stayed in this PC's globalStorage, and on another PC Profile Kit's keys looked like yours and dropped keys were not removed. The old list is still read for profiles that do not have the new one yet.
+- `profileKit.presetPath` is no longer synced (it is a path on this PC). When the file is not on this PC, the tree says so and offers to open the preset.
+
+### Changed
+
+- Marketplace listing: extension icon, keywords, README status line.
+
 ## [0.1.0] - pre-release
 
 ### Extension

@@ -1,6 +1,6 @@
 # Profile Kit
 
-> Preview. Not published yet.
+> Pre-release (0.x). Marketplace: `woogajjangka.vscode-profile-kit`.
 
 [한국어](#한국어) · [English](#english)
 
@@ -55,6 +55,14 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 2. **프리셋 파일 열기** 또는 **이 프로필로 프리셋 만들기**를 누릅니다.
 3. 툴바의 **모든 프로필에 프리셋 적용**으로 미리보기를 확인하고 적용합니다.
 
+### 새 PC에서 같은 구성 만들기
+
+1. 프리셋이 든 저장소를 clone합니다.
+2. Profile Kit을 설치하고 **프리셋 파일 열기**로 clone한 프리셋을 고릅니다. 프리셋 경로는 PC마다 달라서 Settings Sync로 옮기지 않습니다.
+3. **모든 프로필에 프리셋 적용**(또는 CLI `profile-kit apply <프리셋> --yes`)으로 프로필을 만들고 맞춥니다.
+
+Settings Sync를 같이 쓰면 프로필 settings.json은 Sync가 옮깁니다. Profile Kit이 관리하는 키 목록(`profileKit.managedKeys`)도 같은 파일에 있어서 다른 PC에서도 Profile Kit이 쓴 키와 직접 넣은 키를 구분합니다.
+
 ### CLI
 
 ```sh
@@ -76,6 +84,8 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Settings**: common `settings` plus `profiles.X.settings` are written to each profile's settings.json. Only keys Profile Kit wrote are managed; your own keys and comments stay, and files are backed up first.
   Keys in VS Code's **Apply Setting to all Profiles** list (`workbench.settings.applyToAllProfiles`) come from Default in every profile, so Profile Kit does not write them to profiles and says so in the preview when the preset wants a different value. Reload open windows after changing that list.
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.
+
+- **New PC**: clone the repository with your preset, open it with **Open Preset File...**, then apply. The preset path is per PC and is not synced; with Settings Sync on, the list of keys Profile Kit manages (`profileKit.managedKeys`) travels inside each profile's settings.json.
 
 CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`).
 
