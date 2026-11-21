@@ -7,7 +7,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 
-import { isRecord, parseSettingsText, type SettingsMap } from '../core';
+import { isRecord, parseSettingsText, readErrorSummary, type SettingsMap } from '../core';
 
 export interface ManagedState {
   version: 1;
@@ -35,7 +35,7 @@ export function readManagedState(file: string): ManagedStateRead {
   } catch (error) {
     return {
       state: emptyState(),
-      problem: `${file} could not be read (${error instanceof Error ? error.message : String(error)}); keys from earlier runs will not be removed`,
+      problem: `${file} could not be read (${readErrorSummary(error)}); keys from earlier runs will not be removed`,
     };
   }
 }

@@ -29,10 +29,12 @@ describe('files VS Code leaves on disk (read only)', () => {
       JSON.stringify([{ identifier: { id: 'A.B' }, metadata: { isApplicationScoped: true } }]),
     );
     expect(readApplicationScoped(dir)).toEqual({ ids: ['a.b'] });
-    writeFileSync(path.join(dir, 'extensions.json'), '{ broken');
+    writeFileSync(path.join(dir, 'extensions.json'), 'secret-token-123 { broken');
     const broken = readApplicationScoped(dir);
     expect(broken.ids).toEqual([]);
-    expect(broken.problem).toMatch(/could not be read/);
+    expect(broken.problem).toMatch(/could not be read.*not valid JSON/);
+    // the message never quotes the file's content
+    expect(broken.problem).not.toContain('secret-token');
   });
 
   it('a missing folder means none; extensions.json linking outside the folder is not read', () => {
@@ -102,6 +104,12 @@ describe('fetchTemplates', () => {
 
   it('throws when the list itself fails', async () => {
     await expect(fetchTemplates('https://cdn.example/none.json', { fetch: fakeFetch })).rejects.toThrow(/404/);
+  });
+
+  it('a list that is not JSON is reported without its content', async () => {
+    const html = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<html>secret-page') });
+    const failure = await fetchTemplates('https://cdn.example/t.json', { fetch: html }).catch((e: Error) => e.message);
+    expect(failure).toBe('https://cdn.example/t.json: not valid JSON');
   });
 });
 

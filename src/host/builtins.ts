@@ -15,6 +15,7 @@ import {
   parseCodeProfile,
   parseTemplateList,
   type Preset,
+  readErrorSummary,
   type ProfileTemplate,
   resolveProfile,
   serializeCodeProfile,
@@ -50,7 +51,7 @@ export function readApplicationScoped(extensionsDir: string): { ids: string[]; p
   } catch (error) {
     return {
       ids: [],
-      problem: `${file} could not be read, so extensions applied to all profiles are not known (${String(error)})`,
+      problem: `${file} could not be read, so extensions applied to all profiles are not known (${readErrorSummary(error)})`,
     };
   }
 }
@@ -108,7 +109,17 @@ export async function fetchTemplates(
 ): Promise<FetchedTemplate[]> {
   const doFetch = options.fetch ?? (globalThis.fetch as unknown as GetFetch);
   const timeoutMs = options.timeoutMs ?? 10_000;
-  const list = parseTemplateList(JSON.parse(await getText(doFetch, url, timeoutMs)) as unknown);
+  const text = await getText(doFetch, url, timeoutMs);
+  // the parse error itself is not kept (not even as `cause`): it quotes the text it failed on
+  let json: unknown;
+  let failure: string | undefined;
+  try {
+    json = JSON.parse(text) as unknown;
+  } catch (error) {
+    failure = readErrorSummary(error);
+  }
+  if (failure !== undefined) throw new Error(`${url}: ${failure}`);
+  const list = parseTemplateList(json);
   return Promise.all(
     list.map(async (t): Promise<FetchedTemplate> => {
       try {
