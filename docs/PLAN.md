@@ -60,7 +60,7 @@
 - [x] Default 프로필 현재 상태 확인 → 80개(원본 백업 79개 + `vscjava.vscode-gradle`), Settings Sync 켜짐. Default 복구 단계는 쓰지 않기로 결정(2026-11-21)
 - [x] 현재 PC: repair 완료(2026-11-21 06:02), `verify` 8개 프로필 모두 빠진 것 없음. 실패 원인: DNS(`getaddrinfo ENOTFOUND`), VSIX 캐시 쓰기 중단(`Unable to write file ...CachedExtensionVSIXs (Error: aborted)`), 둘 다 재시도로 해결. `DEP0169` 경고는 PowerShell 5.1이 NativeCommandError로 감싼 것이라 실패가 아님
 - [x] 현재 PC: share-settings.ps1은 2026-11-21 05:58에 이미 실행됨(`backup-20261121-055822`). DryRun 결과 바꿀 것 없음
-- [ ] 현재 PC: Default 정리 방식 결정 (Disable All 후 Core만 켜기 / Core 프로필을 새 창 기본으로 / state.vscdb 편집은 비권장)
+- [x] 현재 PC: Default 정리 → Core에 없는 53개를 Default에서만 `code --uninstall-extension`으로 제거(2026-11-21, 사용자 요청, uninstall 금지 규칙의 1회 예외). Default = Core 27개, 다른 8개 프로필은 `verify`로 그대로인 것 확인. 의존 관계 때문에 한 번에 안 지워지는 것(.NET Install Tool, C# Dev Kit, Container Tools, Java 디버거·언어 지원)은 두 번째 패스에서 지워짐. 백업 `extensions-backup-20261121-104351-before-core-match.txt`(80개). Settings Sync로 다른 PC의 Default에도 전파될 수 있음
 - [x] 타당성 검증 후 구조 결정 → 8절 (확장 중심 GUI + 공유 core + 보조 CLI)
 - [x] 저장소 초기화, CI, 문서, 테스트
 - [ ] 배포: publisher 생성과 계정 작업은 사용자가 직접

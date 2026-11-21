@@ -14,7 +14,9 @@
 - **창을 여는 `code` 호출 주의**: 세 데이터 폴더가 실행 중인 VS Code와 모두 같아야 한다. 아니면 두 번째 VS Code가 기본 공유 데이터(로그인)로 뜬다.
   GUI 시험은 VSIX를 격리 VS Code에 설치하거나 launch.json "Run Extension (isolated profiles)"로 한다(PLAN.md 8절 #8).
 - Phase 0/1 확인 끝(2026-11-21): Default 80개(원본 백업 79개 + gradle), Settings Sync 켜짐. `repair-extensions.ps1` Default 단계는 앞으로 쓰지 않는다(사용자 결정).
-  `share-settings.ps1`은 05:58에 이미 실행됨(`backup-20261121-055822`), 8개 프로필 모두 Default 설정 공유 + `window.newWindowProfile=Core`. 남은 결정: Default 정리 방식.
+  `share-settings.ps1`은 05:58에 이미 실행됨(`backup-20261121-055822`), 8개 프로필 모두 Default 설정 공유 + `window.newWindowProfile=Core`.
+  Default 정리: 사용자 요청으로 Core에 없는 53개를 Default에서만 uninstall(2026-11-21, uninstall 금지 규칙의 1회 예외). 지금 Default = Core 27개.
+  되돌리기 기준은 `Documents/vscode-profiles-setup/extensions-backup-20261121-104351-before-core-match.txt`(80개).
   실제 사용자 VS Code에 `apply --yes`는 사용자 확인 후.
 - 2026-11-21 `verify` 결과(이 PC, 06:02 repair 이후): 8개 프로필 모두 빠진 것 없음. 추가분은 의존성(Java `vscjava.vscode-gradle`, Web-JS `silvenon.mdx`).
 
