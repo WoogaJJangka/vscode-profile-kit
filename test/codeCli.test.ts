@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   classifyInstallOutput,
+  createCodeRunner,
   installExtensionArgs,
   isTransient,
   listExtensionsArgs,
@@ -55,4 +56,16 @@ describe('argument builders', () => {
     expect(listExtensionsArgs('Web-JS')).toEqual(['--profile', 'Web-JS', '--list-extensions']);
     expect(installExtensionArgs('Go', 'golang.go')).toEqual(['--profile', 'Go', '--install-extension', 'golang.go']);
   });
+});
+
+describe('createCodeRunner timeout', () => {
+  // On Windows the runner starts a shell; killing only the shell left the real process running and holding the
+  // output open, so the call did not return until that process ended (review P2).
+  it('ends the whole process tree and returns soon after the timeout', async () => {
+    const run = createCodeRunner(process.execPath, { timeoutMs: 300 });
+    const started = Date.now();
+    const result = await run(['-e', 'setTimeout(() => {}, 30000)']);
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(result.stderr).toContain('killed after 300 ms');
+  }, 20_000);
 });
