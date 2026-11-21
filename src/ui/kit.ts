@@ -3,7 +3,6 @@
  * per-profile status (declared vs installed) that the tree and the status bar show.
  */
 import { existsSync } from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 
 import * as vscode from 'vscode';
@@ -25,9 +24,16 @@ import {
   type StoredProfile,
 } from '../core';
 import { readStorage } from '../host/apply';
+import { readApplicationScoped } from '../host/builtins';
 import { findCodeCli } from '../host/codeLocator';
 import { listInstalled } from '../host/installer';
-import { defaultUserDataDir, userDataDirFromGlobalStorage, userDataPaths, type UserDataPaths } from '../host/paths';
+import {
+  defaultExtensionsDir,
+  defaultUserDataDir,
+  userDataDirFromGlobalStorage,
+  userDataPaths,
+  type UserDataPaths,
+} from '../host/paths';
 
 export interface LoadedPreset {
   uri: vscode.Uri;
@@ -56,11 +62,14 @@ export class Kit implements vscode.Disposable {
   readonly paths: UserDataPaths;
   readonly run: CodeRunner;
   readonly codeCli: string | undefined;
+  /** This VS Code's extensions folder; its extensions.json is Default's list (read only). */
+  readonly extensionsDir: string;
 
   private loaded: LoadedPreset | undefined;
   private loadError: string | undefined;
   private storage: StorageProfiles = { profiles: [], folders: [], emptyWindows: [], problems: [] };
   private installed = new Map<string, string[] | undefined>();
+  private applicationScoped = new Set<string>();
   private readonly changed = new vscode.EventEmitter<void>();
   /** Fires after the preset, the profile list or an installed list changed. */
   readonly onDidChange = this.changed.event;
@@ -74,6 +83,9 @@ export class Kit implements vscode.Disposable {
     this.paths = userDataPaths(userData);
     this.ownId = context.extension.id.toLowerCase();
     this.codeCli = findCodeCli(vscode.env.appRoot);
+    // the folder this extension is installed in, unless it runs from a development folder (F5)
+    const ownDir = path.dirname(context.extensionPath);
+    this.extensionsDir = existsSync(path.join(ownDir, 'extensions.json')) ? ownDir : defaultExtensionsDir();
     const { baseArgs, windowsBlocked } = this.codeBaseArgs(userData);
     this.windowsBlocked = windowsBlocked;
     this.run = createCodeRunner(this.codeCli ?? 'code', { baseArgs, timeoutMs: 5 * 60_000 });
@@ -106,10 +118,7 @@ export class Kit implements vscode.Disposable {
         : path.resolve(a) === path.resolve(b);
     const args: string[] = [];
     if (!same(userData, defaultUserDataDir())) args.push('--user-data-dir', userData);
-    const extDir = path.dirname(this.context.extensionPath);
-    const defaultExtDir = path.join(process.env.VSCODE_PORTABLE ?? path.join(os.homedir(), '.vscode'), 'extensions');
-    if (existsSync(path.join(extDir, 'extensions.json')) && !same(extDir, defaultExtDir))
-      args.push('--extensions-dir', extDir);
+    if (!same(this.extensionsDir, defaultExtensionsDir())) args.push('--extensions-dir', this.extensionsDir);
     let extra: string[] = [];
     try {
       const parsed: unknown = JSON.parse(process.env.PROFILE_KIT_CODE_ARGS ?? '[]');
@@ -220,6 +229,7 @@ export class Kit implements vscode.Disposable {
     this.refreshing ??= (async () => {
       try {
         this.storage = readStorage(this.paths);
+        this.applicationScoped = new Set(readApplicationScoped(this.extensionsDir).ids);
         const existing = new Set(this.storage.profiles.map((p) => p.name));
         const current = this.currentProfile()?.name;
         const wanted = this.listAll
@@ -259,6 +269,14 @@ export class Kit implements vscode.Disposable {
   installedByKit(id: string, withinMs = 10 * 60_000): boolean {
     const at = this.installingIds.get(id.toLowerCase());
     return at !== undefined && Date.now() - at < withinMs;
+  }
+
+  /**
+   * Extensions VS Code applies to all profiles ("Apply Extension to all Profiles", Default's extensions.json).
+   * They show up in every profile's `--list-extensions`.
+   */
+  appliedToAll(id: string): boolean {
+    return this.applicationScoped.has(id.toLowerCase());
   }
 
   /** Last `--list-extensions` of a profile; undefined when not listed yet or the profile does not exist. */

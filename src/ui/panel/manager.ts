@@ -21,6 +21,7 @@ import {
   setSetting,
 } from '../../core';
 import { buildPlans, executePlans, readDefaultSettings, reportOk } from '../../host/apply';
+import { syncedBefore } from '../../host/builtins';
 import { installExtensions, installSucceeded } from '../../host/installer';
 import type { Kit } from '../kit';
 import type {
@@ -62,6 +63,8 @@ const WEBVIEW_STRINGS = [
   'this window',
   'uses Default settings',
   'all profiles (from Default)',
+  'all profiles (VS Code)',
+  'VS Code applies this extension to all profiles (Apply Extension to all Profiles).',
   'Default applies this setting to all profiles (Apply Setting to all Profiles), so a profile cannot have its own value.',
   'Common (all profiles)',
   'Setting',
@@ -165,6 +168,7 @@ export class ManagerPanel implements vscode.Disposable {
         id: key,
         ...(displayName ? { displayName } : {}),
         section,
+        ...(this.kit.appliedToAll(key) ? { allProfiles: true } : {}),
         declaredIn: preset ? profilesWithExtension(preset, key) : [],
         installedIn: installedIn(key).filter((p) => declared.includes(p)),
       });
@@ -291,6 +295,7 @@ export class ManagerPanel implements vscode.Disposable {
     }
     for (const [id, profiles] of installs)
       lines.push({ kind: 'install', text: t('install {0} in {1}', id, profiles.join(', ')) });
+    if (installs.size) this.syncNote(lines);
     parsePresetText(text); // throws if an edit broke the preset
     const empty = text === original && installs.size === 0;
     return { preview: { token: fingerprint(original), lines, empty }, text, installs };
@@ -389,8 +394,18 @@ export class ManagerPanel implements vscode.Disposable {
         kind: 'note',
         text: t('{0}: profile not created yet; its settings are written when the preset is applied', n),
       });
+    if (lines.some((l) => l.kind === 'settings')) this.syncNote(lines);
     const empty = text === original && !lines.some((l) => l.kind === 'settings');
     return { preview: { token: fingerprint(original), lines, empty }, text, preset };
+  }
+
+  /** Settings Sync may carry profile changes to other PCs (review stage C-3; whether it is on is not readable). */
+  private syncNote(lines: PreviewLine[]): void {
+    if (syncedBefore(this.kit.paths))
+      lines.push({
+        kind: 'note',
+        text: t('Settings Sync has run on this PC: if it is on, these profile changes also reach your other PCs'),
+      });
   }
 
   private async applySettings(changes: SettingChange[], token: string): Promise<void> {

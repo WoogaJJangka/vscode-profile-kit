@@ -20,6 +20,8 @@ interface ExtensionNode {
   id: string;
   state: 'ok' | 'missing' | 'extra' | 'installed';
   origin?: string;
+  /** VS Code applies it to all profiles ("Apply Extension to all Profiles"), so every profile lists it. */
+  allProfiles?: boolean;
 }
 interface MessageNode {
   kind: 'message';
@@ -84,6 +86,7 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
         id,
         state,
         ...(origins.get(id) ? { origin: origins.get(id) } : {}),
+        ...(this.kit.appliedToAll(id) ? { allProfiles: true } : {}),
       });
       return [
         ...row.diff.missing.map((id) => node(id, 'missing')),
@@ -99,7 +102,13 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
         state: 'missing',
         ...(origins.get(id) ? { origin: origins.get(id) } : {}),
       }));
-    return (row.installed ?? []).map((id) => ({ kind: 'extension', profile: row.name, id, state: 'installed' }));
+    return (row.installed ?? []).map((id) => ({
+      kind: 'extension',
+      profile: row.name,
+      id,
+      state: 'installed',
+      ...(this.kit.appliedToAll(id) ? { allProfiles: true } : {}),
+    }));
   }
 
   getTreeItem(node: Node): vscode.TreeItem {
@@ -170,17 +179,31 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
       extra: t('installed, not in the preset'),
       installed: t('installed'),
     };
-    item.description = [node.origin, node.state === 'ok' || node.state === 'installed' ? '' : label[node.state]]
+    // an "extra" that VS Code applies to all profiles is not something the user added to this profile
+    const scopedExtra = node.allProfiles === true && node.state === 'extra';
+    item.description = [
+      node.origin,
+      node.state === 'ok' || node.state === 'installed' || scopedExtra ? '' : label[node.state],
+      node.allProfiles ? t('all profiles (VS Code)') : '',
+    ]
       .filter(Boolean)
       .join(' · ');
-    item.tooltip = `${node.id}\n${label[node.state]}${node.origin ? `\n${t('from')}: ${node.origin}` : ''}`;
+    item.tooltip = [
+      node.id,
+      label[node.state],
+      node.origin ? `${t('from')}: ${node.origin}` : '',
+      node.allProfiles ? t('VS Code applies this extension to all profiles (Apply Extension to all Profiles).') : '',
+      node.allProfiles && node.origin === 'core' ? t('It is also in core; either one is enough.') : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
     const icons: Record<ExtensionNode['state'], vscode.ThemeIcon> = {
       ok: new vscode.ThemeIcon('check'),
       installed: new vscode.ThemeIcon('extensions'),
       missing: new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('list.warningForeground')),
       extra: new vscode.ThemeIcon('dash', new vscode.ThemeColor('disabledForeground')),
     };
-    item.iconPath = icons[node.state];
+    item.iconPath = scopedExtra ? new vscode.ThemeIcon('globe') : icons[node.state];
     item.command = { command: 'extension.open', title: t('Show Extension'), arguments: [node.id] };
     return item;
   }

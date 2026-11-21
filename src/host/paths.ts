@@ -5,7 +5,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { PROFILES_FOLDER } from '../core/compat';
+import { PROFILES_FOLDER, SYNC_FOLDER } from '../core/compat';
 
 /** Folder under `User/globalStorage/` for Profile Kit's own files. One path for all profiles: the extension's
  * globalStorageUri is the same in every profile (PLAN.md section 8, #3), and the CLI must find the same files. */
@@ -22,6 +22,11 @@ export function defaultUserDataDir(
   if (platform === 'win32') return path.join(env.APPDATA ?? path.join(home, 'AppData', 'Roaming'), product);
   if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', product);
   return path.join(env.XDG_CONFIG_HOME ?? path.join(home, '.config'), product);
+}
+
+/** VS Code's default extensions folder (what `--extensions-dir` replaces). */
+export function defaultExtensionsDir(env: NodeJS.ProcessEnv = process.env, home: string = os.homedir()): string {
+  return path.join(env.VSCODE_PORTABLE ?? path.join(home, '.vscode'), 'extensions');
 }
 
 /**
@@ -47,6 +52,8 @@ export interface UserDataPaths {
   defaultSettings: string;
   /** Profile Kit's own folder. */
   stateDir: string;
+  /** Settings Sync's last synced copies: there once Sync has run on this PC (read only, for a note). */
+  syncDir: string;
   /** Old list of managed keys, from before it moved into each settings.json (review P3): read only. */
   managedSettingsFile: string;
   profileSettings(location: string): string;
@@ -68,6 +75,7 @@ export function userDataPaths(userData: string): UserDataPaths {
     storageJson: path.join(user, 'globalStorage', 'storage.json'),
     defaultSettings: path.join(user, 'settings.json'),
     stateDir,
+    syncDir: path.join(user, SYNC_FOLDER),
     managedSettingsFile: path.join(stateDir, 'managed-settings.json'),
     profileSettings: (location) => {
       // location comes from storage.json; never let it point outside User/profiles

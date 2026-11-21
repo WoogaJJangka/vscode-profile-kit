@@ -20,5 +20,7 @@
   "cmd.applyAll": "모든 프로필에 프리셋 적용...",
   "cmd.switchProfile": "프로필 전환...",
   "cmd.switchTo": "이 프로필로 전환",
+  "cmd.exportCodeProfile": ".code-profile로 프로필 내보내기...",
+  "cmd.importCodeProfile": "프리셋으로 프로필 가져오기(.code-profile, VS Code 템플릿)...",
   "category": "Profile Kit"
 }

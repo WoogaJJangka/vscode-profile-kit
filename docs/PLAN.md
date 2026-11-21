@@ -111,6 +111,32 @@ Settings Sync가 목록과 프로필 파일을 다른 PC로 어떻게 옮기는�
 - 목록을 바꾼 뒤에는 열린 창을 다시 열라고 안내한다.
 - 공유를 끄는 순서: 백업 → 화면에서 공유 끄기 → 그다음 프로필 파일 쓰기(끌 때 VS Code가 파일을 어떻게 하든 결과가 같도록).
 
+### 8-2. 단계 C 조사: 내장 기능 불러 쓰기 (2026-11-21, VS Code 1.147.0, Windows)
+
+방법: VS Code 내장 프로필 템플릿 7개(VS Code가 내보낸 `.code-profile` 파일)와 설치된 VS Code의 workbench 코드(가져오기 검사·적용, URL 처리, 끌어다 놓기)를 읽었다.
+실제 PC는 읽기만 했다(`extensions.json`, `User/sync/`, `code --list-extensions`). 격리 VS Code에서 손으로 내보내기·가져오기는 하지 않았다.
+
+| # | 질문 | 결과 | 설계에 반영 |
+|---|------|------|-------------|
+| C-1 | `.code-profile` 형식 | JSON 객체. `name`(문자열)만 필수이고 `icon`(codicon 이름), `settings`, `keybindings`, `tasks`, `snippets`, `globalState`, `extensions`, `useDefaultFlags`는 선택. 값은 모두 **JSON을 문자열로 한 번 더 감싼 것**이다. `settings` = `{"settings": "<settings.json 원문>"}`(주석·CRLF·언어별 블록 그대로), `extensions` = `[{identifier: {id, uuid}, displayName, preRelease?, applicationScoped?, disabled?}]`, `snippets` = `{"snippets": {"python.json": "<원문>"}}`, `globalState` = `{"storage": {...}}`(보기 배치). VS Code의 검사는 "name이 문자열이고 icon·settings·globalState·extensions가 없거나 문자열"뿐이다. 가져올 때 템플릿은 `resourceTypeFlags`로 항목을 뺄 수 있다 | 내보내기는 `name`, `icon`(있으면), `settings`, `extensions`만 쓴다. `uuid`는 Marketplace 조회로 채우고 실패하면 뺀다. **`uuid` 없이 가져와지는지는 확인하지 않았다** → 구현할 때 격리 VS Code에서 확인 |
+| C-1b | VS Code로 가져오는 방법 | 공개 명령이 없다. ① 파일을 창에 끌어다 놓으면 Profiles 편집기의 "새 프로필"이 그 파일 내용으로 열린다 ② Profiles 편집기의 Import(내부 action `importProfile`) ③ URL `vscode://profile/<handler>/<id>`는 확장이 제안 API로 등록한 content handler만 처리한다(Marketplace 확장은 못 씀) | Profile Kit은 파일만 만들고, Profiles 편집기(`workbench.profiles.actions.manageProfiles`)를 열어 "이 파일을 끌어다 놓거나 Import"라고 안내한다. 만들기 확인은 VS Code 화면에서 사용자가 한다. 반대 방향(`.code-profile` → 프리셋 초안)은 파일만 읽으면 되어 VS Code에 기대지 않는다(core 순수 로직) |
+| C-2 | "Apply Extension to all Profiles" 표시 | Default 프로필의 `<extensions-dir>/extensions.json` 항목에 `metadata.isApplicationScoped: true`로 들어간다. 프로필의 `User/profiles/<location>/extensions.json`에는 없다. `code --list-extensions --profile X`는 이 확장을 표시 없이 섞어 보여 준다(실제 PC Core: 파일 26개 + 한국어 팩 = 목록 27개). 확장 API로는 알 수 없다. 이 PC에서는 `ms-ceintl.vscode-language-pack-ko` 하나 | 읽기만 한다(쓰기는 `extensions.json` 편집뿐이라 하지 않음, 규칙). 트리·관리 화면에 "모든 프로필" 표시, `verify`의 "추가"가 이것 때문이면 이유를 붙이고, `core`와 겹치면 알려 준다. `compat.ts` 비공개 의존에 하나 추가 |
+| C-3 | Settings Sync가 켜져 있는지 | application 저장소 `User/globalStorage/state.vscdb`(SQLite)의 키 `sync.enable`(이 PC `true`). 확장 API·설정·일반 파일로는 알 수 없다. `User/sync/<항목>/lastSync*.json`은 한 번이라도 동기화하면 생기고 동기화할 때마다 바뀌지만, 끈 뒤에도 남는다. VS Code 1.95의 Node 20에는 내장 SQLite가 없다 | SQLite는 읽지 않는다(의존성이 늘고 `state.vscdb`는 다루지 않는 파일). `User/sync/`가 있으면 미리보기에 "Settings Sync를 쓰고 있다면 이 변경은 다른 PC로도 동기화됩니다"를 조건 문구로 보여 준다 |
+| C-4 | 내장 템플릿 목록 | `<appRoot>/product.json`의 `profileTemplatesUrl` = `https://main.vscode-cdn.net/core/profile-templates.json`. VS Code가 "새 프로필 → 템플릿"에 쓰는 주소와 같다. `[{name, url}]` 7개(Python, Angular, Doc Writer, Data Science, Java General, Java Spring, Node.js)이고 각 `url`이 C-1 형식의 `.code-profile`(확장 8~22개, 일부는 설정·스니펫 포함) | 프리셋 초안 만들기에서 이 목록을 받아 그룹 후보로 제안한다(확장 ID만, 설정은 보여 주고 고르게). 못 받으면(오프라인, 키 없음) 제안 없이 진행. `compat.ts` 비공개 의존에 하나 추가 |
+
+결론: 네 가지 모두 공개 API는 없지만, 읽기와 파일 만들기만으로 할 수 있다. 쓰기가 필요한 일(가져오기, "모든 프로필에 적용" 켜기)은 VS Code 화면에 맡긴다.
+구현하면 비공개 의존이 6개에서 8개(Default `extensions.json`의 `isApplicationScoped`, `product.json`의 `profileTemplatesUrl` + 템플릿 형식)가 되므로 호환성 점검(10절)에 같이 넣는다.
+
+구현(2026-11-21, 사용자 결정: C-1·C-2·C-4 + C-3 문구): `core/codeProfile.ts`·`templates.ts`·`extensionsJson.ts`, `host/builtins.ts`, `ui/codeProfiles.ts`, CLI `export`.
+비공개 의존은 결국 10개다(위 둘 + `.code-profile` 형식과 Profiles 편집기 명령 + `User/sync/`). 템플릿은 그룹이 아니라 프로필 후보로 넣는다(가져오기와 같은 경로, 설정도 같이 옴).
+
+가져오기 확인(2026-11-21, VS Code 1.147.0, 격리 폴더 3개): CLI `export --offline`으로 `uuid` 없는 파일을 만들고, 시험용 탐침 확장(제안 API `profileContentHandlers`, `--enable-proposed-api`, 시험 창에서만)이
+그 파일을 `vscode://profile/probe/x`로 VS Code의 가져오기 화면에 넘겼다. 화면에서 Create를 누르니:
+- 확장 2개가 설치됐다(`uuid` 없이 ID로 찾음. 코드상 `areSameExtensions`도 둘 다 `uuid`가 있을 때만 `uuid`로 비교).
+- 프로필 settings.json에 파일의 settings.json 원문이 그대로 들어갔다(마커·`profileKit.managedKeys` 포함). 그 뒤 Profile Kit `apply` 미리보기 = "up to date", `verify` = 2 ok.
+- 설치 중 VS Code가 처음 보는 게시자마다 "Do you trust the publisher?" 확인을 띄웠다(가져오기의 일부, 사용자가 누름).
+- VS Code 코드상, **이미 있는 프로필에 가져오면 파일에 없는 확장(모든 프로필에 적용된 것 제외)을 제거한다.** 그래서 안내·CLI 출력에 "새 프로필로 가져오기"를 적었다.
+
 ## 9. SonarQube Cloud (2026-11-21~)
 
 CI 분석(`sonar.yml`, secret `SONAR_TOKEN`, Automatic Analysis 끔). 수동 실행: `gh workflow run sonar.yml --ref main`.
@@ -130,7 +156,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 ## 10. VS Code 내부 의존과 호환성 점검 (2026-11-21~, 단계 D)
 
-공개 API가 아닌 VS Code 동작 6가지는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
+공개 API가 아닌 VS Code 동작 10가지(6가지 + 단계 C의 4가지, 8-2절)는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
 손으로 확인한 버전은 `COMPAT_CHECKED_VERSION`(1.147.0). 확장은 시작할 때 출력 창 첫 줄에 VS Code 버전과 이 버전을 적는다(버그 보고용, `.github/ISSUE_TEMPLATE/bug_report.yml`).
 
 호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
@@ -138,7 +164,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable. 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
 확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
 
-2026-11-21 이 PC(Windows, VS Code 1.147.0, 격리 폴더)에서 `out/compat.js` 9개 모두 통과. 묶음 설치 출력은 확장마다 한 줄씩 나온다:
+2026-11-21 이 PC(Windows, VS Code 1.147.0, 격리 폴더)에서 `out/compat.js` 9개 모두 통과(단계 C 뒤 13개: 언어 팩을 Default에 설치하면 `extensions.json`에 `isApplicationScoped`가 붙고 다른 프로필 목록에도 나옴, `profileTemplatesUrl`과 템플릿 7개 읽기). 묶음 설치 출력은 확장마다 한 줄씩 나온다:
 `Extension 'a' v1 was successfully installed.` / `... is already installed. Use '--force' ... for example: 'a@1.2.3'.` / 없는 ID는 `Extension 'x' not found.` + 끝에 `Failed Installing Extensions: x`. 프로필이 없으면 `Profile 'Nope' not found.` 한 줄.
 
 단계 D에서 같이 고친 것 (`docs/REVIEW-2026-11-21.md` 2절):

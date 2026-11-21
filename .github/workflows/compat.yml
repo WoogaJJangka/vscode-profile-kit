@@ -15,6 +15,9 @@ on:
       - src/core/compat.ts
       - src/core/codeCli.ts
       - src/core/profiles.ts
+      - src/core/codeProfile.ts
+      - src/core/extensionsJson.ts
+      - src/core/templates.ts
       - src/host/**
       - scripts/compat/**
       - .github/workflows/compat.yml

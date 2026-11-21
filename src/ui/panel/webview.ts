@@ -178,6 +178,16 @@ function matrix(st: ManagerState): HTMLElement {
       { class: 'name' },
       el('a', { href: '#', title: ext.id }, ext.displayName ?? ext.id),
       ext.displayName ? el('small', {}, ext.id) : undefined,
+      ext.allProfiles
+        ? el(
+            'small',
+            {
+              class: 'scope',
+              title: s('VS Code applies this extension to all profiles (Apply Extension to all Profiles).'),
+            },
+            s('all profiles (VS Code)'),
+          )
+        : undefined,
     );
     name.querySelector('a')?.addEventListener('click', (ev) => {
       ev.preventDefault();

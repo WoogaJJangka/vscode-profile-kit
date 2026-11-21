@@ -156,6 +156,12 @@ td.name small {
 td.name small {
   margin-left: 6px;
 }
+td.name small.scope {
+  border: 1px solid var(--vscode-badge-background);
+  border-radius: 3px;
+  padding: 0 4px;
+  opacity: 0.85;
+}
 th.current span {
   color: var(--vscode-textLink-foreground);
 }

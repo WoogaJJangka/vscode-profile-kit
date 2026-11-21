@@ -14,7 +14,7 @@ import {
   type Node,
 } from 'jsonc-parser';
 
-import { isExtensionId, normalizeId, stripBom } from './preset';
+import { isExtensionId, isProfileName, normalizeId, stripBom } from './preset';
 
 export type ExtensionTarget = { kind: 'core' } | { kind: 'group'; name: string } | { kind: 'profile'; name: string };
 export type SettingsTarget = { kind: 'common' } | { kind: 'profile'; name: string };
@@ -100,6 +100,33 @@ export function removeExtension(text: string, target: ExtensionTarget, id: strin
     if (!found.length) return out;
     out = edit(out, [...path, found[found.length - 1]], undefined);
   }
+}
+
+/** Replace the whole `core` list. */
+export function setCore(text: string, ids: readonly string[]): string {
+  rootOf(text);
+  for (const id of ids)
+    if (!isExtensionId(id)) throw new PresetEditError(`not an extension ID (publisher.name): ${JSON.stringify(id)}`);
+  return edit(text, ['core'], [...ids]);
+}
+
+/** Add a new profile with the given spec. Refuses a name the preset already has (case-insensitive). */
+export function addProfile(text: string, name: string, spec: Record<string, unknown>): string {
+  if (!isProfileName(name))
+    throw new PresetEditError(`not a profile name a preset can declare: ${JSON.stringify(name)}`);
+  const profiles = findNodeAtLocation(rootOf(text), ['profiles']);
+  if (profiles && profiles.type !== 'object') throw new PresetEditError('profiles is not an object');
+  if (profileNamesIn(text).some((n) => n.toLowerCase() === name.toLowerCase()))
+    throw new PresetEditError(`profile "${name}" already exists in the preset`);
+  return edit(text, ['profiles', name], spec);
+}
+
+/** Profile names a preset text declares (in file order); [] when it has none or is not an object. */
+export function profileNamesIn(text: string): string[] {
+  const root = parseTree(stripBom(text));
+  const profiles = root && findNodeAtLocation(root, ['profiles']);
+  if (!profiles || profiles.type !== 'object') return [];
+  return (profiles.children ?? []).map((p) => String(getNodeValue(p.children?.[0] as Node)));
 }
 
 /**
