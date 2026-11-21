@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <!-- placeholder icon: replace with the real one (Marketplace needs a PNG, which goes in Git LFS) -->
+  <!-- placeholder icon; media/icon.png (Git LFS) is this drawing at 128 px for the Marketplace, redraw both together -->
   <rect width="128" height="128" rx="24" fill="#2b2d30"/>
   <rect x="24" y="28" width="80" height="16" rx="4" fill="#3574f0"/>
   <rect x="24" y="56" width="56" height="16" rx="4" fill="#5fb865"/>
