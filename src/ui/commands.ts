@@ -14,6 +14,7 @@ import { exportProfiles, importProfiles, pickTemplates } from './codeProfiles';
 import { installToProfiles } from './installFlow';
 import { DEFAULT_PROFILE, type Kit } from './kit';
 import { ManagerPanel } from './panel/manager';
+import { startFromStarter } from './starters';
 import { switchProfile } from './switch';
 import type { ProfileNode } from './tree';
 
@@ -228,24 +229,12 @@ async function openPreset(kit: Kit): Promise<void> {
     openLabel: t('Use as Preset'),
   });
   if (!picked?.[0]) return;
-  await setPresetPath(picked[0].fsPath);
-  await kit.loadPreset();
-  await kit.refresh();
-}
-
-function setPresetPath(file: string): Thenable<void> {
-  // application scope: one value for every profile
-  return vscode.workspace.getConfiguration('profileKit').update('presetPath', file, vscode.ConfigurationTarget.Global);
+  await kit.usePreset(picked[0].fsPath);
 }
 
 /** Draft a preset from the extensions of this window's profile. */
 async function createPreset(kit: Kit): Promise<void> {
-  const own = kit.context.extension.id.toLowerCase();
-  const builtinRoot = vscode.env.appRoot.toLowerCase();
-  const ids = vscode.extensions.all
-    .filter((e) => !e.extensionPath.toLowerCase().startsWith(builtinRoot) && e.id.toLowerCase() !== own)
-    .map((e) => e.id.toLowerCase())
-    .sort(compareCodeUnits);
+  const ids = kit.userExtensionIds().sort(compareCodeUnits);
   const current = kit.currentProfile()?.name;
   const profile = current && current !== DEFAULT_PROFILE ? current : 'Core';
   const draft = { core: ids, groups: {}, settings: {}, profiles: { [profile]: {} } };
@@ -263,9 +252,7 @@ async function createPreset(kit: Kit): Promise<void> {
   });
   if (!target) return;
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(text));
-  await setPresetPath(target.fsPath);
-  await kit.loadPreset();
-  await kit.refresh();
+  await kit.usePreset(target.fsPath);
   await vscode.window.showTextDocument(target);
   void vscode.window.showInformationMessage(
     [
@@ -307,6 +294,7 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
     reg('profileKit.showPlan', () => showPlan(kit)),
     reg('profileKit.openPreset', () => openPreset(kit)),
     reg('profileKit.createPreset', () => createPreset(kit)),
+    reg('profileKit.startFromStarter', (arg) => startFromStarter(kit, arg)),
     reg('profileKit.editPreset', async () => {
       const loaded = kit.preset;
       const file = kit.presetPath();

@@ -10,6 +10,7 @@ import { registerCommands } from './ui/commands';
 import { FolderAdvisor } from './ui/folders';
 import { InstallWatcher } from './ui/installFlow';
 import { Kit } from './ui/kit';
+import { StarterAdvisor } from './ui/starters';
 import { ProfileStatusBar } from './ui/switch';
 import { ProfilesTree } from './ui/tree';
 
@@ -17,6 +18,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const kit = new Kit(context);
   const tree = new ProfilesTree(kit);
   const folders = new FolderAdvisor(kit);
+  // the welcome view's starter recommendation while there is no preset (it follows kit.onDidChange)
+  const starters = new StarterAdvisor(kit);
   const view = vscode.window.createTreeView('profileKit.profiles', { treeDataProvider: tree, showCollapseAll: true });
   // the tree shows every profile: list them all only once it is seen (review P5)
   if (view.visible) kit.showAllProfiles();
@@ -29,6 +32,7 @@ export function activate(context: vscode.ExtensionContext): void {
     new ProfileStatusBar(kit),
     new InstallWatcher(kit),
     folders,
+    starters,
     ...registerCommands(kit),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('profileKit.presetPath'))

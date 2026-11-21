@@ -7,6 +7,8 @@ import * as path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { STARTERS } from '../src/core/starters';
+
 const root = path.resolve(__dirname, '..');
 const LITERAL = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/;
 const CALL = new RegExp(String.raw`\b(?:t|vscode\.l10n\.t)\(\s*(` + LITERAL.source + ')', 'g');
@@ -33,6 +35,8 @@ function uiStrings(): Set<string> {
     const list = /WEBVIEW_STRINGS = \[([\s\S]*?)\] as const/.exec(text);
     if (list) for (const lit of list[1].match(new RegExp(LITERAL.source, 'g')) ?? []) out.add(unquote(lit));
   }
+  // starter titles and descriptions are passed to t() as values (src/ui/starters.ts)
+  for (const s of STARTERS) out.add(s.title).add(s.description);
   return out;
 }
 
