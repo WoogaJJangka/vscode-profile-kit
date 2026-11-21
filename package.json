@@ -161,6 +161,17 @@
         "title": "%cmd.switchTo%",
         "category": "%category%",
         "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "profileKit.exportCodeProfile",
+        "title": "%cmd.exportCodeProfile%",
+        "category": "%category%",
+        "icon": "$(export)"
+      },
+      {
+        "command": "profileKit.importCodeProfile",
+        "title": "%cmd.importCodeProfile%",
+        "category": "%category%"
       }
     ],
     "menus": {
@@ -199,6 +210,16 @@
           "command": "profileKit.createPreset",
           "when": "view == profileKit.profiles",
           "group": "1_preset@2"
+        },
+        {
+          "command": "profileKit.importCodeProfile",
+          "when": "view == profileKit.profiles",
+          "group": "1_preset@3"
+        },
+        {
+          "command": "profileKit.exportCodeProfile",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "1_preset@4"
         }
       ],
       "view/item/context": [
@@ -226,6 +247,11 @@
           "command": "profileKit.switchTo",
           "when": "view == profileKit.profiles && viewItem =~ /^profile:exists\\b/ && viewItem =~ /:other\\b/",
           "group": "2_switch@1"
+        },
+        {
+          "command": "profileKit.exportCodeProfile",
+          "when": "view == profileKit.profiles && viewItem =~ /:declared\\b/",
+          "group": "3_share@1"
         }
       ]
     },

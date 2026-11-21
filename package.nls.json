@@ -20,5 +20,7 @@
   "cmd.applyAll": "Apply Preset to All Profiles...",
   "cmd.switchProfile": "Switch Profile...",
   "cmd.switchTo": "Switch to This Profile",
+  "cmd.exportCodeProfile": "Export Profiles as .code-profile...",
+  "cmd.importCodeProfile": "Import Profiles into Preset (.code-profile, VS Code Templates)...",
   "category": "Profile Kit"
 }

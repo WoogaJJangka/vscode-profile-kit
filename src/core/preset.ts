@@ -84,6 +84,11 @@ export function isExtensionId(id: unknown): id is string {
   return typeof id === 'string' && EXTENSION_ID.test(id);
 }
 
+/** A profile name a preset may declare: allowed characters, and not the Default profile. */
+export function isProfileName(name: string): boolean {
+  return PROFILE_NAME.test(name) && !RESERVED_PROFILE_NAMES.has(name.toLowerCase());
+}
+
 export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }

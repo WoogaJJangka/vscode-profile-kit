@@ -13,6 +13,8 @@ export interface PanelExtension {
   displayName?: string;
   /** Row group: `core`, `group <name>`, `profile`, or `undeclared`. */
   section: string;
+  /** VS Code applies it to all profiles ("Apply Extension to all Profiles"): every profile lists it. */
+  allProfiles?: boolean;
   declaredIn: string[];
   installedIn: string[];
 }

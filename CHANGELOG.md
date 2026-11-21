@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Export Profiles as .code-profile...** (tree, view menu, CLI `profile-kit export`): one VS Code profile file per preset profile, with its extensions and the settings `apply` would write, then VS Code's Profiles editor to import it. Checked by importing an exported file in VS Code 1.147.
+- **Import Profiles into Preset...**: `.code-profile` files or VS Code's built-in profile templates become profiles in the current preset or a new one (extensions and settings).
+- **Create Preset from This Profile** offers VS Code's built-in templates as extra profiles.
+- Extensions VS Code applies to all profiles ("Apply Extension to all Profiles") are marked "all profiles (VS Code)" in the tree, the manager and CLI `verify`, instead of a plain "extra".
+- Apply previews (extension, manager, CLI) say the changes may also reach other PCs when Settings Sync has run on this PC.
+- The compatibility check also covers the extensions.json flag for extensions applied to all profiles and VS Code's template list.
+
 ### Fixed
 
 - Windows: a `code` call that times out now ends the whole process tree; before, only the shell was killed and the call did not return until VS Code's CLI ended on its own.

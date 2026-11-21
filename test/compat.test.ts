@@ -9,7 +9,7 @@ import {
 
 describe('compat', () => {
   it('names every private VS Code behavior once, with where it is used (review P9)', () => {
-    expect(PRIVATE_DEPENDENCIES).toHaveLength(6);
+    expect(PRIVATE_DEPENDENCIES).toHaveLength(10);
     for (const d of PRIVATE_DEPENDENCIES) expect(d.usedIn).toMatch(/^(core|host|ui)\//);
     expect(COMPAT_CHECKED_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });

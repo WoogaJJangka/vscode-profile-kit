@@ -18,6 +18,10 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 - **전환**: 상태 표시줄을 누르면 같은 창에서 바로 프로필이 바뀝니다. 폴더를 열면 `match.files`로 맞는 프로필을 한 번 추천하고, 전환하면 그 폴더는 다음부터 그 프로필로 열립니다.
 - **설정 호환**: 프리셋의 공통 `settings`와 `profiles.X.settings`를 합쳐 각 프로필의 settings.json에 씁니다. Profile Kit가 쓴 키만 관리하고, 직접 넣은 키와 주석은 그대로 둡니다. 쓰기 전에 백업합니다. Default 설정을 그대로 쓰고 싶은 프로필은 `shareFromDefault.settings: true`로 둡니다.
   모든 프로필에 같은 값을 쓰려면 VS Code의 **모든 프로필에 설정 적용**(`workbench.settings.applyToAllProfiles`)을 쓰세요. 이 목록에 있는 키는 Default 값을 쓰므로 Profile Kit가 프로필 settings.json에 쓰지 않고, 프리셋 값과 다르면 미리보기에서 알려 줍니다. 목록을 바꾼 뒤에는 열린 창을 다시 로드해야 합니다.
+- **VS Code 프로필 파일(`.code-profile`)과 오가기**: **.code-profile로 프로필 내보내기...**는 프리셋의 프로필마다 파일을 만들고 VS Code의 프로필 편집기를 엽니다. 거기에 파일을 끌어다 놓거나 새 프로필 > 프로필 가져오기로 만듭니다. 꼭 **새 프로필로** 가져오세요. 이미 있는 프로필에 가져오면 VS Code가 파일에 없는 확장을 제거합니다. 반대로 **프리셋으로 프로필 가져오기...**는 `.code-profile` 파일이나 VS Code 내장 템플릿(Python, Data Science 등)을 프리셋의 프로필로 넣습니다. 확장과 설정만 가져오고 단축키·스니펫은 가져오지 않습니다.
+- **VS Code 템플릿에서 시작**: **이 프로필로 프리셋 만들기**에서 VS Code 내장 템플릿을 골라 용도별 프로필로 같이 넣을 수 있습니다.
+- **"모든 프로필에 확장 적용" 표시**: VS Code에서 모든 프로필에 적용한 확장은 모든 프로필 목록에 나오므로, 트리·관리 화면·CLI `verify`에 "모든 프로필 (VS Code)"로 표시합니다. 프리셋에 없어도 직접 넣은 "추가"가 아닙니다.
+- **Settings Sync 안내**: 이 PC에서 Sync가 동기화한 적이 있으면 적용 미리보기에 "켜져 있다면 다른 PC로도 동기화됩니다"를 보여 줍니다. Sync가 켜져 있는지는 VS Code 내부 DB에만 있어 읽지 않습니다.
 
 ### 안전 규칙
 
@@ -33,9 +37,9 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 | 일                                | VS Code 내장                              | Profile Kit                                                                           |
 | --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
 | 프로필 만들기·전환                | 있음 (Profiles 편집기)                    | 프리셋대로 한 번에 만들고, 상태 표시줄·트리·폴더 추천에서 전환. VS Code를 호출해서 함 |
-| 확장 하나를 모든 프로필에         | 있음 (Apply Extension to all Profiles)    | `core`로 선언                                                                         |
+| 확장 하나를 모든 프로필에         | 있음 (Apply Extension to all Profiles)    | `core`로 선언. VS Code에서 적용한 확장은 "모든 프로필 (VS Code)"로 표시               |
 | 설정 하나를 모든 프로필에         | 있음 (`applyToAllProfiles`)               | 그 목록을 읽어 프로필에 쓰지 않고, 프리셋 값과 다르면 알려 줌                         |
-| 프로필 파일 공유                  | 있음 (`.code-profile` 내보내기/가져오기)  | 프리셋 파일을 Git으로 공유                                                            |
+| 프로필 파일 공유                  | 있음 (`.code-profile` 내보내기/가져오기)  | 프리셋 파일을 Git으로 공유. 프리셋 ↔ `.code-profile` 변환, 내장 템플릿 가져오기       |
 | 기기 간 동기화                    | 있음 (Settings Sync)                      | Sync에 맡기고, Sync와 어긋나지 않게 함 (아래 "새 PC")                                 |
 | 구성 전체를 한 파일로 선언 + 이력 | 없음                                      | 핵심                                                                                  |
 | 선언과 실제의 차이 점검 (CI 포함) | 없음                                      | 트리의 `정상 · 빠짐 · 추가`, CLI `verify`                                             |
@@ -109,6 +113,7 @@ Settings Sync와 같이 쓸 때:
 profile-kit plan   presets/example.json [--profile <이름>]          # 프로필마다 들어갈 확장 (VS Code 호출 없음)
 profile-kit verify presets/example.json [--profile <이름>]          # 선언 vs 실제 설치 (읽기 전용, 빠지면 종료 코드 1)
 profile-kit apply  presets/example.json [--profile <이름>] [--yes]  # 미리보기, --yes로 실행
+profile-kit export presets/example.json [--profile <이름>] --out <폴더> [--offline]  # 프로필마다 .code-profile
 ```
 
 ## English
@@ -123,6 +128,9 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Switching**: from the status bar, in place. When a folder's files match a profile's `match.files`, it is suggested once per folder.
 - **Settings**: common `settings` plus `profiles.X.settings` are written to each profile's settings.json. Only keys Profile Kit wrote are managed; your own keys and comments stay, and files are backed up first.
   Keys in VS Code's **Apply Setting to all Profiles** list (`workbench.settings.applyToAllProfiles`) come from Default in every profile, so Profile Kit does not write them to profiles and says so in the preview when the preset wants a different value. Reload open windows after changing that list.
+- **VS Code profile files (`.code-profile`)**: **Export Profiles as .code-profile...** writes one file per preset profile and opens VS Code's Profiles editor; drop a file on it or use New Profile > Import Profile. Import each as a **new** profile: importing into an existing profile makes VS Code uninstall the extensions the file does not list. **Import Profiles into Preset...** takes `.code-profile` files or VS Code's built-in templates (Python, Data Science, ...) into the preset as profiles (extensions and settings; not keybindings or snippets). **Create Preset from This Profile** can also add profiles from those templates.
+- **Extensions applied to all profiles** in VS Code show up in every profile's list; the tree, the manager and CLI `verify` mark them "all profiles (VS Code)" instead of a plain "extra".
+- **Settings Sync note**: when Sync has run on this PC, apply previews say the changes may also reach your other PCs (whether Sync is on is only in VS Code's internal database, which Profile Kit does not read).
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.
 
 - **New PC**: clone the repository with your preset, open it with **Open Preset File...**, then apply. The preset path is per PC and is not synced; with Settings Sync on, the list of keys Profile Kit manages (`profileKit.managedKeys`) travels inside each profile's settings.json.
@@ -132,11 +140,11 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 
 **Similar tools**: [VPEM](https://pypi.org/project/vscode-profile-extension-manager/) (Python CLI that exports and applies a profile's extension list), [code-profiler](https://github.com/joaopalmeiro/code-profiler) (CLI that builds a profile file from a `.vscode` folder), artagon-vscode-profiles (dotfiles repository: shared base + per-profile overrides + export scripts) and [Profile Switcher](https://github.com/aaronpowell/vscode-profile-switcher) (archived; predates built-in profiles and installs/uninstalls extensions to switch). Profile Kit is an extension with a GUI, uses VS Code's own profiles, picks profiles when you install, checks for missing extensions, and never uninstalls.
 
-CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`).
+CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`), and `profile-kit export <preset.json> --out <dir>` for `.code-profile` files.
 
 The UI is in English and Korean.
 
-**Support**: built and checked against the latest stable VS Code (minimum 1.95). Checked by hand on Windows; a weekly compatibility run covers the CLI behavior on Linux. VS Code has no public API for creating or switching profiles, so Profile Kit relies on a few VS Code internals (the storage.json format, the profile folder, the profile switch command, the `code` CLI's output). A VS Code update that changes them can break parts of Profile Kit; the list is in `src/core/compat.ts`. When reporting a problem, include the first line of the **Profile Kit** output channel (VS Code version and the version the internals were checked on).
+**Support**: built and checked against the latest stable VS Code (minimum 1.95). Checked by hand on Windows; a weekly compatibility run covers the CLI behavior on Linux. VS Code has no public API for creating or switching profiles, so Profile Kit relies on a few VS Code internals (the storage.json format, the profile folder, the profile switch command, the `code` CLI's output, the `.code-profile` format, the template list). A VS Code update that changes them can break parts of Profile Kit; the list is in `src/core/compat.ts`. When reporting a problem, include the first line of the **Profile Kit** output channel (VS Code version and the version the internals were checked on).
 
 ## Development
 

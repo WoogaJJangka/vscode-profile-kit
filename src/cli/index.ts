@@ -3,6 +3,7 @@
  *   profile-kit plan   <preset.json> [--profile <name>]           what each profile should contain (no VS Code calls)
  *   profile-kit verify <preset.json> [--profile <name>]           declared vs installed (read-only)
  *   profile-kit apply  <preset.json> [--profile <name>] [--yes]   create profiles, install, write settings
+ *   profile-kit export <preset.json> [--profile <name>] --out <dir>   one .code-profile per profile (VS Code import)
  * `apply` only previews unless `--yes` is given. Nothing is uninstalled and the Default profile is never changed.
  */
 import { readFileSync } from 'node:fs';
@@ -23,16 +24,22 @@ import {
   resolveProfile,
 } from '../core';
 import { buildPlans, executePlans, reportOk } from '../host/apply';
+import { exportCodeProfiles, readApplicationScoped, SYNC_NOTE, syncedBefore } from '../host/builtins';
 import { installSucceeded } from '../host/installer';
-import { defaultUserDataDir, userDataPaths } from '../host/paths';
+import { defaultExtensionsDir, defaultUserDataDir, userDataPaths } from '../host/paths';
 
 const USAGE = `Usage:
   profile-kit plan   <preset.json> [--profile <name>]
   profile-kit verify <preset.json> [--profile <name>] [VS Code options]
   profile-kit apply  <preset.json> [--profile <name>] [--yes] [--no-create] [VS Code options]
+  profile-kit export <preset.json> [--profile <name>] --out <dir> [--offline]
 
 apply previews the changes; add --yes to carry them out.
   --no-create   do not create missing profiles (creating one opens a VS Code window)
+
+export writes <profile>.code-profile files for VS Code's Profiles editor (drop a file on it, or New Profile >
+Import). Import each as a NEW profile: importing into an existing one uninstalls what the file does not list.
+  --offline     do not ask the Marketplace for extension GUIDs (VS Code then matches extensions by ID)
 
 VS Code options:
   --code <path>              code CLI to call (default: code on PATH)
@@ -62,6 +69,8 @@ async function main(argv: string[]): Promise<number> {
       'shared-data-dir': { type: 'string' },
       yes: { type: 'boolean', short: 'y' },
       'no-create': { type: 'boolean' },
+      out: { type: 'string' },
+      offline: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -83,6 +92,17 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  if (command === 'export') {
+    if (!values.out) throw new Error('export needs --out <dir>');
+    const { files, withoutUuids } = await exportCodeProfiles(preset, names, values.out, { lookup: !values.offline });
+    for (const f of files) console.log(`wrote ${f}`);
+    if (withoutUuids) console.log('(no extension GUIDs: the Marketplace was not asked or did not answer)');
+    console.log(
+      'Import each file as a new profile in VS Code (Profiles editor). Importing into an existing profile uninstalls the extensions the file does not list.',
+    );
+    return 0;
+  }
+
   const baseArgs = [
     ...(values['user-data-dir'] ? ['--user-data-dir', values['user-data-dir']] : []),
     ...(values['extensions-dir'] ? ['--extensions-dir', values['extensions-dir']] : []),
@@ -91,6 +111,10 @@ async function main(argv: string[]): Promise<number> {
 
   if (command === 'verify') {
     const run = createCodeRunner(values.code, { baseArgs });
+    // VS Code shows extensions applied to all profiles in every profile's list; say so instead of a bare "extra"
+    const scoped = readApplicationScoped(values['extensions-dir'] ?? defaultExtensionsDir());
+    if (scoped.problem) console.log(`! ${scoped.problem}`);
+    const allProfiles = new Set(scoped.ids);
     let missingTotal = 0;
     for (const name of names) {
       const result = await run(listExtensionsArgs(name));
@@ -106,7 +130,8 @@ async function main(argv: string[]): Promise<number> {
         `== ${name}: ${diff.present.length} ok, ${diff.missing.length} missing, ${diff.extra.length} extra ==`,
       );
       for (const id of diff.missing) console.log(`  - missing ${id}`);
-      for (const id of diff.extra) console.log(`  + extra   ${id}`);
+      for (const id of diff.extra)
+        console.log(`  + extra   ${id}${allProfiles.has(id) ? ' (VS Code applies it to all profiles)' : ''}`);
     }
     return missingTotal === 0 ? 0 : 1;
   }
@@ -125,6 +150,9 @@ async function main(argv: string[]): Promise<number> {
       console.log('\nNothing to do.');
       return 0;
     }
+    if (syncedBefore(env.paths))
+      console.log(`
+! ${SYNC_NOTE}`);
     if (!values.yes) {
       console.log('\nPreview only. Run again with --yes to apply.');
       return 0;

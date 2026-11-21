@@ -11,6 +11,8 @@ export const GALLERY_FLAGS = 0x1 | 0x4 | 0x10 | 0x200;
 const FILTER_EXTENSION_NAME = 7;
 
 export interface GalleryExtension extends ExtensionMeta {
+  /** Marketplace extension GUID (`identifier.uuid` in a .code-profile). */
+  uuid?: string;
   displayName?: string;
   description?: string;
 }
@@ -46,6 +48,7 @@ export function galleryToMeta(entry: unknown): GalleryExtension | undefined {
   );
   return {
     id: `${publisher}.${e.extensionName}`.toLowerCase(),
+    ...(typeof e.extensionId === 'string' ? { uuid: e.extensionId } : {}),
     ...(typeof e.displayName === 'string' ? { displayName: e.displayName } : {}),
     ...(typeof e.shortDescription === 'string' ? { description: e.shortDescription } : {}),
     categories: strs(e.categories),

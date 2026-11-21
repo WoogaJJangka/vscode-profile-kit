@@ -6,9 +6,11 @@ import * as path from 'node:path';
 
 import * as vscode from 'vscode';
 
-import { compareCodeUnits, formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
+import { addImportedProfiles, compareCodeUnits, formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
 import { buildPlans, executePlans, type ProfileReport, reportOk } from '../host/apply';
+import { syncedBefore } from '../host/builtins';
 import { ensureProfile, installExtensions, type InstallResult, installSucceeded } from '../host/installer';
+import { exportProfiles, importProfiles, pickTemplates } from './codeProfiles';
 import { installToProfiles } from './installFlow';
 import { DEFAULT_PROFILE, type Kit } from './kit';
 import { ManagerPanel } from './panel/manager';
@@ -174,6 +176,10 @@ async function apply(kit: Kit, names: string[]): Promise<void> {
         : t('New profiles (each opens a window; close it once the profile is created): {0}', creates.join(', '))
       : '',
     overrides.length ? t('These replace values you set yourself: {0}', overrides.join(', ')) : '',
+    // whether Sync is on is only in VS Code's SQLite state, so say it as a condition (review stage C-3)
+    syncedBefore(kit.paths)
+      ? t('Settings Sync has run on this PC: if it is on, these profile changes also reach your other PCs')
+      : '',
     t('Nothing is uninstalled and the Default profile is not changed. The full list is in the Output panel.'),
   ]
     .filter(Boolean)
@@ -243,6 +249,12 @@ async function createPreset(kit: Kit): Promise<void> {
   const current = kit.currentProfile()?.name;
   const profile = current && current !== DEFAULT_PROFILE ? current : 'Core';
   const draft = { core: ids, groups: {}, settings: {}, profiles: { [profile]: {} } };
+  // VS Code's own templates (Python, Data Science, ...) as starting points for per-purpose profiles (stage C-4)
+  const templates = await pickTemplates(
+    kit,
+    t('Also add profiles from VS Code profile templates? (optional, Esc to skip)'),
+  );
+  const { text, names } = addImportedProfiles(`${JSON.stringify(draft, null, 2)}\n`, templates, ids);
   const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const target = await vscode.window.showSaveDialog({
     ...(folder ? { defaultUri: vscode.Uri.file(path.join(folder, 'extensions.profile-kit.json')) } : {}),
@@ -250,13 +262,21 @@ async function createPreset(kit: Kit): Promise<void> {
     saveLabel: t('Create Preset'),
   });
   if (!target) return;
-  await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(`${JSON.stringify(draft, null, 2)}\n`));
+  await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(text));
   await setPresetPath(target.fsPath);
   await kit.loadPreset();
   await kit.refresh();
   await vscode.window.showTextDocument(target);
   void vscode.window.showInformationMessage(
-    t('Preset created with the {0} extensions of this profile as core. Move per-purpose ones into groups.', ids.length),
+    [
+      t(
+        'Preset created with the {0} extensions of this profile as core. Move per-purpose ones into groups.',
+        ids.length,
+      ),
+      names.length ? t('Profiles from templates: {0}.', names.join(', ')) : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
   );
 }
 
@@ -308,5 +328,7 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
     reg('profileKit.applyAll', () => apply(kit, kit.declaredNames())),
     reg('profileKit.switchProfile', () => switchProfile(kit)),
     reg('profileKit.switchTo', (arg) => switchProfile(kit, profileOf(arg))),
+    reg('profileKit.exportCodeProfile', (arg) => exportProfiles(kit, arg)),
+    reg('profileKit.importCodeProfile', () => importProfiles(kit)),
   ];
 }

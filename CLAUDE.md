@@ -10,7 +10,8 @@
   Phase 5 준비(2026-11-21): 버전 0.1.0(pre-release), `.github/workflows/release.yml`(태그 `vX.Y.Z` push → 점검 → VSIX → `vsce publish --oidc`, environment `marketplace`), 절차 `docs/RELEASE.md`.
   시험 게시 끝(2026-11-21): 태그 `v0.1.0` → Marketplace `woogajjangka.vscode-profile-kit` 0.1.0 pre-release, public·validated.
   다음 계획(피드백 검토, 게시 목록 문제 R1~R6, SonarQube Cloud 도입, 단계 A~E)은 `docs/REVIEW-2026-11-21.md`. 범위는 좁히지 않는다(사용자 결정).
-  남은 것: 프로필 설정 공유 문제(아래).
+  단계 A(코드)·B·D 머지됨(PR #14·#16·#17). 단계 C(`.code-profile` 내보내기·가져오기, 내장 템플릿, "모든 프로필에 적용" 표시, Sync 문구) 구현, `docs/PLAN.md` 8-2절.
+  남은 것: 프로필 설정 공유 문제(아래), 단계 E 게시.
 - 2026-11-21 실제 VS Code `apply` 미리보기: 할 일 없음. 다만 8개 프로필 모두 Default 설정을 공유해서(`useDefaultFlags.settings`)
   프리셋 설정과 마커 `profileKit.profile`을 쓸 수 없다. 그래서 현재 프로필은 폴더 연결로만 알 수 있다. 공유를 끌지는 사용자 결정.
 - 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). 관리 키 목록은 각 settings.json의 `profileKit.managedKeys`(Sync로 같이 이동). 옛 `globalStorage/.../managed-settings.json`은 읽기만. UI에서 추가하면 프리셋도 고친다.
@@ -53,8 +54,9 @@
 
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
-  `compat.ts`(공개 API가 아닌 VS Code 동작 6가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
-- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행).
+  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
+  `compat.ts`(공개 API가 아닌 VS Code 동작 10가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
+- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.
 - 현재 프로필은 각 프로필 settings.json의 마커 `profileKit.profile`로 안다(`globalStorageUri`는 프로필마다 같다, PLAN.md 8절).
 - UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.

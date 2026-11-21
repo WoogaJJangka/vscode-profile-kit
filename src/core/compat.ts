@@ -46,6 +46,26 @@ export const PRIVATE_DEPENDENCIES: readonly PrivateDependency[] = [
     usedIn: 'host/codeLocator.ts',
     ifChanged: '"code" from PATH is used, and the tree says so',
   },
+  {
+    what: 'extensions.json in the extensions folder: metadata.isApplicationScoped ("Apply Extension to all Profiles")',
+    usedIn: 'core/extensionsJson.ts, host/builtins.ts',
+    ifChanged: 'extensions applied to all profiles are shown as "not in the preset" again; nothing is written',
+  },
+  {
+    what: 'product.json profileTemplatesUrl and its [{name, url}] list of .code-profile templates',
+    usedIn: 'core/templates.ts, host/builtins.ts',
+    ifChanged: 'no template suggestions when creating a preset',
+  },
+  {
+    what: '.code-profile format (JSON values as strings) and the Profiles editor command',
+    usedIn: 'core/codeProfile.ts, ui/codeProfiles.ts',
+    ifChanged: 'VS Code refuses the exported file, or the Profiles editor is not opened for the import',
+  },
+  {
+    what: 'User/sync/ exists once Settings Sync has synced',
+    usedIn: 'host/builtins.ts',
+    ifChanged: 'the "also synced to your other PCs" note is not shown',
+  },
 ];
 
 // --- storage.json (`<userData>/User/globalStorage/storage.json`, read only) ---
@@ -60,12 +80,29 @@ export const DEFAULT_PROFILE_ID = '__default__profile__';
 /** Folder under `<userData>/User/` that holds one folder per profile, named by its location. */
 export const PROFILES_FOLDER = 'profiles';
 
+/** Settings Sync keeps its last synced copies here (`<userData>/User/sync/`); it stays after Sync is turned off. */
+export const SYNC_FOLDER = 'sync';
+
+// --- extensions.json (Default profile list in the extensions folder, read only) ---
+
+export const EXTENSIONS_MANIFEST = 'extensions.json';
+/** `metadata` flag of an extension VS Code applies to all profiles. */
+export const APPLICATION_SCOPED_FLAG = 'isApplicationScoped';
+
+// --- product.json (`<appRoot>/product.json`) ---
+
+/** Where VS Code gets its built-in profile templates (New Profile → template). */
+export const PRODUCT_TEMPLATES_URL_KEY = 'profileTemplatesUrl';
+
 // --- commands ---
 
 /** Switches this window to the profile in place; one command per profile (docs/PLAN.md section 8, #4). */
 export const PROFILE_ENTRY_COMMAND_PREFIX = 'workbench.profiles.actions.profileEntry.';
 /** VS Code's own profile picker (fallback when the per-profile command is not there). */
 export const SWITCH_PROFILE_COMMAND = 'workbench.profiles.actions.switchProfile';
+
+/** Opens the Profiles editor, where a .code-profile is imported (drop the file on it, or New Profile → Import). */
+export const PROFILES_EDITOR_COMMAND = 'workbench.profiles.actions.manageProfiles';
 
 export const profileEntryCommand = (location: string) => `${PROFILE_ENTRY_COMMAND_PREFIX}${location}`;
 
