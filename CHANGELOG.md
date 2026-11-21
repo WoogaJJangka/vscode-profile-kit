@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - pre-release
+
 ### Added
 
 - **Export Profiles as .code-profile...** (tree, view menu, CLI `profile-kit export`): one VS Code profile file per preset profile, with its extensions and the settings `apply` would write, then VS Code's Profiles editor to import it. Checked by importing an exported file in VS Code 1.147.
