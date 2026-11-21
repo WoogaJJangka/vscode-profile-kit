@@ -7,7 +7,7 @@
  */
 import * as vscode from 'vscode';
 
-import { DEFAULT_PROFILE_ID } from '../core';
+import { DEFAULT_PROFILE_ID, profileEntryCommand, SWITCH_PROFILE_COMMAND } from '../core';
 import { DEFAULT_PROFILE, type Kit } from './kit';
 
 const t = vscode.l10n.t;
@@ -107,16 +107,16 @@ export async function switchProfile(kit: Kit, target?: string): Promise<void> {
   }
 
   const commands = await vscode.commands.getCommands(true);
-  const direct = `workbench.profiles.actions.profileEntry.${location}`;
+  const direct = profileEntryCommand(location);
   if (commands.includes(direct)) {
     kit.log(`switch: ${direct}`);
     await vscode.commands.executeCommand(direct);
     return;
   }
   // fallback 1: VS Code's own picker (the user picks again, but it is the supported way)
-  if (commands.includes('workbench.profiles.actions.switchProfile')) {
+  if (commands.includes(SWITCH_PROFILE_COMMAND)) {
     kit.log('switch: per-profile command not found, opening VS Code profile picker');
-    await vscode.commands.executeCommand('workbench.profiles.actions.switchProfile');
+    await vscode.commands.executeCommand(SWITCH_PROFILE_COMMAND);
     return;
   }
   // fallback 2: this folder in a new window with that profile (VS Code then links the folder to it)

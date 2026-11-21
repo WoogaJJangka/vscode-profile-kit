@@ -10,6 +10,8 @@
 import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 
+import { CODE_CLI_LEVELS_ABOVE_APP_ROOT } from '../core/compat';
+
 export function codeCliNames(platform: NodeJS.Platform): string[] {
   return platform === 'win32' ? ['code.cmd', 'code-insiders.cmd'] : ['code', 'code-insiders'];
 }
@@ -20,7 +22,7 @@ export function codeCliCandidates(appRoot: string, platform: NodeJS.Platform = p
     for (let i = 0; i < n; i++) dir = path.dirname(dir);
     return dir;
   };
-  const binDirs = [path.join(appRoot, 'bin'), path.join(up(2), 'bin'), path.join(up(3), 'bin')];
+  const binDirs = CODE_CLI_LEVELS_ABOVE_APP_ROOT.map((n) => path.join(up(n), 'bin'));
   return binDirs.flatMap((dir) => codeCliNames(platform).map((name) => path.join(dir, name)));
 }
 

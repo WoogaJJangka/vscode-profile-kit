@@ -239,6 +239,7 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "build:prod": "node esbuild.mjs --production",
+    "build:compat": "node esbuild.mjs --compat",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

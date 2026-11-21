@@ -124,4 +124,26 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - CSP nonce에 `Math.random`(S2245): `crypto.randomBytes`.
 - Actions의 `npm ci`·`npx`(S6505, S8543): `npm ci --ignore-scripts`, vsce는 `./node_modules/.bin/vsce`(설치된 고정 버전). esbuild는 설치 스크립트 없이도 플랫폼 패키지로 동작한다(로컬 `npm ci --ignore-scripts` → check·build·package 확인).
 - "LLM이 준 CLI 인자로 경로 조작"(tssecurity S8707, `cli/index.ts`, `host/apply.ts`, `host/settingsWriter.ts`): CLI는 사용자가 직접 넘긴 `--user-data-dir` 등과 그 아래 VS Code 파일을 읽고 쓰는 것이 목적이다. 프로필 폴더는 `paths.profileSettings`가 `User/profiles` 밖으로 못 나가게 막는다. 고치지 않고 SonarQube에서 "Accept"(이유 남김)로 닫았다(2026-11-21, 4개).
+- workflow의 `curl` 다운로드(S6506): `--proto '=https' --proto-redir '=https' --tlsv1.2`로 리다이렉트도 HTTPS만.
+- 커버리지: `scripts/**`(호환성 점검은 실제 VS Code로 `compat.yml`에서 돈다)와 `esbuild.mjs`는 커버리지에서 뺀다. PR 분석에서 S8707이 다시 열리면 같은 이유로 Accept.
 - PR #15 머지 뒤(2026-11-21) 열린 이슈 0, 품질 게이트 통과. `Analysis + quality gate`는 main ruleset 필수 검사다.
+
+## 10. VS Code 내부 의존과 호환성 점검 (2026-11-21~, 단계 D)
+
+공개 API가 아닌 VS Code 동작 6가지는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
+손으로 확인한 버전은 `COMPAT_CHECKED_VERSION`(1.147.0). 확장은 시작할 때 출력 창 첫 줄에 VS Code 버전과 이 버전을 적는다(버그 보고용, `.github/ISSUE_TEMPLATE/bug_report.yml`).
+
+호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
+세 데이터 폴더를 모두 임시 폴더로 준 채 `scripts/compat/check.ts`(빌드: `npm run build:compat` → `out/compat.js`)가 Profile Kit의 host 함수를 그대로 돌린다.
+대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable. 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
+확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
+
+2026-11-21 이 PC(Windows, VS Code 1.147.0, 격리 폴더)에서 `out/compat.js` 9개 모두 통과. 묶음 설치 출력은 확장마다 한 줄씩 나온다:
+`Extension 'a' v1 was successfully installed.` / `... is already installed. Use '--force' ... for example: 'a@1.2.3'.` / 없는 ID는 `Extension 'x' not found.` + 끝에 `Failed Installing Extensions: x`. 프로필이 없으면 `Profile 'Nope' not found.` 한 줄.
+
+단계 D에서 같이 고친 것 (`docs/REVIEW-2026-11-21.md` 2절):
+- P5: 창을 열 때는 이 창의 프로필만 `--list-extensions` 한다. 트리가 보이거나 관리 화면을 열면 그때부터 전체를 한 번에 최대 3개씩.
+- P6: 설치 후 알림은 같은 프로필의 창들 중 한 창에서만 묻는다(globalState에 "이 창이 묻는다"를 쓰고 1.5초 뒤 다시 읽어 자기 것이 남은 창만). 직전 `--list-extensions`에 있던 확장(사용 안 함 → 사용)은 묻지 않는다. 여러 창에서의 동작은 아직 실제로 확인하지 않았다.
+- P7: 프로필을 만들려고 연 창은 닫아도 된다고 확인 창·결과 알림·CLI 출력에 적는다. 자동으로 닫는 공식 방법은 없다.
+- P8: 설치는 10개씩 한 번에(`--install-extension a --install-extension b ...`), 끝나면 목록으로 확인하고 없는 것만 하나씩 재시도.
+- P10: 출력으로 판단이 안 되면(`unknown`) 목록에 있으면 설치됨으로 본다. 네트워크 오류 정규식은 확장 ID를 뺀 출력에만 적용한다.

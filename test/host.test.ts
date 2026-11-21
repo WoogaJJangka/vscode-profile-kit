@@ -69,14 +69,74 @@ describe('installExtensions', () => {
       calls.push(id);
       return answers[id]?.shift() ?? ok('?');
     };
-    const results = await installExtensions(run, 'P', ['a.net', 'b.unknown', 'c.gone', 'd.never'], { sleep: noSleep });
+    const results = await installExtensions(run, 'P', ['a.net', 'b.unknown', 'c.gone', 'd.never'], {
+      sleep: noSleep,
+      batchSize: 1,
+    });
     expect(results.map((r) => [r.id, r.outcome, r.attempts])).toEqual([
       ['a.net', 'installed', 2],
       ['b.unknown', 'unknown', 1],
       ['c.gone', 'profile-not-found', 1],
       ['d.never', 'profile-not-found', 0],
     ]);
-    expect(calls).toEqual(['a.net', 'a.net', 'b.unknown', 'c.gone']);
+    // the unclear result of b.unknown is checked with the list (review P10)
+    expect(calls).toEqual(['a.net', 'a.net', 'b.unknown', '--list-extensions', 'c.gone']);
+  });
+
+  it('takes an unclear result as installed when the list has the extension (review P10)', async () => {
+    const run: CodeRunner = async (args) =>
+      args.includes('--list-extensions') ? ok('x.y\n') : ok('Installation abgeschlossen.');
+    const [r] = await installExtensions(run, 'P', ['x.y'], { sleep: noSleep });
+    expect(r).toMatchObject({ id: 'x.y', outcome: 'installed', attempts: 1 });
+  });
+
+  it('installs a batch in one call, then tries what the list does not have on its own (review P8)', async () => {
+    const calls: string[][] = [];
+    const installed = new Set(['old.one']);
+    const run: CodeRunner = async (args) => {
+      calls.push(args);
+      if (args.includes('--list-extensions')) return ok([...installed].join('\n'));
+      const ids = args.filter((_, i) => args[i - 1] === '--install-extension');
+      if (ids.length > 1) {
+        installed.add('a.b');
+        return ok(
+          "Installing extensions...\nExtension 'old.one' v1 is already installed.\nExtension 'a.b' v1 was successfully installed.\nFailed Installing Extensions: c.d",
+        );
+      }
+      installed.add(ids[0]);
+      return ok(`Extension '${ids[0]}' v1 was successfully installed.`);
+    };
+    const progress: string[] = [];
+    const results = await installExtensions(run, 'P', ['old.one', 'a.b', 'c.d'], {
+      sleep: noSleep,
+      onProgress: (id) => progress.push(id),
+    });
+    expect(results.map((r) => [r.id, r.outcome, r.attempts])).toEqual([
+      ['old.one', 'already-installed', 1],
+      ['a.b', 'installed', 1],
+      ['c.d', 'installed', 2],
+    ]);
+    expect(progress).toEqual(['old.one', 'a.b', 'c.d']);
+    expect(calls).toEqual([
+      ['--profile', 'P', '--install-extension', 'old.one', '--install-extension', 'a.b', '--install-extension', 'c.d'],
+      ['--profile', 'P', '--list-extensions'],
+      ['--profile', 'P', '--install-extension', 'c.d'],
+    ]);
+  });
+
+  it('splits into batches and stops when the profile is missing', async () => {
+    let calls = 0;
+    const run: CodeRunner = async () => {
+      calls++;
+      return ok("Profile 'P' not found.");
+    };
+    const results = await installExtensions(run, 'P', ['a.a', 'b.b', 'c.c'], { batchSize: 2 });
+    expect(results.map((r) => [r.id, r.outcome, r.attempts])).toEqual([
+      ['a.a', 'profile-not-found', 1],
+      ['b.b', 'profile-not-found', 0],
+      ['c.c', 'profile-not-found', 0],
+    ]);
+    expect(calls).toBe(1);
   });
 
   it('gives up after the attempts and reports network', async () => {
@@ -270,7 +330,67 @@ describe('installExtensions shouldStop', () => {
       stop = true;
       return ok(`Extension '${args[args.length - 1]}' v1 was successfully installed.`);
     };
-    const results = await installExtensions(run, 'P', ['a.b', 'c.d'], { shouldStop: () => stop });
+    const results = await installExtensions(run, 'P', ['a.b', 'c.d'], { shouldStop: () => stop, batchSize: 1 });
     expect(results.map((r) => r.id)).toEqual(['a.b']);
+  });
+});
+
+describe('executePlans creating profiles', () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(path.join(tmpdir(), 'pk-create-'));
+  });
+  afterEach(() => rmSync(tmp, { recursive: true, force: true }));
+
+  const setup = () => {
+    const paths = userDataPaths(tmp);
+    mkdirSync(path.dirname(paths.storageJson), { recursive: true });
+    writeFileSync(paths.storageJson, JSON.stringify({ userDataProfiles: [] }));
+    const calls: string[][] = [];
+    const installed = new Set<string>();
+    const run: CodeRunner = async (args) => {
+      calls.push(args);
+      // `--new-window` creates the profile: VS Code adds it to storage.json
+      if (args.includes('--new-window'))
+        writeFileSync(paths.storageJson, JSON.stringify({ userDataProfiles: [{ name: 'New', location: 'n1' }] }));
+      if (args.includes('--list-extensions')) return ok([...installed].join('\n'));
+      const id = args[args.indexOf('--install-extension') + 1];
+      installed.add(id);
+      return ok(`Extension '${id}' v1 was successfully installed.`);
+    };
+    const preset = parsePreset({ profiles: { New: { extensions: ['a.b'] } } });
+    return { env: { run, paths }, calls, preset };
+  };
+
+  it('creates a missing profile, then installs into it', async () => {
+    const { env, calls, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const events: string[] = [];
+    const [report] = await executePlans(env, preset, plans, {
+      ensure: { sleep: noSleep },
+      onEvent: (m) => events.push(m),
+    });
+    expect(report.created).toBe(true);
+    expect(report.installs.map((i) => i.outcome)).toEqual(['installed']);
+    expect(calls[0]).toEqual(['--profile', 'New', '--new-window']);
+    expect(events.some((m) => m.includes('close it once the profile exists'))).toBe(true);
+  });
+
+  it('reports a missing profile without opening a window when creating is turned off', async () => {
+    const { env, calls, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const [report] = await executePlans(env, preset, plans, { createProfiles: false, createBlockedReason: 'blocked' });
+    expect(report.problems).toEqual(['profile does not exist and was not created: blocked']);
+    expect(calls.some((a) => a.includes('--new-window'))).toBe(false);
+  });
+
+  it('reports a profile that does not show up in time', async () => {
+    const { env, preset } = setup();
+    const { plans } = await buildPlans(env, preset, ['New']);
+    const quiet: CodeRunner = async () => ok('');
+    const [report] = await executePlans({ ...env, run: quiet }, preset, plans, {
+      ensure: { sleep: noSleep, timeoutMs: 3, intervalMs: 1 },
+    });
+    expect(report.problems).toEqual(['profile was not created in time (is VS Code able to start?)']);
   });
 });

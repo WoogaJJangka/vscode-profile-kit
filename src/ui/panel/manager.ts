@@ -82,6 +82,7 @@ export class ManagerPanel implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
 
   static show(kit: Kit): void {
+    kit.showAllProfiles();
     if (ManagerPanel.current) {
       ManagerPanel.current.panel.reveal();
       return;

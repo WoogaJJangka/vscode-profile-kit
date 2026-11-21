@@ -3,19 +3,30 @@
  * (decided after the PowerShell runs, see docs/PLAN.md section 4 and CLAUDE_CODE_PROMPT Phase 3).
  */
 
+import { CLI_ALREADY_INSTALLED, CLI_INSTALLED, CLI_NETWORK_ERROR, cliProfileNotFound } from './compat';
+
 export type InstallOutcome = 'installed' | 'already-installed' | 'profile-not-found' | 'network' | 'unknown';
 
-// `(Error: aborted)`: the VSIX download was cut off while being written to CachedExtensionVSIXs
-// ("Unable to write file ... (Error: aborted)", install-log 2026-11-20). A retry succeeded every time.
-const NETWORK_ERROR =
-  /getaddrinfo|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|network|\(Error: aborted\)/i;
+/** `text` without the extension IDs in it, so an ID such as `x.foo-network` is not read as an error (review P10). */
+function withoutIds(text: string, ids: readonly string[]): string {
+  let out = text;
+  for (const id of ids) out = out.split(id).join('').split(id.toLowerCase()).join('');
+  return out;
+}
 
-export function classifyInstallOutput(output: string): InstallOutcome {
-  if (/profile '.*' not found/i.test(output)) return 'profile-not-found';
-  if (/already installed/i.test(output)) return 'already-installed';
-  if (/successfully installed/i.test(output)) return 'installed';
-  if (NETWORK_ERROR.test(output)) return 'network';
+/** Outcome of one `--install-extension` call. `ids`: the IDs in the call, left out when looking for errors. */
+export function classifyInstallOutput(output: string, ids: readonly string[] = []): InstallOutcome {
+  if (cliProfileNotFound(output)) return 'profile-not-found';
+  if (CLI_ALREADY_INSTALLED.test(output)) return 'already-installed';
+  if (CLI_INSTALLED.test(output)) return 'installed';
+  if (CLI_NETWORK_ERROR.test(withoutIds(output, ids))) return 'network';
   return 'unknown';
+}
+
+/** In the output of a call that installed several extensions: did it say `id` was already installed? */
+export function saysAlreadyInstalled(output: string, id: string): boolean {
+  const quoted = `'${id.toLowerCase()}'`;
+  return output.split(/\r?\n/).some((line) => line.toLowerCase().includes(quoted) && CLI_ALREADY_INSTALLED.test(line));
 }
 
 /** Only network errors are worth retrying; `unknown` is reported so it can be looked at. */
@@ -40,6 +51,11 @@ export function installExtensionArgs(profile: string, id: string): string[] {
   return ['--profile', profile, '--install-extension', id];
 }
 
+/** One call for several extensions (review P8); the CLI installs them one after another. */
+export function installExtensionsArgs(profile: string, ids: readonly string[]): string[] {
+  return ['--profile', profile, ...ids.flatMap((id) => ['--install-extension', id])];
+}
+
 export interface RunResult {
   stdout: string;
   stderr: string;
@@ -48,7 +64,7 @@ export interface RunResult {
 
 export type CodeRunner = (args: string[]) => Promise<RunResult>;
 
-/** Opens a window in the profile; VS Code creates the profile if it does not exist (PLAN.md section 8, #2). */
+/** Opens a window in the profile; VS Code creates the profile if it does not exist (PLAN.md section 8, #2; compat.ts). */
 export function newWindowArgs(profile: string): string[] {
   return ['--profile', profile, '--new-window'];
 }

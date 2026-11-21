@@ -5,6 +5,8 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { PROFILES_FOLDER } from '../core/compat';
+
 /** Folder under `User/globalStorage/` for Profile Kit's own files. One path for all profiles: the extension's
  * globalStorageUri is the same in every profile (PLAN.md section 8, #3), and the CLI must find the same files. */
 export const STATE_DIR_NAME = 'woogajjangka.vscode-profile-kit';
@@ -70,7 +72,7 @@ export function userDataPaths(userData: string): UserDataPaths {
     profileSettings: (location) => {
       // location comes from storage.json; never let it point outside User/profiles
       if (!location || /[\\/]|^\.\.?$/.test(location)) throw new Error(`unexpected profile location "${location}"`);
-      return path.join(user, 'profiles', location, 'settings.json');
+      return path.join(user, PROFILES_FOLDER, location, 'settings.json');
     },
     backupDir: (now = new Date()) => path.join(stateDir, `backup-${stamp(now)}`),
   };

@@ -64,7 +64,12 @@ async function confirmCreate(name: string): Promise<boolean> {
   const create = t('Create Profile');
   const answer = await vscode.window.showWarningMessage(
     t('Profile "{0}" does not exist yet.', name),
-    { modal: true, detail: t('VS Code can only create a profile by opening a window in it, so a new window opens.') },
+    {
+      modal: true,
+      detail: t(
+        'VS Code can only create a profile by opening a window in it, so a new window opens. You can close it once the profile is created.',
+      ),
+    },
     create,
   );
   return answer === create;
@@ -166,7 +171,7 @@ async function apply(kit: Kit, names: string[]): Promise<void> {
     creates.length
       ? kit.windowsBlocked
         ? t('Not created (create them in VS Code first): {0}', creates.join(', '))
-        : t('New profiles (each opens a window): {0}', creates.join(', '))
+        : t('New profiles (each opens a window; close it once the profile is created): {0}', creates.join(', '))
       : '',
     overrides.length ? t('These replace values you set yourself: {0}', overrides.join(', ')) : '',
     t('Nothing is uninstalled and the Default profile is not changed. The full list is in the Output panel.'),
@@ -193,9 +198,16 @@ async function apply(kit: Kit, names: string[]): Promise<void> {
   await kit.refresh();
   const bad = reports.filter((r) => !reportOk(r));
   const showOutput = t('Show Output');
-  const message = bad.length
-    ? t('Applied with problems in: {0}', bad.map((r) => r.name).join(', '))
-    : t('Preset applied to {0} profile(s).', reports.length);
+  const created = reports.filter((r) => r.created).length;
+  const message = [
+    bad.length
+      ? t('Applied with problems in: {0}', bad.map((r) => r.name).join(', '))
+      : t('Preset applied to {0} profile(s).', reports.length),
+    // VS Code has no supported way to close those windows for us (review P7)
+    created ? t('{0} window(s) were opened to create profiles; you can close them.', created) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   void (
     bad.length
       ? vscode.window.showWarningMessage(message, showOutput)

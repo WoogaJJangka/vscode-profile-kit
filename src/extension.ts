@@ -18,9 +18,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const tree = new ProfilesTree(kit);
   const folders = new FolderAdvisor(kit);
   const view = vscode.window.createTreeView('profileKit.profiles', { treeDataProvider: tree, showCollapseAll: true });
+  // the tree shows every profile: list them all only once it is seen (review P5)
+  if (view.visible) kit.showAllProfiles();
   context.subscriptions.push(
     kit,
     view,
+    view.onDidChangeVisibility((e) => {
+      if (e.visible) kit.showAllProfiles();
+    }),
     new ProfileStatusBar(kit),
     new InstallWatcher(kit),
     folders,
