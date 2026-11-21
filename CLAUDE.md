@@ -8,12 +8,14 @@
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
   단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
   Phase 5 준비(2026-11-21): 버전 0.1.0(pre-release), `.github/workflows/release.yml`(태그 `vX.Y.Z` push → 점검 → VSIX → `vsce publish --oidc`, environment `marketplace`), 절차 `docs/RELEASE.md`.
-  남은 것: publisher 생성·Trusted Publishing 정책·태그 push(사용자가 직접), 프로필 설정 공유 문제(아래).
+  시험 게시 끝(2026-11-21): 태그 `v0.1.0` → Marketplace `woogajjangka.vscode-profile-kit` 0.1.0 pre-release, public·validated.
+  다음 계획(피드백 검토, 게시 목록 문제 R1~R6, SonarQube Cloud 도입, 단계 A~E)은 `docs/REVIEW-2026-11-21.md`. 범위는 좁히지 않는다(사용자 결정).
+  남은 것: 프로필 설정 공유 문제(아래).
 - 2026-11-21 실제 VS Code `apply` 미리보기: 할 일 없음. 다만 8개 프로필 모두 Default 설정을 공유해서(`useDefaultFlags.settings`)
   프리셋 설정과 마커 `profileKit.profile`을 쓸 수 없다. 그래서 현재 프로필은 폴더 연결로만 알 수 있다. 공유를 끌지는 사용자 결정.
 - 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). UI에서 추가하면 프리셋도 고친다.
   Default의 `workbench.settings.applyToAllProfiles`에 있는 키는 프로필에 쓰지 않는다(VS Code가 Default 값을 쓰고 프로필 값은 무시, `docs/PLAN.md` 8-1절). 도구는 Default settings.json을 읽기만 한다.
-  공유 문제의 결정(2026-11-21): 설정 공유를 끄고 공통 키는 이 목록으로 묶는다(추천안 C). 도구 수정은 브랜치 `feat/apply-to-all-profiles`, 실제 PC 전환은 그다음.
+  공유 문제의 결정(2026-11-21): 설정 공유를 끄고 공통 키는 이 목록으로 묶는다(추천안 C). 도구 수정은 PR #11로 main에 머지됨(2026-11-21), 실제 PC 전환은 아직.
 - 라이선스 MIT 확정. GitHub `WoogaJJangka/vscode-profile-kit`(private). push·게시는 매번 사용자 승인.
 - 있는 것: CLI `plan`, `verify`, `apply`(미리보기, `--yes`로 실행). GUI: Activity Bar 트리, 상태 표시줄, 전환, 누락 설치, 적용, 프리셋 열기/초안 만들기.
 - **창을 여는 `code` 호출 주의**: 세 데이터 폴더가 실행 중인 VS Code와 모두 같아야 한다. 아니면 두 번째 VS Code가 기본 공유 데이터(로그인)로 뜬다.
