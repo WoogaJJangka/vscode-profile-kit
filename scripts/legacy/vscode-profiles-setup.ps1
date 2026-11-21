@@ -13,7 +13,7 @@ if (-not $code) { Write-Host "ERROR: 'code' CLI not found in PATH. Open VS Code 
 
 $core = @(
  'anthropic.claude-code','openai.chatgpt','openai.codex-audio',
- 'ms-ceintl.vscode-language-pack-ko','github.github-vscode-theme','woogajjangka.cool-icon-vscode',
+ 'ms-ceintl.vscode-language-pack-ko','github.github-vscode-theme','woogajjangka.cool-theme-kit',
  'eamodio.gitlens','mhutchie.git-graph','github.vscode-pull-request-github','codezombiech.gitignore','mccarter.start-git-bash',
  'esbenp.prettier-vscode','usernamehw.errorlens','oderwat.indent-rainbow','albert.tabout','wmaurer.change-case',
  'cardinal90.multi-cursor-case-preserve','alefragnani.project-manager','tomoki1207.pdf','mechatroner.rainbow-csv',

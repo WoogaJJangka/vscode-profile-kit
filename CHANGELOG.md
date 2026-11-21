@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Example preset: Cool Theme Kit is now `woogajjangka.cool-theme-kit`. The old ID `woogajjangka.cool-icon-vscode` is no longer on the Marketplace, so installing it failed on a new PC.
+
 ## [1.0.0]
 
 First release (not a pre-release). The features are those of 0.5.0.
