@@ -26,6 +26,32 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 - 바꾸는 작업은 모두 미리보기 → 확인 순서로 합니다.
 - 프로필은 VS Code가 창을 열어야만 만들어지므로, 새 프로필을 만들 때는 새 창이 열립니다.
 
+### VS Code 내장 기능과 다른 점
+
+내장 기능이 있는 일은 다시 만들지 않습니다. 프로필 만들기·전환은 VS Code를 호출하고, **모든 프로필에 설정 적용** 목록은 읽어서 따르고, 동기화는 Settings Sync에 맡깁니다. 내장 기능에 없는 일이 Profile Kit의 몫입니다.
+
+| 일                                | VS Code 내장                              | Profile Kit                                                                           |
+| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| 프로필 만들기·전환                | 있음 (Profiles 편집기)                    | 프리셋대로 한 번에 만들고, 상태 표시줄·트리·폴더 추천에서 전환. VS Code를 호출해서 함 |
+| 확장 하나를 모든 프로필에         | 있음 (Apply Extension to all Profiles)    | `core`로 선언                                                                         |
+| 설정 하나를 모든 프로필에         | 있음 (`applyToAllProfiles`)               | 그 목록을 읽어 프로필에 쓰지 않고, 프리셋 값과 다르면 알려 줌                         |
+| 프로필 파일 공유                  | 있음 (`.code-profile` 내보내기/가져오기)  | 프리셋 파일을 Git으로 공유                                                            |
+| 기기 간 동기화                    | 있음 (Settings Sync)                      | Sync에 맡기고, Sync와 어긋나지 않게 함 (아래 "새 PC")                                 |
+| 구성 전체를 한 파일로 선언 + 이력 | 없음                                      | 핵심                                                                                  |
+| 선언과 실제의 차이 점검 (CI 포함) | 없음                                      | 트리의 `정상 · 빠짐 · 추가`, CLI `verify`                                             |
+| 설치할 때 넣을 프로필 고르기·추천 | 없음                                      | 설치 후 알림, **프로필에 설치...**                                                    |
+| 공통 변경을 모든 프로필에 반영    | 없음 (복사한 프로필은 원본과 연결이 끊김) | `core`·공통 `settings`를 고치고 적용                                                  |
+| 폴더 → 프로필 추천                | 없음 (연결만 기억)                        | `match.files`                                                                         |
+
+### 비슷한 도구
+
+| 도구                                                                                | 방식                                                                | Profile Kit과 다른 점                                             |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [VPEM](https://pypi.org/project/vscode-profile-extension-manager/)                  | Python CLI. 프로필의 확장 목록을 파일로 내보내고 적용               | 명령줄 전용. 설치 시 프로필 고르기, 누락 점검 화면이 없음         |
+| [code-profiler](https://github.com/joaopalmeiro/code-profiler)                      | CLI. `.vscode` 폴더에서 프로필 파일을 만듦                          | 프로젝트 하나에서 시작. 여러 프로필을 같이 맞추거나 점검하지 않음 |
+| artagon-vscode-profiles                                                             | dotfiles 저장소. 공유 기본 + 프로필별 덮어쓰기 + 내보내기 스크립트  | 구조는 비슷. 설치 시 프로필 고르기, 누락 점검, GUI가 없음         |
+| [Profile Switcher](https://github.com/aaronpowell/vscode-profile-switcher) (보관됨) | 내장 프로필 이전의 확장. 설정 묶음을 바꾸고 확장을 설치·제거해 맞춤 | Profile Kit은 VS Code 내장 프로필을 쓰고, 확장을 제거하지 않음    |
+
 ### 프리셋
 
 ```jsonc
@@ -63,6 +89,14 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 
 Settings Sync를 같이 쓰면 프로필 settings.json은 Sync가 옮깁니다. Profile Kit이 관리하는 키 목록(`profileKit.managedKeys`)도 같은 파일에 있어서 다른 PC에서도 Profile Kit이 쓴 키와 직접 넣은 키를 구분합니다.
 
+Settings Sync와 같이 쓸 때:
+
+- 프로필이 다른 PC로 가려면 Sync 설정에서 **Profiles**를 켜야 합니다(VS Code 기준 최대 20개).
+- 두 번째 PC에서는 Sync가 끝난 뒤에 적용하세요. 미리보기에서 할 일이 없거나 빠진 확장만 나오면 정상입니다. Sync 도중에 적용하면 같은 파일을 Sync와 Profile Kit이 번갈아 고칠 수 있습니다.
+- 한 PC에서 적용한 설정 변경은 Sync로 다른 PC에도 갑니다. 다른 PC에서 다시 적용할 필요는 없습니다.
+- 이 PC에만 남는 것: 프리셋 경로(`profileKit.presetPath`), settings.json 백업, `machine` 범위 설정.
+- 폴더 → 프로필 연결이 Sync로 옮겨지는지는 VS Code 문서에 없습니다. 다른 PC에서는 폴더를 열 때 나오는 추천으로 다시 연결하세요.
+
 ### CLI
 
 ```sh
@@ -86,6 +120,11 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.
 
 - **New PC**: clone the repository with your preset, open it with **Open Preset File...**, then apply. The preset path is per PC and is not synced; with Settings Sync on, the list of keys Profile Kit manages (`profileKit.managedKeys`) travels inside each profile's settings.json.
+- **With Settings Sync**: turn on **Profiles** in Sync so profiles reach the other PC. On the second PC, apply after Sync has finished; the preview should then show nothing to do, or only missing extensions. Settings applied on one PC reach the others through Sync. What stays on each PC: the preset path, settings backups and `machine`-scoped settings.
+
+**Compared with VS Code's built-in profiles**: Profile Kit does not rebuild what VS Code already has. It creates and switches profiles by calling VS Code, follows the **Apply Setting to all Profiles** list, and leaves syncing to Settings Sync. What VS Code does not have is Profile Kit's part: one file that declares the whole setup with history in Git, a check of declared vs installed (also in CI), picking profiles when installing, carrying a common change into every profile, and folder → profile suggestions.
+
+**Similar tools**: [VPEM](https://pypi.org/project/vscode-profile-extension-manager/) (Python CLI that exports and applies a profile's extension list), [code-profiler](https://github.com/joaopalmeiro/code-profiler) (CLI that builds a profile file from a `.vscode` folder), artagon-vscode-profiles (dotfiles repository: shared base + per-profile overrides + export scripts) and [Profile Switcher](https://github.com/aaronpowell/vscode-profile-switcher) (archived; predates built-in profiles and installs/uninstalls extensions to switch). Profile Kit is an extension with a GUI, uses VS Code's own profiles, picks profiles when you install, checks for missing extensions, and never uninstalls.
 
 CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`).
 
