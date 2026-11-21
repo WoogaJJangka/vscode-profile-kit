@@ -19,7 +19,7 @@
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
   `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
-  남은 것: 두 번째 PC 확인, 저장소 public 전환(R2, 사용자 결정). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
+  남은 것: 두 번째 PC 확인. 저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
   (VS Code는 프로필 settings.json을 그대로 둠, 11-20 옛 사본) → `apply --yes`로 8개 프로필에 마커, Web-JS에 `[html]`. 다시 돌린 미리보기 "Nothing to do".
@@ -96,6 +96,10 @@
 - GitHub 저장소 설정(2026-11-21): ruleset `main: CI must pass`가 main에 CI 체크 `ubuntu-latest`·`windows-latest`·`macos-latest`와 SonarQube `Analysis + quality gate`(2026-11-21 추가)를 필수로 한다(예외 없음).
   그래서 main에 직접 push할 수 없고 브랜치 + PR로만 머지한다. auto-merge 허용, 머지된 PR 브랜치는 원격에서 자동 삭제(로컬은 `git branch -d`), 로컬 `fetch.prune=true`.
   `ci.yml`의 job 이름(matrix `os`)이나 `sonar.yml`의 job 이름을 바꾸면 ruleset의 체크 이름도 같이 바꾼다. 안 바꾸면 PR이 머지되지 않는다.
+- environment `marketplace`는 태그 `v*`에서만 배포할 수 있다(deployment policy, 2026-11-21). release.yml의 태그 형식을 바꾸면 이것도 바꾼다.
+- 커밋 작성자는 저장소 로컬 설정으로 GitHub noreply 메일을 쓴다(2026-11-21). 그 전 커밋 51개는 개인 메일이고, PR 28개의 읽기 전용 참조
+  `refs/pull/N/head`에도 남아 있어 force-push로 지울 수 없다. 그래서 public 전환(R2)은 보류했다. 다시 정할 때 방법은 새 public 저장소로
+  옮기기(작성자 고친 기록, ruleset·secret·environment·SonarQube·Trusted Publishing 다시 연결) 또는 기록을 다시 쓰고 GitHub Support에 PR 참조 삭제 요청.
 - SonarQube Cloud(조직 `woogajjangka`, 프로젝트 `WoogaJJangka_vscode-profile-kit`): `sonar.yml` CI 분석 + 커버리지(`npm run test:coverage` → `coverage/lcov.info`) + 품질 게이트.
   secret `SONAR_TOKEN`이 있을 때만 돈다. Automatic Analysis는 꺼 둔다(켜면 CI 스캔 실패). 설정은 `.sonarcloud.properties`(CI가 `sonar-project.properties`로 복사).
   프로젝트 생성·토큰 등록은 사용자가 직접. 결과는 SonarQube MCP로 읽는다.
