@@ -5,7 +5,10 @@
 
 export type InstallOutcome = 'installed' | 'already-installed' | 'profile-not-found' | 'network' | 'unknown';
 
-const NETWORK_ERROR = /getaddrinfo|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|network/i;
+// `(Error: aborted)`: the VSIX download was cut off while being written to CachedExtensionVSIXs
+// ("Unable to write file ... (Error: aborted)", install-log 2026-11-20). A retry succeeded every time.
+const NETWORK_ERROR =
+  /getaddrinfo|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|network|\(Error: aborted\)/i;
 
 export function classifyInstallOutput(output: string): InstallOutcome {
   if (/profile '.*' not found/i.test(output)) return 'profile-not-found';

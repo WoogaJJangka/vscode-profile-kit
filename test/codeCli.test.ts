@@ -25,6 +25,10 @@ describe('classifyInstallOutput', () => {
       'network',
     ],
     ['Installing extensions...\nError while installing extensions: AggregateError [ETIMEDOUT]:', 'network'],
+    [
+      "Installing extensions...\nError while installing extension anthropic.claude-code: Unable to write file 'c:\\Users\\me\\AppData\\Roaming\\Code\\CachedExtensionVSIXs\\.f72690aa-9e22-444a-affe-35a8ba788e41' (Error: aborted)\nFailed Installing Extensions: anthropic.claude-code",
+      'network',
+    ],
     ['Installing extensions...\nFailed Installing Extensions: anthropic.claude-code', 'unknown'],
     ['Installing extensions...', 'unknown'],
   ] as const)('%j -> %s', (output, expected) => {
