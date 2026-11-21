@@ -9,7 +9,15 @@ import { diffExtensions, type ExtensionDiff } from './diff';
 import { type Preset, resolveProfile, type SettingsMap, stripBom } from './preset';
 import { detectFormatting } from './presetEdit';
 import type { StoredProfile } from './profiles';
-import { diffSettings, resolveSettings, type SettingsChange, type SettingsPlan } from './settings';
+import {
+  APPLY_TO_ALL_PROFILES_KEY,
+  diffSettings,
+  isAppliedToAllProfiles,
+  jsonEqual,
+  resolveSettings,
+  type SettingsChange,
+  type SettingsPlan,
+} from './settings';
 
 /**
  * Written into every profile settings.json Profile Kit manages. The extension API cannot tell which profile a
@@ -29,6 +37,13 @@ export interface ProfileState {
   managed?: string[];
 }
 
+/** Default's settings.json, read once per plan: its values and the keys it applies to all profiles. */
+export interface DefaultSettingsState {
+  settings: SettingsMap;
+  /** `workbench.settings.applyToAllProfiles` (see allProfilesKeys). */
+  allProfiles: string[];
+}
+
 export interface ProfileApplyPlan {
   name: string;
   /** The profile does not exist and has to be created (opens a VS Code window). */
@@ -41,17 +56,60 @@ export interface ProfileApplyPlan {
   notes: string[];
 }
 
-/** Settings Profile Kit wants in a profile's settings.json, marker included; undefined when it shares with Default. */
-export function desiredSettings(preset: Preset, name: string): SettingsMap | undefined {
+const show = (v: unknown) => {
+  const s = JSON.stringify(v);
+  return s.length > 60 ? `${s.slice(0, 57)}...` : s;
+};
+
+/**
+ * Settings Profile Kit wants in a profile's settings.json, marker included; undefined when it shares with Default.
+ * Keys Default applies to all profiles are left out: VS Code ignores them in a profile settings.json.
+ */
+export function desiredSettings(
+  preset: Preset,
+  name: string,
+  allProfiles: readonly string[] = [],
+): SettingsMap | undefined {
   const settings = resolveSettings(preset, name);
-  return settings === undefined ? undefined : { ...settings, [PROFILE_MARKER_KEY]: name };
+  if (settings === undefined) return undefined;
+  const own = Object.fromEntries(Object.entries(settings).filter(([k]) => !isAppliedToAllProfiles(k, allProfiles)));
+  return { ...own, [PROFILE_MARKER_KEY]: name };
 }
 
-export function planProfile(preset: Preset, name: string, state: ProfileState): ProfileApplyPlan {
+/**
+ * Notes for the whole plan about keys Default applies to all profiles: preset common settings whose Default value
+ * differs (Profile Kit never edits Default), and the marker, which must stay per profile.
+ */
+export function allProfilesNotes(preset: Preset, defaults: DefaultSettingsState): string[] {
+  const notes: string[] = [];
+  const has = (k: string) => Object.prototype.hasOwnProperty.call(defaults.settings, k);
+  for (const [key, value] of Object.entries(preset.settings)) {
+    if (!isAppliedToAllProfiles(key, defaults.allProfiles)) continue;
+    if (has(key) && jsonEqual(defaults.settings[key], value)) continue;
+    notes.push(
+      `${key}: every profile takes it from Default (${APPLY_TO_ALL_PROFILES_KEY}), where it is ` +
+        `${has(key) ? show(defaults.settings[key]) : 'not set'} instead of the preset's ${show(value)}; ` +
+        'Profile Kit does not edit Default, so change it there',
+    );
+  }
+  if (defaults.allProfiles.includes(PROFILE_MARKER_KEY))
+    notes.push(
+      `${PROFILE_MARKER_KEY} is in ${APPLY_TO_ALL_PROFILES_KEY}; remove it there, ` +
+        'or Profile Kit cannot tell which profile a window runs in',
+    );
+  return notes;
+}
+
+export function planProfile(
+  preset: Preset,
+  name: string,
+  state: ProfileState,
+  allProfiles: readonly string[] = [],
+): ProfileApplyPlan {
   const notes: string[] = [];
   const create = !state.stored;
   const extensions = diffExtensions(resolveProfile(preset, name), state.installed ?? []);
-  const desired = desiredSettings(preset, name);
+  const desired = desiredSettings(preset, name, allProfiles);
   const vscodeShares = state.stored?.useDefaultFlags.settings === true;
   const presetShares = preset.profiles[name]?.shareFromDefault?.settings === true;
 
@@ -66,9 +124,16 @@ export function planProfile(preset: Preset, name: string, state: ProfileState): 
   } else if (vscodeShares) {
     notes.push(
       'VS Code uses Default settings for this profile (its own settings.json is ignored), so settings are skipped; ' +
-        'turn sharing off in the Profiles editor or set shareFromDefault.settings in the preset',
+        'turn sharing off in the Profiles editor (keys meant for every profile can stay shared with ' +
+        '"Apply Setting to all Profiles") or set shareFromDefault.settings in the preset',
     );
   } else if (desired) {
+    for (const key of Object.keys(preset.profiles[name]?.settings ?? {}))
+      if (key !== PROFILE_MARKER_KEY && isAppliedToAllProfiles(key, allProfiles))
+        notes.push(
+          `${key}: Default applies it to all profiles (${APPLY_TO_ALL_PROFILES_KEY}), ` +
+            'so this profile cannot have its own value; not written',
+        );
     settings = diffSettings(state.settings ?? {}, desired, state.managed ?? []);
   }
   if (create) notes.push('profile does not exist: creating it opens a VS Code window');
@@ -78,11 +143,6 @@ export function planProfile(preset: Preset, name: string, state: ProfileState): 
 export function planIsEmpty(plan: ProfileApplyPlan): boolean {
   return !plan.create && plan.extensions.missing.length === 0 && (plan.settings?.changes.length ?? 0) === 0;
 }
-
-const show = (v: unknown) => {
-  const s = JSON.stringify(v);
-  return s.length > 60 ? `${s.slice(0, 57)}...` : s;
-};
 
 /** Plan as text lines for the CLI and the extension's output channel. */
 export function formatPlan(plans: readonly ProfileApplyPlan[]): string[] {

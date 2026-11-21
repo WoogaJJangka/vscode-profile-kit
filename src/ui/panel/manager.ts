@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 
 import {
   addExtension,
+  isAppliedToAllProfiles,
   membershipEdits,
   normalizeId,
   parsePresetText,
@@ -19,7 +20,7 @@ import {
   removeExtension,
   setSetting,
 } from '../../core';
-import { buildPlans, executePlans, reportOk } from '../../host/apply';
+import { buildPlans, executePlans, readDefaultSettings, reportOk } from '../../host/apply';
 import { installExtensions, installSucceeded } from '../../host/installer';
 import type { Kit } from '../kit';
 import type {
@@ -60,6 +61,8 @@ const WEBVIEW_STRINGS = [
   'not created yet',
   'this window',
   'uses Default settings',
+  'all profiles (from Default)',
+  'Default applies this setting to all profiles (Apply Setting to all Profiles), so a profile cannot have its own value.',
   'Common (all profiles)',
   'Setting',
   'Add Setting',
@@ -173,6 +176,7 @@ export class ManagerPanel implements vscode.Disposable {
       for (const row of rows)
         if (declared.includes(row.name)) for (const id of row.installed ?? []) if (id !== own) push(id, 'undeclared');
     }
+    const listed = readDefaultSettings(this.kit.paths).state.allProfiles;
     return {
       presetPath: loaded?.uri.fsPath ?? this.kit.presetPath(),
       ...(this.kit.presetError ? { presetError: this.kit.presetError } : {}),
@@ -181,6 +185,7 @@ export class ManagerPanel implements vscode.Disposable {
       settings: {
         common: preset?.settings ?? {},
         profiles: Object.fromEntries(declared.map((n) => [n, preset?.profiles[n].settings ?? {}])),
+        allProfiles: listed.filter((k) => isAppliedToAllProfiles(k, listed)),
       },
       strings,
     };

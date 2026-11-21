@@ -185,6 +185,29 @@ describe('apply (fake code CLI, temp user data folder)', () => {
     await executePlans(env, preset, plans);
     expect(readFileSync(settingsFile, 'utf8')).toBe('{ "broken": ');
   });
+
+  it("leaves keys Default applies to all profiles out of profile settings.json and never writes Default's", async () => {
+    const paths = userDataPaths(dir);
+    mkdirSync(path.dirname(paths.storageJson), { recursive: true });
+    writeFileSync(paths.storageJson, JSON.stringify({ userDataProfiles: [{ name: 'Py', location: 'p1' }] }));
+    const defaultText =
+      '{\n  "workbench.settings.applyToAllProfiles": ["editor.fontSize"],\n  "editor.fontSize": 20\n}\n';
+    writeFileSync(paths.defaultSettings, defaultText);
+    const env = { run: async () => ok(''), paths };
+    const preset = parsePreset({
+      settings: { 'editor.fontSize': 14 },
+      profiles: { Py: { settings: { 'editor.tabSize': 4 } } },
+    });
+    const { plans, problems } = await buildPlans(env, preset, ['Py']);
+    expect(problems.join('\n')).toContain('editor.fontSize: every profile takes it from Default');
+    expect(plans[0].settings?.changes.map((c) => c.key)).toEqual(['editor.tabSize', PROFILE_MARKER_KEY]);
+    await executePlans(env, preset, plans);
+    expect(parseSettingsText(readFileSync(paths.profileSettings('p1'), 'utf8'))).toEqual({
+      'editor.tabSize': 4,
+      [PROFILE_MARKER_KEY]: 'Py',
+    });
+    expect(readFileSync(paths.defaultSettings, 'utf8')).toBe(defaultText);
+  });
 });
 
 describe('installExtensions shouldStop', () => {

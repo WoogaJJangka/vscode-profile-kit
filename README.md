@@ -17,6 +17,7 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 - **관리 화면**: 확장 × 프로필 표에서 체크로 선언을 바꾸고, 설정 표에서 공통 값과 프로필별 값을 고칩니다. 바뀔 내용을 미리 본 뒤 적용합니다.
 - **전환**: 상태 표시줄을 누르면 같은 창에서 바로 프로필이 바뀝니다. 폴더를 열면 `match.files`로 맞는 프로필을 한 번 추천하고, 전환하면 그 폴더는 다음부터 그 프로필로 열립니다.
 - **설정 호환**: 프리셋의 공통 `settings`와 `profiles.X.settings`를 합쳐 각 프로필의 settings.json에 씁니다. Profile Kit가 쓴 키만 관리하고, 직접 넣은 키와 주석은 그대로 둡니다. 쓰기 전에 백업합니다. Default 설정을 그대로 쓰고 싶은 프로필은 `shareFromDefault.settings: true`로 둡니다.
+  모든 프로필에 같은 값을 쓰려면 VS Code의 **모든 프로필에 설정 적용**(`workbench.settings.applyToAllProfiles`)을 쓰세요. 이 목록에 있는 키는 Default 값을 쓰므로 Profile Kit가 프로필 settings.json에 쓰지 않고, 프리셋 값과 다르면 미리보기에서 알려 줍니다. 목록을 바꾼 뒤에는 열린 창을 다시 로드해야 합니다.
 
 ### 안전 규칙
 
@@ -73,6 +74,7 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Manager**: an extensions × profiles matrix and a settings table (common and per-profile values). Preview, then apply.
 - **Switching**: from the status bar, in place. When a folder's files match a profile's `match.files`, it is suggested once per folder.
 - **Settings**: common `settings` plus `profiles.X.settings` are written to each profile's settings.json. Only keys Profile Kit wrote are managed; your own keys and comments stay, and files are backed up first.
+  Keys in VS Code's **Apply Setting to all Profiles** list (`workbench.settings.applyToAllProfiles`) come from Default in every profile, so Profile Kit does not write them to profiles and says so in the preview when the preset wants a different value. Reload open windows after changing that list.
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.
 
 CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`).

@@ -83,3 +83,29 @@ mac/Linux와 VS Code 1.95(엔진 하한)는 확인하지 않았다.
 | 8 | 확장에서 창을 여는 `code` 호출 (M3 GUI 시험 중 발견) | 창을 여는 호출(`--new-window`, 폴더 열기)은 실행 중인 VS Code와 `--user-data-dir`, `--extensions-dir`, `--shared-data-dir`가 **모두 같을 때만** 그 VS Code에 붙는다. 하나라도 다르면 VS Code가 하나 더 뜬다. 격리 VS Code 안의 확장이 `--shared-data-dir` 없이 호출했더니, 기본 공유 데이터(로그인 정보가 있는 곳)를 쓰는 두 번째 VS Code가 떴다. 바로 닫았고, 실제 프로필 목록은 바뀌지 않았다. `--shared-data-dir`는 확장 API로 알 수 없다. 창을 열지 않는 호출(list, install)은 문제없다. | 기본 폴더로 실행한 VS Code에서는 폴더 인자 없이 `code`를 부른다. 폴더를 바꿔 실행한 VS Code에서는 창을 여는 호출을 막고(`Kit.windowsBlocked`), 프로필은 VS Code에서 먼저 만들라고 안내한다. 시험용은 `PROFILE_KIT_CODE_ARGS`로 세 폴더를 모두 넘긴다(`.vscode/launch.json`). CLI도 `--user-data-dir`만 주고 `--shared-data-dir`를 주지 않으면 프로필을 만들지 않는다 |
 
 결론: 계획(`확장 = GUI 주 화면, core 공유, CLI 보조`)과 어긋나는 결과는 없다. 3번만 바뀌었다(globalStorageUri 대신 마커 설정).
+
+### 8-1. 설정 공유 끄기 + "모든 프로필에 적용" (2026-11-21, VS Code 1.147.0, Windows)
+
+목적: 프로필 8개가 Default 설정을 통째로 공유(`useDefaultFlags.settings`)하는 대신, 공통 키만 VS Code의
+"Apply Setting to all Profiles"(설정 `workbench.settings.applyToAllProfiles`, Default settings.json에 둔다)로 묶고
+프로필 settings.json에는 프로필별 키와 마커만 두는 방식이 되는지 본다. 격리 폴더 3개 + 탐침 확장으로 했고, 실제 VS Code는 건드리지 않았다.
+이 기능은 1.81(2023-07)에 들어왔으니 엔진 하한 1.95에도 있다([1.81 릴리스 노트](https://code.visualstudio.com/updates/v1_81)). 1.95에서 직접 돌려 보지는 않았다.
+
+| # | 확인한 것 | 결과 |
+|---|-----------|------|
+| 9-1 | 공유를 끈 프로필에서 목록에 있는 키 | Default 값이 보인다. 프로필 settings.json에 같은 키가 있어도(9) 무시되고 Default 값(21)이 나온다 |
+| 9-2 | 목록에 없는 키 | 프로필 파일 값만 쓴다. Default에만 있는 키(`editor.tabSize: 7`)는 보이지 않는다(기본값 4) |
+| 9-3 | 그 프로필에서 `update(..., Global)` | 목록에 있는 키(이미 있던 것, 새로 넣은 것 모두)는 **Default** settings.json에 써진다. 프로필 파일의 옛 값은 그대로 남지만 무시된다. 목록에 없는 키는 프로필 파일에 써진다 |
+| 9-4 | 목록에 있는데 Default에 값이 없는 키 | 프로필 값(33)이 아니라 기본값(0)이 된다. 즉 목록에 넣은 키는 프로필이 덮어쓸 수 없다 |
+| 9-5 | 창이 열린 채 Default 파일을 밖에서 고침 | 값 변경은 바로 반영된다. 목록 자체를 바꾸면 반영이 어긋난다(키를 넣어도 프로필 값이 남고, 키를 빼면 프로필 값이 아니라 기본값이 나옴). **창을 다시 열면** 9-1~9-4대로 맞는다 |
+| 9-6 | 언어별 블록 `"[html]"`을 목록에 넣음 | 적용되지 않는다(`html`의 `tabSize` 4). 언어별 설정은 프로필마다 따로 써야 한다 |
+| 9-7 | 마커 | 프로필 파일의 `probe.name`이 프로필마다 맞게 읽혔다(3번 결과와 같음) |
+
+확인하지 않은 것: 프로필 편집 화면에서 "Settings: Default 사용"을 끌 때 VS Code가 프로필 settings.json을 어떻게 다루는지(그대로 두는지, Default를 복사하는지),
+Settings Sync가 목록과 프로필 파일을 다른 PC로 어떻게 옮기는지.
+
+설계에 반영할 것:
+- 공통 키 = Default settings.json + `applyToAllProfiles` 목록. 프로필 파일에는 프로필별 키, 언어별 블록, 마커만 쓴다.
+- 한 키는 공통이거나 프로필별, 둘 중 하나다. 프리셋의 `profiles.X.settings` 키가 목록에 있으면 무시되니 경고한다.
+- 목록을 바꾼 뒤에는 열린 창을 다시 열라고 안내한다.
+- 공유를 끄는 순서: 백업 → 화면에서 공유 끄기 → 그다음 프로필 파일 쓰기(끌 때 VS Code가 파일을 어떻게 하든 결과가 같도록).

@@ -6,7 +6,10 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 
 import {
+  allProfilesKeys,
+  allProfilesNotes,
   type CodeRunner,
+  type DefaultSettingsState,
   diffSettings,
   desiredSettings,
   editSettingsText,
@@ -39,6 +42,19 @@ export function readStorage(paths: UserDataPaths): StorageProfiles {
   return parseStorageProfiles(readFileSync(paths.storageJson, 'utf8'));
 }
 
+/** Default's settings.json, read only. A missing file is empty; a broken one is reported and treated as empty. */
+export function readDefaultSettings(paths: UserDataPaths): { state: DefaultSettingsState; problem?: string } {
+  try {
+    const { settings } = readSettingsFile(paths.defaultSettings);
+    return { state: { settings, allProfiles: allProfilesKeys(settings) } };
+  } catch (error) {
+    return {
+      state: { settings: {}, allProfiles: [] },
+      problem: `Default settings.json could not be read, so keys applied to all profiles are not known (${String(error)})`,
+    };
+  }
+}
+
 export interface PlanResult {
   plans: ProfileApplyPlan[];
   /** Problems reading VS Code's or Profile Kit's files, shown with the plan. */
@@ -49,7 +65,13 @@ export interface PlanResult {
 export async function buildPlans(env: ApplyEnv, preset: Preset, names: readonly string[]): Promise<PlanResult> {
   const storage = readStorage(env.paths);
   const managed = readManagedState(env.paths.managedSettingsFile);
-  const problems = [...storage.problems, ...(managed.problem ? [managed.problem] : [])];
+  const defaults = readDefaultSettings(env.paths);
+  const problems = [
+    ...storage.problems,
+    ...(managed.problem ? [managed.problem] : []),
+    ...(defaults.problem ? [defaults.problem] : []),
+    ...allProfilesNotes(preset, defaults.state),
+  ];
   const plans: ProfileApplyPlan[] = [];
   for (const name of names) {
     const stored = storage.profiles.find((p) => p.name === name);
@@ -64,7 +86,7 @@ export async function buildPlans(env: ApplyEnv, preset: Preset, names: readonly 
       }
       state.managed = managed.state.profiles[stored.location] ?? [];
     }
-    const plan = planProfile(preset, name, state);
+    const plan = planProfile(preset, name, state, defaults.state.allProfiles);
     if (stored && state.settings === undefined) delete plan.settings;
     plans.push(plan);
   }
@@ -108,6 +130,8 @@ export async function executePlans(
   const backupDir = env.paths.backupDir();
   const managedRead = readManagedState(env.paths.managedSettingsFile);
   const managed = managedRead.state;
+  // read again: Default may have changed since the preview
+  const { allProfiles } = readDefaultSettings(env.paths).state;
   if (managedRead.problem) {
     // keep the unreadable file next to this run's backups before it is replaced
     mkdirSync(backupDir, { recursive: true });
@@ -149,7 +173,7 @@ export async function executePlans(
     }
 
     if (plan.settings && !profile.useDefaultFlags.settings) {
-      const desired = desiredSettings(preset, plan.name);
+      const desired = desiredSettings(preset, plan.name, allProfiles);
       if (!desired) continue;
       const file = env.paths.profileSettings(profile.location);
       try {
