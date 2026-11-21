@@ -18,7 +18,7 @@
   vsce의 minimatch를 overrides로 11.0.9) + version 1.0.0, `preview` 제거. Sonar S8707(settingsWriter, CLI 인자 경로) 3건은
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
-  `--pre-release` 없이 정식. 직후 Marketplace 공개 조회(`vsce show`)에는 아직 0.5.0이 최신이었다(검증 반영 전, 확인 필요).
+  `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
   남은 것: 프로필 설정 공유 문제(아래), 저장소 public 전환(R2, 사용자 결정).
 - 2026-11-21 실제 VS Code `apply` 미리보기: 할 일 없음. 다만 8개 프로필 모두 Default 설정을 공유해서(`useDefaultFlags.settings`)
   프리셋 설정과 마커 `profileKit.profile`을 쓸 수 없다. 그래서 현재 프로필은 폴더 연결로만 알 수 있다. 공유를 끌지는 사용자 결정.
