@@ -1,5 +1,6 @@
 /**
- * Read and write profile settings.json files and the list of keys Profile Kit manages in each.
+ * Read and write profile settings.json files. The list of keys Profile Kit manages lives inside each settings.json
+ * (`profileKit.managedKeys`, core/applyPlan.ts); the older managed-settings.json in globalStorage is only read.
  * Every write is preceded by a backup copy, and files are replaced atomically (write temp file, rename).
  * Default's settings.json (`User/settings.json`) is never a target: paths come from `profileSettings(location)`.
  */
@@ -45,10 +46,6 @@ export function writeFileAtomic(file: string, text: string): void {
   const tmp = `${file}.profile-kit-${process.pid}.tmp`;
   writeFileSync(tmp, text, 'utf8');
   renameSync(tmp, file);
-}
-
-export function writeManagedState(file: string, state: ManagedState): void {
-  writeFileAtomic(file, `${JSON.stringify(state, null, 2)}\n`);
 }
 
 export interface SettingsFile {

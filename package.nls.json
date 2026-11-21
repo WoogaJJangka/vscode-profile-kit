@@ -4,6 +4,7 @@
   "config.title": "Profile Kit",
   "config.presetPath": "Preset file (`*.profile-kit.json`) that declares core extensions, groups, profiles and settings. The same file is used in every profile.",
   "config.profile": "Written by Profile Kit into each profile's own settings: the profile's name, so Profile Kit can tell which profile a window uses. Do not edit.",
+  "config.managedKeys": "Written by Profile Kit into each profile's own settings: the keys it manages there, so it can update or remove only those. It is kept in the same file so it moves with Settings Sync. Do not edit.",
   "view.container": "Profile Kit",
   "view.profiles": "Profiles",
   "view.welcome": "No preset file yet. A preset declares the extensions every profile gets (core), named groups, and profiles built from them.\n[Open Preset File](command:profileKit.openPreset)\n[Create Preset from This Profile](command:profileKit.createPreset)",

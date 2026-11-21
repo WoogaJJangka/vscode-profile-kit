@@ -8,6 +8,9 @@ import {
   editSettingsText,
   extensionOrigins,
   formatPlan,
+  MANAGED_KEYS_KEY,
+  managedKeysChange,
+  managedKeysIn,
   parsePreset,
   parseSettingsText,
   planIsEmpty,
@@ -180,5 +183,30 @@ describe('keys Default applies to all profiles (applyToAllProfiles)', () => {
     expect(notes[0]).toMatch(/^editor\.formatOnSave: .*not set instead of the preset's true/);
     expect(notes[1]).toContain(`${PROFILE_MARKER_KEY} is in ${APPLY_TO_ALL_PROFILES_KEY}`);
     expect(allProfilesNotes(p, { settings: {}, allProfiles: [] })).toEqual([]);
+  });
+});
+
+describe('managed-key list inside settings.json', () => {
+  it('reads only a list of strings', () => {
+    expect(managedKeysIn({ [MANAGED_KEYS_KEY]: ['a', 'b'] })).toEqual(['a', 'b']);
+    expect(managedKeysIn({})).toBeUndefined();
+    expect(managedKeysIn({ [MANAGED_KEYS_KEY]: 'a' })).toBeUndefined();
+    expect(managedKeysIn({ [MANAGED_KEYS_KEY]: ['a', 1] })).toBeUndefined();
+  });
+
+  it('adds, changes or leaves the list', () => {
+    expect(managedKeysChange({}, ['a'])).toEqual({ key: MANAGED_KEYS_KEY, kind: 'add', after: ['a'] });
+    expect(managedKeysChange({ [MANAGED_KEYS_KEY]: ['a'] }, ['a', 'b'])).toEqual({
+      key: MANAGED_KEYS_KEY,
+      kind: 'change',
+      before: ['a'],
+      after: ['a', 'b'],
+    });
+    expect(managedKeysChange({ [MANAGED_KEYS_KEY]: ['a'] }, ['a'])).toBeUndefined();
+  });
+
+  it('is never taken from the preset', () => {
+    const p = parsePreset({ settings: { [MANAGED_KEYS_KEY]: ['x'], a: 1 }, profiles: { P: {} } });
+    expect(desiredSettings(p, 'P')).toEqual({ a: 1, [PROFILE_MARKER_KEY]: 'P' });
   });
 });

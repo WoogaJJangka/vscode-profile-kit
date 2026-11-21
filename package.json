@@ -48,6 +48,14 @@
           "type": "string",
           "default": "",
           "markdownDescription": "%config.profile%"
+        },
+        "profileKit.managedKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "%config.managedKeys%"
         }
       }
     },
