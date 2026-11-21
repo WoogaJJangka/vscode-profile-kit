@@ -57,9 +57,9 @@
   더한 목표: 설치할 때 넣을 프로필 고르기와 추천, 쉬운 전환, 공통 설정과 프로필별 설정. 진행 단계 M0~M7은 `docs/ROADMAP.md` 끝에 있다.
 
 ## 7. 남은 일
-- [ ] Default 프로필 현재 상태 확인(다른 PC 정리가 반영된 상태). repair-extensions.ps1의 Default 복구 단계를 실행할지 사용자와 결정
-- [ ] 현재 PC: repair-extensions.ps1 완료 여부 확인, 프로필별 개수 검증, 남은 실패 건 원인 분석
-- [ ] 현재 PC: share-settings.ps1 -DryRun 으로 확인 후 실행 여부 결정 (VS Code 완전 종료 + 백업 확인)
+- [x] Default 프로필 현재 상태 확인 → 80개(원본 백업 79개 + `vscjava.vscode-gradle`), Settings Sync 켜짐. Default 복구 단계는 쓰지 않기로 결정(2026-11-21)
+- [x] 현재 PC: repair 완료(2026-11-21 06:02), `verify` 8개 프로필 모두 빠진 것 없음. 실패 원인: DNS(`getaddrinfo ENOTFOUND`), VSIX 캐시 쓰기 중단(`Unable to write file ...CachedExtensionVSIXs (Error: aborted)`), 둘 다 재시도로 해결. `DEP0169` 경고는 PowerShell 5.1이 NativeCommandError로 감싼 것이라 실패가 아님
+- [x] 현재 PC: share-settings.ps1은 2026-11-21 05:58에 이미 실행됨(`backup-20261121-055822`). DryRun 결과 바꿀 것 없음
 - [ ] 현재 PC: Default 정리 방식 결정 (Disable All 후 Core만 켜기 / Core 프로필을 새 창 기본으로 / state.vscdb 편집은 비권장)
 - [x] 타당성 검증 후 구조 결정 → 8절 (확장 중심 GUI + 공유 core + 보조 CLI)
 - [x] 저장소 초기화, CI, 문서, 테스트

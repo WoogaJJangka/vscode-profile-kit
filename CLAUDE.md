@@ -13,8 +13,10 @@
 - 있는 것: CLI `plan`, `verify`, `apply`(미리보기, `--yes`로 실행). GUI: Activity Bar 트리, 상태 표시줄, 전환, 누락 설치, 적용, 프리셋 열기/초안 만들기.
 - **창을 여는 `code` 호출 주의**: 세 데이터 폴더가 실행 중인 VS Code와 모두 같아야 한다. 아니면 두 번째 VS Code가 기본 공유 데이터(로그인)로 뜬다.
   GUI 시험은 VSIX를 격리 VS Code에 설치하거나 launch.json "Run Extension (isolated profiles)"로 한다(PLAN.md 8절 #8).
-- 아직 안 한 게이트: Phase 0/1(Default 상태 확인, `repair-extensions.ps1` Default 단계 여부, `share-settings.ps1` DryRun). 실제 사용자 VS Code에 `apply --yes`는 사용자 확인 후.
-- 2026-11-21 `verify` 결과(이 PC): Core·Python-Data·Web-JS·CSharp-Unity 완료, Java 5·C-Cpp 4·Go 1·Docker-Infra 29개 빠짐.
+- Phase 0/1 확인 끝(2026-11-21): Default 80개(원본 백업 79개 + gradle), Settings Sync 켜짐. `repair-extensions.ps1` Default 단계는 앞으로 쓰지 않는다(사용자 결정).
+  `share-settings.ps1`은 05:58에 이미 실행됨(`backup-20261121-055822`), 8개 프로필 모두 Default 설정 공유 + `window.newWindowProfile=Core`. 남은 결정: Default 정리 방식.
+  실제 사용자 VS Code에 `apply --yes`는 사용자 확인 후.
+- 2026-11-21 `verify` 결과(이 PC, 06:02 repair 이후): 8개 프로필 모두 빠진 것 없음. 추가분은 의존성(Java `vscjava.vscode-gradle`, Web-JS `silvenon.mdx`).
 
 ## 환경 (Node는 conda env)
 
@@ -46,7 +48,7 @@
 - UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.
 - 프리셋 검사 규칙을 바꾸면 `schema/preset.schema.json`도 같이 고친다. `presets/example.json`은 `scripts/legacy/vscode-profiles-setup.ps1`의
   `$core`/`$sets`와 같고, `preset.test.ts`가 프로필별 개수(Core 27 … Docker-Infra 31)를 지킨다.
-- 성공 판정은 종료 코드가 아니라 출력 파싱(`classifyInstallOutput`). 재시도는 네트워크 오류(`getaddrinfo ENOTFOUND` 등)만.
+- 성공 판정은 종료 코드가 아니라 출력 파싱(`classifyInstallOutput`). 재시도는 네트워크 오류(`getaddrinfo ENOTFOUND`, VSIX 다운로드 중단 `(Error: aborted)` 등)만.
   분류 예시는 실제 로그(`Documents/vscode-profiles-setup/install-log-*.txt`)에서 가져왔다.
 - Windows에서 `code`는 `code.cmd`라 셸로 띄운다. 명령 이름 `code`를 따옴표로 감싸면 `%~dp0`가 현재 폴더가 되어 실패한다(`codeCli.ts` 주석).
   프로필 이름은 따옴표만으로 안전하도록 `[A-Za-z0-9 ._-]`로 제한.
