@@ -71,8 +71,7 @@
       "christian-kohler.npm-intellisense",
       "ecmel.vscode-html-css",
       "ritwickdey.liveserver",
-      "unifiedjs.vscode-mdx",
-      "xyc.vscode-mdx-preview"
+      "unifiedjs.vscode-mdx"
     ],
     "csharp-unity": [
       "ms-dotnettools.csdevkit",
