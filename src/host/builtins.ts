@@ -5,7 +5,7 @@
  * Shared by the CLI and the extension. docs/PLAN.md section 8-2.
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import * as path from 'node:path';
 
 import {
@@ -76,8 +76,9 @@ export interface InstalledManifest {
  * `cache` (folder name → manifest, null for "not an extension") lets a window read only new folders; gone names are
  * dropped from it.
  * Every path is used by its real path and only when that is inside the folder checked before it (canonical path,
- * then containment check, then use, in this one function: the order SonarQube S8707 asks for). A folder or file
- * linked from elsewhere is skipped.
+ * then containment check, then use, in the function that uses it: the order SonarQube S8707 asks for). A folder or
+ * file linked from elsewhere is skipped. Reads are synchronous, like readApplicationScoped; after the first refresh
+ * only new folders are read.
  */
 export async function readExtensionRelations(
   extensionsDir: string,
@@ -92,7 +93,14 @@ export async function readExtensionRelations(
     return new Map(); // no such folder, or VS Code has not installed anything there
   }
   if (!list.startsWith(base + path.sep)) return new Map();
-  const dir = path.dirname(list);
+  // the folder that holds extensions.json, by real path, and only when that is the given folder or inside it
+  let dir: string;
+  try {
+    dir = realpathSync(path.dirname(list));
+  } catch {
+    return new Map();
+  }
+  if (dir !== base && !dir.startsWith(base + path.sep)) return new Map();
   let names: Set<string>;
   try {
     const entries = await readdir(dir, { withFileTypes: true });
@@ -102,27 +110,30 @@ export async function readExtensionRelations(
     return new Map();
   }
   for (const name of [...cache.keys()]) if (!names.has(name)) cache.delete(name);
-  await Promise.all(
-    [...names]
-      .filter((name) => !cache.has(name))
-      .map(async (name) => {
-        cache.set(name, null);
-        let file: string;
-        try {
-          file = realpathSync(path.join(dir, name, 'package.json'));
-        } catch {
-          return; // not an extension folder
-        }
-        if (!file.startsWith(dir + path.sep)) return;
-        try {
-          cache.set(name, parseExtensionManifest(JSON.parse(await readFile(file, 'utf8'))) ?? null);
-        } catch {
-          // unreadable or broken package.json: no reasons from it
-        }
-      }),
-  );
+  for (const name of names) if (!cache.has(name)) cache.set(name, readInstalledManifest(dir, name));
   const manifests = [...cache.values()].filter((m): m is InstalledManifest => m !== null);
   return relationsById(manifests.sort((a, b) => compareCodeUnits(a.id, b.id)));
+}
+
+/**
+ * `<extensionsDir>/<folder>/package.json`, or null when it is missing, broken or not an extension's. Read by its real
+ * path and only when that is inside the folder (same steps, in the same order, as readApplicationScoped).
+ */
+function readInstalledManifest(extensionsDir: string, folder: string): InstalledManifest | null {
+  let base: string;
+  let file: string;
+  try {
+    base = realpathSync(extensionsDir);
+    file = realpathSync(path.join(base, folder, 'package.json'));
+  } catch {
+    return null; // not an extension folder
+  }
+  if (!file.startsWith(base + path.sep)) return null; // linked from elsewhere
+  try {
+    return parseExtensionManifest(JSON.parse(readFileSync(file, 'utf8'))) ?? null;
+  } catch {
+    return null; // unreadable or broken package.json: no reasons from it
+  }
 }
 
 /**
