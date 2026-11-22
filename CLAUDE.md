@@ -19,7 +19,9 @@
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
   `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
-  1.1.0 준비(2026-11-22, 브랜치 `feat/easy-start`, 목표 "VS Code 안에서 쉽게"): 상태 표시줄 → 메뉴(프로필 전환 + 지금 할 수 있는 작업), 트리 맨 위 "다음 할 일" 줄 + Activity Bar 배지,
+  1.1.0 게시(2026-11-22, 목표 "VS Code 안에서 쉽게"): PR #35 → 태그 `v1.1.0` → Release 성공("Published ... v1.1.0", `--pre-release`),
+  Marketplace 1.1.0 validated·pre-release(게시 약 5분 뒤 반영, 01:18 UTC). 정식 1.0.0을 쓰는 설치는 "Switch to Pre-Release Version"을 눌러야 1.1.0을 받는다.
+  내용: 상태 표시줄 → 메뉴(프로필 전환 + 지금 할 수 있는 작업), 트리 맨 위 "다음 할 일" 줄 + Activity Bar 배지,
   Get Started 안내(walkthrough 4단계, `media/walkthrough/*.svg`), 설치 시 "어디에 기록" 질문 없앰, 툴바 버튼 3개, 팔레트 정리, 새 프리셋 기본 위치(열린 폴더 또는 홈). 결정과 이유는 `docs/PLAN.md` 11절.
   `npm run check` 통과(테스트 274개). 격리 VS Code 1.147에서 화면 확인 끝(`docs/PLAN.md` 11절). 설치 후 프로필 고르기 흐름만 화면으로 보지 않았다.
   walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
