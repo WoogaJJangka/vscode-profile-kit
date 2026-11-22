@@ -52,6 +52,11 @@ export const PRIVATE_DEPENDENCIES: readonly PrivateDependency[] = [
     ifChanged: 'extensions applied to all profiles are shown as "not in the preset" again; nothing is written',
   },
   {
+    what: 'extensions folder: one folder per installed extension (every profile installs there), each with its package.json',
+    usedIn: 'core/dependencies.ts, host/builtins.ts',
+    ifChanged: 'dependencies and extension pack members are shown as "not in the preset" again; nothing is written',
+  },
+  {
     what: 'product.json profileTemplatesUrl and its [{name, url}] list of .code-profile templates',
     usedIn: 'core/templates.ts, host/builtins.ts',
     ifChanged: 'no template suggestions when creating a preset',

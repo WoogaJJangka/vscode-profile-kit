@@ -3,8 +3,8 @@
  * It drives the downloaded VS Code's `code` CLI through Profile Kit's own host functions, in throwaway data folders,
  * and fails when one of the VS Code internals listed in src/core/compat.ts no longer behaves as expected.
  * Covered: the CLI location, "profile not found", creating a profile with --new-window and reading it back from
- * storage.json, batched installs and their output, --list-extensions, extensions applied to all profiles in
- * extensions.json, and VS Code's profile template list (stage C). Not covered (needs a running window):
+ * storage.json, batched installs and their output, --list-extensions, one folder with package.json per installed
+ * extension, extensions applied to all profiles in extensions.json, and VS Code's profile template list (stage C). Not covered (needs a running window):
  * the profile switch command and VS Code reading a profile's settings.json.
  *
  *   node out/compat.js --code <bin/code> --app-root <resources/app> --data <empty folder>
@@ -15,7 +15,12 @@ import { parseArgs } from 'node:util';
 
 import { COMPAT_CHECKED_VERSION, createCodeRunner } from '../../src/core';
 import { readStorage } from '../../src/host/apply';
-import { fetchTemplates, readApplicationScoped, readTemplatesUrl } from '../../src/host/builtins';
+import {
+  fetchTemplates,
+  readApplicationScoped,
+  readExtensionRelations,
+  readTemplatesUrl,
+} from '../../src/host/builtins';
 import { findCodeCli } from '../../src/host/codeLocator';
 import { ensureProfile, installExtensions, listInstalled } from '../../src/host/installer';
 import { userDataPaths } from '../../src/host/paths';
@@ -95,6 +100,14 @@ async function main(): Promise<void> {
 
   const list = await listInstalled(run, PROFILE);
   check('--list-extensions shows the installed extensions', !!list && GOOD.every((id) => list.includes(id)), list);
+
+  // why an extra is installed (dependency / extension pack) is read from each extension folder's package.json
+  const relations = await readExtensionRelations(extensionsDir);
+  check(
+    'each installed extension has a folder with its package.json in the extensions folder',
+    GOOD.every((id) => relations.has(id)),
+    { known: [...relations.keys()] },
+  );
 
   // stage C-2: VS Code applies language packs to all profiles. Installed into Default, one is marked
   // isApplicationScoped in the extensions folder's extensions.json and shows up in the other profile's list.

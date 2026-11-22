@@ -188,6 +188,16 @@ function matrix(st: ManagerState): HTMLElement {
             s('all profiles (VS Code)'),
           )
         : undefined,
+      ext.via?.length
+        ? el(
+            'small',
+            {
+              class: 'scope',
+              title: `${s('VS Code installed it together with these extensions (they need it, or it is in their extension pack):')} ${ext.via.join(', ')}`,
+            },
+            `${s('dependency')}: ${ext.via.join(', ')}`,
+          )
+        : undefined,
     );
     name.querySelector('a')?.addEventListener('click', (ev) => {
       ev.preventDefault();

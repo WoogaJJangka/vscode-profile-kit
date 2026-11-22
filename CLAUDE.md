@@ -87,9 +87,9 @@
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
   `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
-  `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트),
-  `compat.ts`(공개 API가 아닌 VS Code 동작 10가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
-- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
+  `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트), `dependencies.ts`(extra의 이유: 같은 프로필의 다른 확장이 의존·팩으로 끌어온 것, 자기 ID `PROFILE_KIT_ID`는 extra 아님, `docs/PLAN.md` 13절),
+  `compat.ts`(공개 API가 아닌 VS Code 동작 11가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
+- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·설치된 확장 폴더의 package.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.
 - 현재 프로필은 각 프로필 settings.json의 마커 `profileKit.profile`로 안다(`globalStorageUri`는 프로필마다 같다, PLAN.md 8절).
 - UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.

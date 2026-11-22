@@ -15,6 +15,8 @@ export interface PanelExtension {
   section: string;
   /** VS Code applies it to all profiles ("Apply Extension to all Profiles"): every profile lists it. */
   allProfiles?: boolean;
+  /** Undeclared, and installed extensions need or bundle it (dependency / extension pack): those extensions. */
+  via?: string[];
   declaredIn: string[];
   installedIn: string[];
 }

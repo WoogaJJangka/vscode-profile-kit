@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 
 import {
   addExtension,
+  compareCodeUnits,
   isAppliedToAllProfiles,
   isExtensionId,
   membershipEdits,
@@ -77,6 +78,8 @@ const WEBVIEW_STRINGS = [
   'Checked = declared in the preset for that profile. Unchecking only removes it from the preset; nothing is uninstalled.',
   'Values are JSON. A profile value replaces the common one. Apply writes the preset, then each profile settings.json (backed up first).',
   'No preset file is set.',
+  'dependency',
+  'VS Code installed it together with these extensions (they need it, or it is in their extension pack):',
 ] as const;
 
 const fingerprint = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 16);
@@ -156,6 +159,16 @@ export class ManagerPanel implements vscode.Disposable {
       };
     });
     const installedIn = (id: string) => rows.filter((r) => r.installed?.includes(id)).map((r) => r.name);
+    // extensions that need or bundle an undeclared one, in any declared profile
+    const viaOf = (id: string) => {
+      const owners = new Set<string>();
+      for (const r of rows) {
+        if (!declared.includes(r.name)) continue;
+        const reason = r.extraReasons?.get(id);
+        for (const owner of [...(reason?.neededBy ?? []), ...(reason?.inPack ?? [])]) owners.add(owner);
+      }
+      return [...owners].sort(compareCodeUnits);
+    };
     const extensions: PanelExtension[] = [];
     const seen = new Set<string>();
     const push = (id: string, section: string) => {
@@ -165,11 +178,13 @@ export class ManagerPanel implements vscode.Disposable {
       const pkg = vscode.extensions.getExtension(key)?.packageJSON as { displayName?: unknown } | undefined;
       const displayName =
         typeof pkg?.displayName === 'string' && !pkg.displayName.startsWith('%') ? pkg.displayName : undefined;
+      const via = section === 'undeclared' ? viaOf(key) : [];
       extensions.push({
         id: key,
         ...(displayName ? { displayName } : {}),
         section,
         ...(this.kit.appliedToAll(key) ? { allProfiles: true } : {}),
+        ...(via.length ? { via } : {}),
         declaredIn: preset ? profilesWithExtension(preset, key) : [],
         installedIn: installedIn(key).filter((p) => declared.includes(p)),
       });

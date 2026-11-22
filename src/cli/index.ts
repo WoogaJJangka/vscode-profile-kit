@@ -14,17 +14,26 @@ import {
   cliProfileNotFound,
   createCodeRunner,
   diffExtensions,
+  explainExtras,
+  extraNote,
   formatPlan,
   listExtensionsArgs,
   parseListExtensions,
   planIsEmpty,
   type Preset,
   PresetError,
+  PROFILE_KIT_ID,
   profileNames,
   resolveProfile,
 } from '../core';
 import { buildPlans, executePlans, reportOk } from '../host/apply';
-import { exportCodeProfiles, readApplicationScoped, SYNC_NOTE, syncedBefore } from '../host/builtins';
+import {
+  exportCodeProfiles,
+  readApplicationScoped,
+  readExtensionRelations,
+  SYNC_NOTE,
+  syncedBefore,
+} from '../host/builtins';
 import { installSucceeded } from '../host/installer';
 import { loadCliPreset } from '../host/presetLoader';
 import { defaultExtensionsDir, defaultUserDataDir, userDataPaths } from '../host/paths';
@@ -112,10 +121,13 @@ async function main(argv: string[]): Promise<number> {
 
   if (command === 'verify') {
     const run = createCodeRunner(values.code, { baseArgs });
-    // VS Code shows extensions applied to all profiles in every profile's list; say so instead of a bare "extra"
-    const scoped = readApplicationScoped(values['extensions-dir'] ?? defaultExtensionsDir());
+    // Say why an extra is there instead of a bare "extra": VS Code shows extensions applied to all profiles in every
+    // profile's list, and installs dependencies and extension pack members along with the extension that names them
+    const extensionsDir = values['extensions-dir'] ?? defaultExtensionsDir();
+    const scoped = readApplicationScoped(extensionsDir);
     if (scoped.problem) console.log(`! ${scoped.problem}`);
     const allProfiles = new Set(scoped.ids);
+    const relations = await readExtensionRelations(extensionsDir);
     let missingTotal = 0;
     for (const name of names) {
       const result = await run(listExtensionsArgs(name));
@@ -125,14 +137,15 @@ async function main(argv: string[]): Promise<number> {
         missingTotal += resolveProfile(preset, name).length;
         continue;
       }
-      const diff = diffExtensions(resolveProfile(preset, name), parseListExtensions(result.stdout));
+      const installed = parseListExtensions(result.stdout);
+      const diff = diffExtensions(resolveProfile(preset, name), installed, { ignoreExtra: [PROFILE_KIT_ID] });
+      const reasons = explainExtras(diff.extra, installed, relations);
       missingTotal += diff.missing.length;
       console.log(
         `== ${name}: ${diff.present.length} ok, ${diff.missing.length} missing, ${diff.extra.length} extra ==`,
       );
       for (const id of diff.missing) console.log(`  - missing ${id}`);
-      for (const id of diff.extra)
-        console.log(`  + extra   ${id}${allProfiles.has(id) ? ' (VS Code applies it to all profiles)' : ''}`);
+      for (const id of diff.extra) console.log(`  + extra   ${id}${extraNote(reasons.get(id), allProfiles.has(id))}`);
     }
     return missingTotal === 0 ? 0 : 1;
   }

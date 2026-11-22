@@ -7,8 +7,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseCodeProfile, parsePreset } from '../src/core';
 import {
   exportCodeProfiles,
+  type InstalledManifest,
   fetchTemplates,
   readApplicationScoped,
+  readExtensionRelations,
   readTemplatesUrl,
   syncedBefore,
 } from '../src/host/builtins';
@@ -53,6 +55,62 @@ describe('files VS Code leaves on disk (read only)', () => {
     const read = readApplicationScoped(linkDir);
     expect(read.ids).toEqual([]);
     expect(read.problem).toMatch(/points outside/);
+  });
+
+  it('what installed extensions need or bundle, from each folder package.json', async () => {
+    const ext = (folder: string, manifest: unknown) => {
+      mkdirSync(path.join(dir, folder));
+      writeFileSync(path.join(dir, folder, 'package.json'), JSON.stringify(manifest));
+    };
+    ext('ms-toolsai.jupyter-2025.1.0', {
+      publisher: 'ms-toolsai',
+      name: 'jupyter',
+      extensionDependencies: ['ms-python.python'],
+      extensionPack: ['ms-toolsai.jupyter-keymap'],
+    });
+    // an older version VS Code has not removed yet: merged
+    ext('ms-toolsai.jupyter-2024.9.0', { publisher: 'ms-toolsai', name: 'jupyter', extensionPack: ['old.member'] });
+    ext('plain.one-1.0.0', { publisher: 'plain', name: 'one' });
+    // VS Code unpacks into a dot folder first; broken and missing manifests are skipped
+    ext('.1234-unpacking', { publisher: 'x', name: 'half', extensionPack: ['x.y'] });
+    mkdirSync(path.join(dir, 'broken-1.0.0'));
+    writeFileSync(path.join(dir, 'broken-1.0.0', 'package.json'), '{ nope');
+    mkdirSync(path.join(dir, 'empty-1.0.0'));
+    writeFileSync(path.join(dir, 'extensions.json'), '[]');
+
+    const cache = new Map<string, InstalledManifest | null>();
+    const relations = await readExtensionRelations(dir, cache);
+    expect([...relations.keys()].sort()).toEqual(['ms-toolsai.jupyter', 'plain.one']);
+    expect(relations.get('ms-toolsai.jupyter')).toEqual({
+      dependencies: ['ms-python.python'],
+      pack: ['ms-toolsai.jupyter-keymap', 'old.member'],
+    });
+
+    // folder names carry the version, so a cached folder is not read again; a removed one is dropped
+    rmSync(path.join(dir, 'plain.one-1.0.0', 'package.json'));
+    rmSync(path.join(dir, 'ms-toolsai.jupyter-2024.9.0'), { recursive: true });
+    const again = await readExtensionRelations(dir, cache);
+    expect(again.has('plain.one')).toBe(true);
+    expect(again.get('ms-toolsai.jupyter')?.pack).toEqual(['ms-toolsai.jupyter-keymap']);
+
+    expect((await readExtensionRelations(path.join(dir, 'no-such-folder'))).size).toBe(0);
+  });
+
+  it('an extension folder linked from outside the extensions folder is not read', async () => {
+    const outside = path.join(dir, 'outside');
+    mkdirSync(outside);
+    writeFileSync(
+      path.join(outside, 'package.json'),
+      JSON.stringify({ publisher: 'x', name: 'y', extensionPack: ['p.q'] }),
+    );
+    const extDir = path.join(dir, 'extensions');
+    mkdirSync(extDir);
+    try {
+      symlinkSync(outside, path.join(extDir, 'x.y-1.0.0'), 'junction');
+    } catch {
+      return; // no symlink rights
+    }
+    expect((await readExtensionRelations(extDir)).size).toBe(0);
   });
 
   it('Settings Sync folder', () => {

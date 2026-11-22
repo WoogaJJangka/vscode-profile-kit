@@ -13,6 +13,9 @@ import {
   createCodeRunner,
   diffExtensions,
   type ExtensionDiff,
+  type ExtensionRelations,
+  explainExtras,
+  type ExtraReason,
   folderProfile,
   mapLimit,
   parsePresetText,
@@ -29,7 +32,7 @@ import {
   type StoredProfile,
 } from '../core';
 import { readStorage } from '../host/apply';
-import { readApplicationScoped } from '../host/builtins';
+import { type InstalledManifest, readApplicationScoped, readExtensionRelations } from '../host/builtins';
 import { findCodeCli } from '../host/codeLocator';
 import { listInstalled } from '../host/installer';
 import {
@@ -57,6 +60,8 @@ export interface ProfileRow {
   installed?: string[];
   /** Declared profiles that exist. */
   diff?: ExtensionDiff;
+  /** Extras that another installed extension of the profile needs or bundles. */
+  extraReasons?: ReadonlyMap<string, ExtraReason>;
   error?: string;
 }
 
@@ -76,6 +81,9 @@ export class Kit implements vscode.Disposable {
   private storage: StorageProfiles = { profiles: [], folders: [], emptyWindows: [], problems: [] };
   private installed = new Map<string, string[] | undefined>();
   private applicationScoped = new Set<string>();
+  /** What installed extensions need or bundle (their package.json), and the per-folder cache behind it. */
+  private relations: ReadonlyMap<string, ExtensionRelations> = new Map();
+  private readonly manifests = new Map<string, InstalledManifest | null>();
   private readonly changed = new vscode.EventEmitter<void>();
   /** Fires after the preset, the profile list or an installed list changed. */
   readonly onDidChange = this.changed.event;
@@ -317,6 +325,7 @@ export class Kit implements vscode.Disposable {
       try {
         this.storage = readStorage(this.paths);
         this.applicationScoped = new Set(readApplicationScoped(this.extensionsDir).ids);
+        this.relations = await readExtensionRelations(this.extensionsDir, this.manifests).catch(() => new Map());
         const existing = new Set(this.storage.profiles.map((p) => p.name));
         const current = this.currentProfile()?.name;
         const wanted = this.listAll
@@ -406,15 +415,7 @@ export class Kit implements vscode.Disposable {
         declared: true,
         ...(stored ? { stored } : {}),
         ...(installed ? { installed } : {}),
-        // Profile Kit itself is not an "extra" the user has to think about
-        ...(stored && installed && preset
-          ? {
-              diff: diffExtensions(
-                resolveProfile(preset, name),
-                installed.filter((id) => id !== this.ownId),
-              ),
-            }
-          : {}),
+        ...(stored && installed && preset ? this.diffOf(preset, name, installed) : {}),
       };
     });
     for (const stored of this.storage.profiles)
@@ -423,6 +424,19 @@ export class Kit implements vscode.Disposable {
         rows.push({ name: stored.name, declared: false, stored, ...(installed ? { installed } : {}) });
       }
     return rows;
+  }
+
+  /**
+   * Declared vs installed, and why extras are there. Profile Kit itself is not an "extra" the user has to think
+   * about, but it still counts as present when the preset declares it.
+   */
+  private diffOf(
+    preset: Preset,
+    name: string,
+    installed: readonly string[],
+  ): { diff: ExtensionDiff; extraReasons: ReadonlyMap<string, ExtraReason> } {
+    const diff = diffExtensions(resolveProfile(preset, name), installed, { ignoreExtra: [this.ownId] });
+    return { diff, extraReasons: explainExtras(diff.extra, installed, this.relations) };
   }
 
   /**

@@ -1,21 +1,27 @@
 /**
  * Reading what VS Code's own profile features left on disk, and exporting to VS Code's profile file (stage C).
- * Read only for VS Code's files: Default's extensions.json, product.json, the Settings Sync folder.
+ * Read only for VS Code's files: Default's extensions.json, installed extensions' package.json, product.json, the
+ * Settings Sync folder.
  * Shared by the CLI and the extension. docs/PLAN.md section 8-2.
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
+import { readdir, readFile, realpath } from 'node:fs/promises';
 import * as path from 'node:path';
 
 import {
   codeProfileFileName,
+  compareCodeUnits,
   EXTENSIONS_MANIFEST,
   type ExtensionInfo,
+  type ExtensionRelations,
   type ImportedProfile,
   parseApplicationScoped,
   parseCodeProfile,
+  parseExtensionManifest,
   parseTemplateList,
   type Preset,
   readErrorSummary,
+  relationsById,
   type ProfileTemplate,
   resolveProfile,
   serializeCodeProfile,
@@ -53,6 +59,58 @@ export function readApplicationScoped(extensionsDir: string): { ids: string[]; p
       ids: [],
       problem: `${file} could not be read, so extensions applied to all profiles are not known (${readErrorSummary(error)})`,
     };
+  }
+}
+
+/** One installed extension's package.json, as far as dependencies go. */
+export interface InstalledManifest {
+  id: string;
+  relations: ExtensionRelations;
+}
+
+/**
+ * What each installed extension needs or bundles, from the package.json in each folder of `extensionsDir` (every
+ * profile installs into that one folder). Folders that cannot be read are skipped: the result only adds reasons to
+ * "not in the preset". A folder name carries the version, so its package.json does not change: `cache` (folder
+ * name → manifest, null for "not an extension") lets a window read only new folders; gone names are dropped from it.
+ */
+export async function readExtensionRelations(
+  extensionsDir: string,
+  cache: Map<string, InstalledManifest | null> = new Map(),
+): Promise<Map<string, ExtensionRelations>> {
+  let base: string;
+  let names: Set<string>;
+  try {
+    base = await realpath(extensionsDir);
+    const entries = await readdir(base, { withFileTypes: true });
+    // VS Code unpacks into a dot folder first; extensions.json and .obsolete are files
+    names = new Set(entries.filter((d) => !d.isFile() && !d.name.startsWith('.')).map((d) => d.name));
+  } catch {
+    return new Map();
+  }
+  for (const name of [...cache.keys()]) if (!names.has(name)) cache.delete(name);
+  await Promise.all(
+    [...names]
+      .filter((name) => !cache.has(name))
+      .map(async (name) => {
+        cache.set(name, await readInstalledManifest(base, name));
+      }),
+  );
+  const manifests = [...cache.values()].filter((m): m is InstalledManifest => m !== null);
+  return relationsById(manifests.sort((a, b) => compareCodeUnits(a.id, b.id)));
+}
+
+/**
+ * `<base>/<folder>/package.json`, read by its real path and only when that is inside `base` (canonical path, then
+ * containment check, then use: the order SonarQube S8707 asks for). A folder linked from elsewhere is skipped.
+ */
+async function readInstalledManifest(base: string, folder: string): Promise<InstalledManifest | null> {
+  try {
+    const file = await realpath(path.join(base, folder, 'package.json'));
+    if (!file.startsWith(base + path.sep)) return null;
+    return parseExtensionManifest(JSON.parse(await readFile(file, 'utf8'))) ?? null;
+  } catch {
+    return null;
   }
 }
 
