@@ -1,9 +1,26 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - pre-release
+
+Easier to use from inside VS Code: one menu for everything, the next step at the top of the Profiles view, and a Get Started guide.
+
+### Added
+
+- **Get Started guide** on VS Code's Welcome page (**Profile Kit: Get Started**): four steps with buttons, from picking a preset to creating, switching and filling profiles. VS Code opens it when the extension is installed; the welcome text, the view's "..." menu and the menu link to it.
+- **Menu** (click the status bar, or **Profile Kit: Show Menu**): the profiles to switch this window to, then the actions that fit now: apply (with how many profiles need changes), install to profiles, the manager, the preset file, import and export. Without a preset it starts with the ways to get one, the recommended built-in preset first.
+- Profiles view: a top row with the next step ("2 profile(s) need changes", click to preview and apply; "All 8 profile(s) have their extensions", click to check settings too) (its tooltip names the preset file), and a badge on the Activity Bar icon with the number of profiles that need changes (of the profiles listed so far).
+
+### Changed
+
+- Clicking the status bar opens the menu instead of the switch list. The profiles are still at the top, so switching takes the same clicks.
+- Adding an extension to profiles no longer asks where the preset records it. It goes to core or a group when that gives it to exactly the chosen profiles, otherwise to each chosen profile's own list. The result message says where; to use a broader group instead, edit the preset.
+- The view toolbar has three Profile Kit buttons (apply, manager, refresh) besides VS Code's Collapse All; everything else is in its "..." menu, in groups. Commands that need a preset are hidden from the Command Palette until one is set, and **Switch to This Profile** (a tree button) is not listed there.
+- New preset files (built-in preset, from this profile, import) are offered in the open folder, or in the home folder when no folder is open.
+- Example preset: Material Icon Theme (`pkief.material-icon-theme`) is in core. Cool Theme Kit uses it for its icon layers.
 
 ### Fixed
 
+- With profiles in VS Code but no preset set, the Profiles view listed those profiles and so never showed the welcome view with the ways to start. With no preset the view is now empty and the welcome view shows.
 - Example preset: Cool Theme Kit is now `woogajjangka.cool-theme-kit`. The old ID `woogajjangka.cool-icon-vscode` is no longer on the Marketplace, so installing it failed on a new PC.
 
 ## [1.0.0]

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" role="img">
+  <path d="M44 104h70l22 22v94H44z" fill="var(--vscode-editor-background, #1e1e1e)" stroke="var(--vscode-widget-border, #454545)"/>
+  <path d="M114 104v22h22z" fill="var(--vscode-widget-border, #454545)"/>
+  <rect x="56" y="140" width="56" height="8" rx="4" fill="var(--vscode-charts-blue, #3794ff)"/>
+  <rect x="56" y="158" width="44" height="8" rx="4" fill="var(--vscode-charts-orange, #d18616)"/>
+  <rect x="56" y="176" width="50" height="8" rx="4" fill="var(--vscode-charts-yellow, #cca700)"/>
+  <rect x="56" y="194" width="34" height="8" rx="4" opacity=".6" fill="var(--vscode-charts-blue, #3794ff)"/>
+  <text x="34" y="246" font-family="var(--vscode-editor-font-family, Consolas, monospace)" fill="var(--vscode-descriptionForeground, #999999)" font-size="11px">.profile-kit.json</text>
+  <path d="M146 162 C 200 162, 210 70, 262 70" stroke="var(--vscode-descriptionForeground, #999999)" stroke-width="2" fill="none"/>
+  <path d="M146 162 C 200 162, 210 160, 262 160" stroke="var(--vscode-descriptionForeground, #999999)" stroke-width="2" fill="none"/>
+  <path d="M146 162 C 200 162, 210 250, 262 250" stroke="var(--vscode-descriptionForeground, #999999)" stroke-width="2" fill="none"/>
+  <path d="M262 64l10 6-10 6z" fill="var(--vscode-descriptionForeground, #999999)"/>
+  <path d="M262 154l10 6-10 6z" fill="var(--vscode-descriptionForeground, #999999)"/>
+  <path d="M262 244l10 6-10 6z" fill="var(--vscode-descriptionForeground, #999999)"/>
+  <g transform="translate(278 38)">
+    <rect width="176" height="64" rx="6" fill="var(--vscode-editorWidget-background, #252526)" stroke="var(--vscode-widget-border, #454545)"/>
+    <text x="14" y="26" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" fill="var(--vscode-foreground, #cccccc)" font-size="15px" font-weight="600">Core</text>
+    <rect x="14" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <rect x="46" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <circle cx="152" cy="22" r="10" fill="var(--vscode-testing-iconPassed, #73c991)"/>
+    <path d="M147 22l4 4 6-7" stroke="var(--vscode-editorWidget-background, #252526)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(278 128)">
+    <rect width="176" height="64" rx="6" fill="var(--vscode-editorWidget-background, #252526)" stroke="var(--vscode-widget-border, #454545)"/>
+    <text x="14" y="26" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" fill="var(--vscode-foreground, #cccccc)" font-size="15px" font-weight="600">Python</text>
+    <rect x="14" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <rect x="46" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <rect x="78" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-orange, #d18616)"/>
+    <rect x="110" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-orange, #d18616)"/>
+    <circle cx="152" cy="22" r="10" fill="var(--vscode-testing-iconPassed, #73c991)"/>
+    <path d="M147 22l4 4 6-7" stroke="var(--vscode-editorWidget-background, #252526)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(278 218)">
+    <rect width="176" height="64" rx="6" fill="var(--vscode-editorWidget-background, #252526)" stroke="var(--vscode-widget-border, #454545)"/>
+    <text x="14" y="26" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" fill="var(--vscode-foreground, #cccccc)" font-size="15px" font-weight="600">Web-JS</text>
+    <rect x="14" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <rect x="46" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <rect x="78" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-yellow, #cca700)"/>
+    <rect x="110" y="40" width="28" height="10" rx="5" fill="var(--vscode-charts-yellow, #cca700)"/>
+    <circle cx="152" cy="22" r="10" fill="var(--vscode-testing-iconPassed, #73c991)"/>
+    <path d="M147 22l4 4 6-7" stroke="var(--vscode-editorWidget-background, #252526)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

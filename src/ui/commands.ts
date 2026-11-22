@@ -2,8 +2,6 @@
  * Commands behind the tree, the view toolbar and the command palette.
  * Everything that changes something shows what it will do first and asks (modal) before doing it.
  */
-import * as path from 'node:path';
-
 import * as vscode from 'vscode';
 
 import { addImportedProfiles, compareCodeUnits, formatPlan, planIsEmpty, profileNames, resolveProfile } from '../core';
@@ -13,12 +11,16 @@ import { ensureProfile, installExtensions, type InstallResult, installSucceeded 
 import { exportProfiles, importProfiles, pickTemplates } from './codeProfiles';
 import { installToProfiles } from './installFlow';
 import { DEFAULT_PROFILE, type Kit } from './kit';
+import { showMenu } from './menu';
 import { ManagerPanel } from './panel/manager';
+import { askNewPresetFile } from './presetFile';
 import { startFromStarter } from './starters';
 import { switchProfile } from './switch';
 import type { ProfileNode } from './tree';
 
 const t = vscode.l10n.t;
+/** `contributes.walkthroughs[0].id` in package.json (test/manifest.test.ts checks they match). */
+export const WALKTHROUGH_ID = 'profileKit.start';
 
 function profileOf(arg: unknown): string | undefined {
   if (typeof arg === 'string') return arg;
@@ -244,12 +246,7 @@ async function createPreset(kit: Kit): Promise<void> {
     t('Also add profiles from VS Code profile templates? (optional, Esc to skip)'),
   );
   const { text, names } = addImportedProfiles(`${JSON.stringify(draft, null, 2)}\n`, templates, ids);
-  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const target = await vscode.window.showSaveDialog({
-    ...(folder ? { defaultUri: vscode.Uri.file(path.join(folder, 'extensions.profile-kit.json')) } : {}),
-    filters: { [t('Profile Kit preset')]: ['json'] },
-    saveLabel: t('Create Preset'),
-  });
+  const target = await askNewPresetFile();
   if (!target) return;
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(text));
   await kit.usePreset(target.fsPath);
@@ -318,5 +315,14 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
     reg('profileKit.switchTo', (arg) => switchProfile(kit, profileOf(arg))),
     reg('profileKit.exportCodeProfile', (arg) => exportProfiles(kit, arg)),
     reg('profileKit.importCodeProfile', () => importProfiles(kit)),
+    reg('profileKit.menu', () => showMenu(kit)),
+    // VS Code's Get Started page with this extension's walkthrough (contributes.walkthroughs in package.json)
+    reg('profileKit.getStarted', () =>
+      vscode.commands.executeCommand(
+        'workbench.action.openWalkthrough',
+        `${kit.context.extension.id}#${WALKTHROUGH_ID}`,
+        false,
+      ),
+    ),
   ];
 }

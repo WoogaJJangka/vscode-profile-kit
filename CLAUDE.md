@@ -19,6 +19,10 @@
   `paths.ts`가 location을 이미 검사하고 CLI 인자는 사용자 본인 입력이라 코드 수정 없음.
   1.0.0 게시(2026-11-21): PR #24(위 내용 + Sonar S8786 백트래킹 정규식 수정) → 태그 `v1.0.0` → Release 성공("Published ... v1.0.0"),
   `--pre-release` 없이 정식. Marketplace 1.0.0 validated·public, pre-release 아님, Preview 표시 없음(게시 약 6분 뒤 반영, 11:37 UTC).
+  1.1.0 준비(2026-11-22, 브랜치 `feat/easy-start`, 목표 "VS Code 안에서 쉽게"): 상태 표시줄 → 메뉴(프로필 전환 + 지금 할 수 있는 작업), 트리 맨 위 "다음 할 일" 줄 + Activity Bar 배지,
+  Get Started 안내(walkthrough 4단계, `media/walkthrough/*.svg`), 설치 시 "어디에 기록" 질문 없앰, 툴바 버튼 3개, 팔레트 정리, 새 프리셋 기본 위치(열린 폴더 또는 홈). 결정과 이유는 `docs/PLAN.md` 11절.
+  `npm run check` 통과(테스트 274개). 격리 VS Code 1.147에서 화면 확인 끝(`docs/PLAN.md` 11절). 설치 후 프로필 고르기 흐름만 화면으로 보지 않았다.
+  walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
   두 번째 PC 확인 끝(2026-11-22): Sync 뒤 `apply` 미리보기에 설정 변경·"[overrides your value]" 없음(확장 설치 예정 1개만). `docs/REVIEW-2026-11-21.md` 단계 A.
   주의: 새 PC 첫 Sync에서 Default 설정 충돌이 나면 그 PC 내용이 원격을 덮어 `applyToAllProfiles`가 빠질 수 있다. Default에 목록이 있는지 먼저 보고 확인한다.
   실제로 11-21 23:12 충돌 뒤 첫 번째 PC의 Default도 두 번째 PC 내용으로 바뀌었다. 2026-11-22에 Sync가 남긴 로컬 백업 `User/sync/settings/20261121T231302.json`(충돌 직전)으로
@@ -74,7 +78,7 @@
 
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
-  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
+  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
   `compat.ts`(공개 API가 아닌 VS Code 동작 10가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
 - `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.
