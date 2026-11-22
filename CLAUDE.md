@@ -24,6 +24,10 @@
   내용: 상태 표시줄 → 메뉴(프로필 전환 + 지금 할 수 있는 작업), 트리 맨 위 "다음 할 일" 줄 + Activity Bar 배지,
   Get Started 안내(walkthrough 4단계, `media/walkthrough/*.svg`), 설치 시 "어디에 기록" 질문 없앰, 툴바 버튼 3개, 팔레트 정리, 새 프리셋 기본 위치(열린 폴더 또는 홈). 결정과 이유는 `docs/PLAN.md` 11절.
   `npm run check` 통과(테스트 274개). 격리 VS Code 1.147에서 화면 확인 끝(`docs/PLAN.md` 11절). 설치 후 프로필 고르기 흐름만 화면으로 보지 않았다.
+  1.3.0 게시(2026-11-22, 사용자 결정 pre-release, 1.2.0은 건너뜀): PR #37(설정에 저장하는 프리셋 `profileKit.preset`, Sync됨, `docs/PLAN.md` 12절) + PR #38(version, CHANGELOG)
+  → 태그 `v1.3.0` → Release 성공("Published ... v1.3.0", `--pre-release`). 테스트 286개. Sonar S8707(`presetLoader.ts`, CLI 인자 경로) 1건은 같은 이유로 accept.
+  첫 번째 PC: 개인 프리셋 `C:\Users\siwon\vscode-profiles.json`(example 8개 + CTF 42개)을 Default settings.json `profileKit.preset`에도 넣었다
+  (백업 `Documents/vscode-profiles-setup/settings-backup-20261122-131725-before-synced-preset.json`). `presetPath`는 1.1.0용으로 남김. 두 PC 사이 실제 Sync는 아직 확인하지 않았다.
   walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
   두 번째 PC 확인 끝(2026-11-22): Sync 뒤 `apply` 미리보기에 설정 변경·"[overrides your value]" 없음(확장 설치 예정 1개만). `docs/REVIEW-2026-11-21.md` 단계 A.
   주의: 새 PC 첫 Sync에서 Default 설정 충돌이 나면 그 PC 내용이 원격을 덮어 `applyToAllProfiles`가 빠질 수 있다. Default에 목록이 있는지 먼저 보고 확인한다.
