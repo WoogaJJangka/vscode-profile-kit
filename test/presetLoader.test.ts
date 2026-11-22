@@ -28,17 +28,21 @@ describe('loadCliPreset', () => {
     const file = path.join(dir, 'given.profile-kit.json');
     writeFileSync(file, JSON.stringify(PRESET));
     writeSettings({ 'profileKit.preset': { profiles: { Other: {} } } });
-    const loaded = loadCliPreset(file, userData);
+    const lines: string[] = [];
+    const loaded = loadCliPreset(file, userData, (l) => lines.push(l));
     expect(profileNames(loaded.preset)).toEqual(['Core', 'Go']);
     expect(loaded.from).toBe(path.resolve(file));
+    expect(lines).toEqual([]);
   });
 
   it('without a file, uses the synced preset in Default settings.json first', () => {
     const file = path.join(dir, 'unused.json');
     writeSettings({ 'profileKit.preset': PRESET, 'profileKit.presetPath': file });
-    const loaded = loadCliPreset(undefined, userData);
+    const lines: string[] = [];
+    const loaded = loadCliPreset(undefined, userData, (l) => lines.push(l));
     expect(profileNames(loaded.preset)).toEqual(['Core', 'Go']);
     expect(loaded.from).toBe(`profileKit.preset in ${settingsFile}`);
+    expect(lines).toEqual([`Preset: profileKit.preset in ${settingsFile}\n`]);
   });
 
   it('without a synced preset, reads the file in profileKit.presetPath', () => {

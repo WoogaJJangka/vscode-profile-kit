@@ -15,9 +15,22 @@ export interface LoadedCliPreset {
   from: string;
 }
 
-/** `file` is the user's own CLI argument or their own setting: any path they can read is allowed. */
-export function loadCliPreset(file: string | undefined, userDataDir: string): LoadedCliPreset {
+/**
+ * `file` is the user's own CLI argument or their own setting: any path they can read is allowed.
+ * Without `file`, `log` gets a line that says where the preset came from.
+ */
+export function loadCliPreset(
+  file: string | undefined,
+  userDataDir: string,
+  log: (line: string) => void = () => undefined,
+): LoadedCliPreset {
   if (file) return { preset: parsePresetText(readFileSync(file, 'utf8')), from: resolve(file) };
+  const loaded = presetFromSettings(userDataDir);
+  log(`Preset: ${loaded.from}\n`);
+  return loaded;
+}
+
+function presetFromSettings(userDataDir: string): LoadedCliPreset {
   const settingsFile = userDataPaths(userDataDir).defaultSettings;
   const source = presetSourceFromSettings(readSettingsFile(settingsFile).settings);
   if (!source)

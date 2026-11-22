@@ -75,14 +75,13 @@ async function main(argv: string[]): Promise<number> {
       help: { type: 'boolean', short: 'h' },
     },
   });
-  const [command, presetFile] = positionals;
+  const [command, presetPath] = positionals;
   if (values.help || !command) {
     console.log(USAGE);
     return values.help ? 0 : 2;
   }
 
-  const { preset, from } = loadCliPreset(presetFile, values['user-data-dir'] ?? defaultUserDataDir());
-  if (!presetFile) console.log(`Preset: ${from}\n`);
+  const { preset } = loadCliPreset(presetPath, values['user-data-dir'] ?? defaultUserDataDir(), console.log);
   const names = selectProfiles(preset, values.profile);
 
   if (command === 'plan') {
