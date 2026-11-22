@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - pre-release
+
+A preset that travels with Settings Sync, without a repository.
 
 ### Added
 
