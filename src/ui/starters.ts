@@ -88,7 +88,7 @@ export class StarterAdvisor implements vscode.Disposable {
 
   async update(): Promise<void> {
     this.timer = undefined;
-    const id = this.kit.presetPath() ? '' : (bestStarter(recommendStarters(await collectSignals(this.kit)))?.id ?? '');
+    const id = this.kit.hasPreset() ? '' : (bestStarter(recommendStarters(await collectSignals(this.kit)))?.id ?? '');
     if (id === this.shown) return;
     this.shown = id;
     await vscode.commands.executeCommand('setContext', CONTEXT_KEY, id);
@@ -133,7 +133,7 @@ export async function startFromStarter(kit: Kit, arg?: unknown): Promise<void> {
   const given = typeof arg === 'string' ? findStarter(arg) : undefined;
   const s = given ?? (await pickStarter(recommendStarters(await collectSignals(kit))));
   if (!s) return;
-  const current = kit.presetPath();
+  const current = kit.presetLabel();
   if (current) {
     const use = t('Use New Preset');
     const answer = await vscode.window.showWarningMessage(
@@ -146,7 +146,7 @@ export async function startFromStarter(kit: Kit, arg?: unknown): Promise<void> {
   const target = await askNewPresetFile();
   if (!target) return;
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(starterPresetText(s)));
-  await kit.usePreset(target.fsPath);
+  if (!(await kit.usePreset(target.fsPath))) return;
   await vscode.window.showTextDocument(target);
   kit.log(`Preset created from starter ${s.id}: ${target.fsPath}`);
 

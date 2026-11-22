@@ -26,7 +26,7 @@ export class ProfileStatusBar implements vscode.Disposable {
 
   update(): void {
     const md = new vscode.MarkdownString(undefined, true);
-    if (!this.kit.presetPath()) {
+    if (!this.kit.hasPreset()) {
       this.item.text = '$(layers) Profile Kit';
       md.appendMarkdown(`${t('No preset yet. Click to start from a built-in preset or from this profile.')}\n\n`);
       md.appendMarkdown(t('Click for profiles and actions.'));

@@ -159,10 +159,6 @@ async function readProfileFiles(kit: Kit): Promise<ImportedProfile[]> {
   return out;
 }
 
-function setPresetPath(file: string): Thenable<void> {
-  return vscode.workspace.getConfiguration('profileKit').update('presetPath', file, vscode.ConfigurationTarget.Global);
-}
-
 /** `.code-profile` files or VS Code templates → profiles in the current preset, or a new preset. */
 export async function importProfiles(kit: Kit): Promise<void> {
   const fromFiles = { label: `$(file) ${t('.code-profile files...')}`, files: true };
@@ -195,9 +191,10 @@ export async function importProfiles(kit: Kit): Promise<void> {
   }
   parsePresetText(result.text); // never write a preset that does not load
   await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(result.text));
-  if (!target.current) await setPresetPath(uri.fsPath);
-  await kit.loadPreset();
-  await kit.refresh();
+  if (target.current) {
+    await kit.loadPreset();
+    await kit.refresh();
+  } else if (!(await kit.usePreset(uri.fsPath))) return;
   await vscode.window.showTextDocument(uri);
 
   const skipped = [...new Set(profiles.flatMap((p) => p.notImported))];

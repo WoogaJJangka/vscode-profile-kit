@@ -1,5 +1,7 @@
 /**
  * profile-kit CLI: the batch side of Profile Kit (new PC, CI checks). Day-to-day work is in the extension's GUI.
+ * <preset.json> may be left out: then the preset Profile Kit uses is read from Default's settings.json (the synced
+ * `profileKit.preset`, else the file named by `profileKit.presetPath`).
  *   profile-kit plan   <preset.json> [--profile <name>]           what each profile should contain (no VS Code calls)
  *   profile-kit verify <preset.json> [--profile <name>]           declared vs installed (read-only)
  *   profile-kit apply  <preset.json> [--profile <name>] [--yes]   create profiles, install, write settings
@@ -7,6 +9,7 @@
  * `apply` only previews unless `--yes` is given. Nothing is uninstalled and the Default profile is never changed.
  */
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
@@ -16,10 +19,12 @@ import {
   formatPlan,
   listExtensionsArgs,
   parseListExtensions,
+  parsePreset,
   parsePresetText,
   planIsEmpty,
   type Preset,
   PresetError,
+  presetSourceFromSettings,
   profileNames,
   resolveProfile,
 } from '../core';
@@ -27,12 +32,17 @@ import { buildPlans, executePlans, reportOk } from '../host/apply';
 import { exportCodeProfiles, readApplicationScoped, SYNC_NOTE, syncedBefore } from '../host/builtins';
 import { installSucceeded } from '../host/installer';
 import { defaultExtensionsDir, defaultUserDataDir, userDataPaths } from '../host/paths';
+import { readSettingsFile } from '../host/settingsWriter';
 
 const USAGE = `Usage:
-  profile-kit plan   <preset.json> [--profile <name>]
-  profile-kit verify <preset.json> [--profile <name>] [VS Code options]
-  profile-kit apply  <preset.json> [--profile <name>] [--yes] [--no-create] [VS Code options]
-  profile-kit export <preset.json> [--profile <name>] --out <dir> [--offline]
+  profile-kit plan   [<preset.json>] [--profile <name>]
+  profile-kit verify [<preset.json>] [--profile <name>] [VS Code options]
+  profile-kit apply  [<preset.json>] [--profile <name>] [--yes] [--no-create] [VS Code options]
+  profile-kit export [<preset.json>] [--profile <name>] --out <dir> [--offline]
+
+Without <preset.json>, the preset Profile Kit uses in VS Code: the one stored in Settings (profileKit.preset,
+carried by Settings Sync), else the file in profileKit.presetPath. They are read from Default's settings.json
+(under --user-data-dir when given).
 
 apply previews the changes; add --yes to carry them out.
   --no-create   do not create missing profiles (creating one opens a VS Code window)
@@ -47,8 +57,17 @@ VS Code options:
   --extensions-dir <dir>     passed to code
   --shared-data-dir <dir>    passed to code`;
 
-function loadPreset(path: string): Preset {
-  return parsePresetText(readFileSync(path, 'utf8'));
+function loadPreset(file: string | undefined, userDataDir: string): { preset: Preset; from: string } {
+  if (file) return { preset: parsePresetText(readFileSync(file, 'utf8')), from: resolve(file) };
+  const settingsFile = userDataPaths(userDataDir).defaultSettings;
+  const source = presetSourceFromSettings(readSettingsFile(settingsFile).settings);
+  if (!source)
+    throw new Error(
+      `No preset given, and ${settingsFile} has neither profileKit.preset nor profileKit.presetPath. Pass <preset.json>.`,
+    );
+  if (source.kind === 'settings')
+    return { preset: parsePreset(source.value), from: `profileKit.preset in ${settingsFile}` };
+  return { preset: parsePresetText(readFileSync(source.file, 'utf8')), from: source.file };
 }
 
 function selectProfiles(preset: Preset, only?: string): string[] {
@@ -74,13 +93,14 @@ async function main(argv: string[]): Promise<number> {
       help: { type: 'boolean', short: 'h' },
     },
   });
-  const [command, presetPath] = positionals;
-  if (values.help || !command || !presetPath) {
+  const [command, presetFile] = positionals;
+  if (values.help || !command) {
     console.log(USAGE);
     return values.help ? 0 : 2;
   }
 
-  const preset = loadPreset(presetPath);
+  const { preset, from } = loadPreset(presetFile, values['user-data-dir'] ?? defaultUserDataDir());
+  if (!presetFile) console.log(`Preset: ${from}\n`);
   const names = selectProfiles(preset, values.profile);
 
   if (command === 'plan') {

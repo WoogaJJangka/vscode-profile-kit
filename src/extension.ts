@@ -11,10 +11,17 @@ import { FolderAdvisor } from './ui/folders';
 import { InstallWatcher } from './ui/installFlow';
 import { Kit } from './ui/kit';
 import { StarterAdvisor } from './ui/starters';
+import { SYNCED_PRESET_SCHEME, SyncedPresetFileSystem } from './ui/syncedPreset';
 import { ProfileStatusBar } from './ui/switch';
 import { decorateView, ProfilesTree } from './ui/tree';
 
 export function activate(context: vscode.ExtensionContext): void {
+  // the synced preset (profileKit.preset) as a file, before anything reads the preset
+  const syncedPreset = new SyncedPresetFileSystem();
+  context.subscriptions.push(
+    syncedPreset,
+    vscode.workspace.registerFileSystemProvider(SYNCED_PRESET_SCHEME, syncedPreset, { isCaseSensitive: true }),
+  );
   const kit = new Kit(context);
   const tree = new ProfilesTree(kit);
   const folders = new FolderAdvisor(kit);
@@ -36,7 +43,8 @@ export function activate(context: vscode.ExtensionContext): void {
     starters,
     ...registerCommands(kit),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('profileKit.presetPath'))
+      // profileKit.preset also changes when Settings Sync brings it from another PC
+      if (e.affectsConfiguration('profileKit.presetPath') || e.affectsConfiguration('profileKit.preset'))
         void kit
           .loadPreset()
           .then(() => kit.refresh())

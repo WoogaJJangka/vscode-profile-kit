@@ -55,7 +55,7 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
   private roots(): Node[] {
     // no preset: an empty tree, so VS Code shows the welcome view with the ways to start (it only shows when the
     // tree has no items; before 1.1.0 existing profiles hid it). Switching still works from the status bar.
-    if (!this.kit.presetPath()) return [];
+    if (!this.kit.hasPreset()) return [];
     const out: Node[] = [];
     if (this.kit.presetMissing)
       out.push({
@@ -96,7 +96,7 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
     const apply = { command: 'profileKit.applyAll', title: t('Apply Preset to All Profiles...') };
     // the view's own description would not show: a view alone in its container has its header merged into the
     // container title, which drops the description (seen in VS Code 1.147)
-    const presetLine = t('Preset: {0}', loaded.uri.fsPath);
+    const presetLine = t('Preset: {0}', this.kit.presetLabel());
     const todo = needsChanges(status);
     if (todo.length)
       return {

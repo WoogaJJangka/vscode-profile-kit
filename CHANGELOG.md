@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **Preset in Settings, carried by Settings Sync**: **Profile Kit: Store Preset in Settings (Sync)** puts the preset into the setting `profileKit.preset` (Default profile), so your other PCs get it without a repository. When set it is used instead of the preset file. **Edit Preset** opens it like a file; saving stores it back (comments are not kept). **Move Preset to a File...** goes back; a copy is kept before the setting is removed.
+- CLI: `<preset.json>` may be left out to use the preset VS Code uses (`profileKit.preset`, else `profileKit.presetPath`, from Default's settings.json).
+
 ## [1.1.0] - pre-release
 
 Easier to use from inside VS Code: one menu for everything, the next step at the top of the Profiles view, and a Get Started guide.

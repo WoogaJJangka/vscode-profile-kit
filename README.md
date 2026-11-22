@@ -96,6 +96,8 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 2. Profile Kit을 설치하고 **프리셋 파일 열기**로 clone한 프리셋을 고릅니다. 프리셋 경로는 PC마다 달라서 Settings Sync로 옮기지 않습니다.
 3. **모든 프로필에 프리셋 적용**(또는 CLI `profile-kit apply <프리셋> --yes`)으로 프로필을 만들고 맞춥니다.
 
+저장소 없이 내 프리셋을 여러 PC에서 쓰려면 **프리셋을 설정에 저장(Sync)** 을 고르세요. 프리셋 내용이 설정 `profileKit.preset`(Default 프로필 settings.json)에 들어가서 Settings Sync가 다른 PC로 옮깁니다. 값이 있으면 프리셋 파일 대신 이것을 쓰고, **프리셋 편집**은 이 설정을 파일처럼 엽니다(저장하면 설정에 들어감, 주석은 남지 않음). 되돌리려면 **프리셋을 파일로 옮기기...** 를 고릅니다. 설정의 프리셋을 지우면 다른 PC에서도 지워지므로, 지우기 전에 사본을 확장 저장소 폴더(`synced-preset-backups`)에 남깁니다.
+
 Settings Sync를 같이 쓰면 프로필 settings.json은 Sync가 옮깁니다. Profile Kit이 관리하는 키 목록(`profileKit.managedKeys`)도 같은 파일에 있어서 다른 PC에서도 Profile Kit이 쓴 키와 직접 넣은 키를 구분합니다.
 
 Settings Sync와 같이 쓸 때:
@@ -103,7 +105,7 @@ Settings Sync와 같이 쓸 때:
 - 프로필이 다른 PC로 가려면 Sync 설정에서 **Profiles**를 켜야 합니다(VS Code 기준 최대 20개).
 - 두 번째 PC에서는 Sync가 끝난 뒤에 적용하세요. 미리보기에서 할 일이 없거나 빠진 확장만 나오면 정상입니다. Sync 도중에 적용하면 같은 파일을 Sync와 Profile Kit이 번갈아 고칠 수 있습니다.
 - 한 PC에서 적용한 설정 변경은 Sync로 다른 PC에도 갑니다. 다른 PC에서 다시 적용할 필요는 없습니다.
-- 이 PC에만 남는 것: 프리셋 경로(`profileKit.presetPath`), settings.json 백업, `machine` 범위 설정.
+- 이 PC에만 남는 것: 프리셋 경로(`profileKit.presetPath`), settings.json 백업, `machine` 범위 설정. 설정에 저장한 프리셋(`profileKit.preset`)은 Sync로 옮겨집니다.
 - 폴더 → 프로필 연결이 Sync로 옮겨지는지는 VS Code 문서에 없습니다. 다른 PC에서는 폴더를 열 때 나오는 추천으로 다시 연결하세요.
 
 ### 지원 범위
@@ -119,6 +121,7 @@ profile-kit plan   presets/example.json [--profile <이름>]          # 프로�
 profile-kit verify presets/example.json [--profile <이름>]          # 선언 vs 실제 설치 (읽기 전용, 빠지면 종료 코드 1)
 profile-kit apply  presets/example.json [--profile <이름>] [--yes]  # 미리보기, --yes로 실행
 profile-kit export presets/example.json [--profile <이름>] --out <폴더> [--offline]  # 프로필마다 .code-profile
+profile-kit apply [--yes]   # 프리셋을 빼면 VS Code가 쓰는 것: profileKit.preset, 없으면 profileKit.presetPath
 ```
 
 ## English
@@ -142,13 +145,14 @@ Everything happens in VS Code's UI. The CLI is for setting up a new machine in o
 - **Safety**: nothing is uninstalled, the Default profile is never changed, and VS Code's internal files are only read. Creating a profile opens a window, because VS Code has no other way to create one.
 
 - **New PC**: clone the repository with your preset, open it with **Open Preset File...**, then apply. The preset path is per PC and is not synced; with Settings Sync on, the list of keys Profile Kit manages (`profileKit.managedKeys`) travels inside each profile's settings.json.
-- **With Settings Sync**: turn on **Profiles** in Sync so profiles reach the other PC. On the second PC, apply after Sync has finished; the preview should then show nothing to do, or only missing extensions. Settings applied on one PC reach the others through Sync. What stays on each PC: the preset path, settings backups and `machine`-scoped settings.
+- **A preset without a repository**: **Store Preset in Settings (Sync)** puts the preset into the setting `profileKit.preset` (Default profile), so Settings Sync takes it to your other PCs. When set it is used instead of the file; **Edit Preset** opens it like a file (saving stores it back; comments are not kept). **Move Preset to a File...** goes back. Removing it from Settings removes it on the other PCs too, so a copy is kept first (`synced-preset-backups` in the extension's storage).
+- **With Settings Sync**: turn on **Profiles** in Sync so profiles reach the other PC. On the second PC, apply after Sync has finished; the preview should then show nothing to do, or only missing extensions. Settings applied on one PC reach the others through Sync. What stays on each PC: the preset path, settings backups and `machine`-scoped settings. A preset stored in Settings is synced.
 
 **Compared with VS Code's built-in profiles**: Profile Kit does not rebuild what VS Code already has. It creates and switches profiles by calling VS Code, follows the **Apply Setting to all Profiles** list, and leaves syncing to Settings Sync. What VS Code does not have is Profile Kit's part: one file that declares the whole setup with history in Git, a check of declared vs installed (also in CI), picking profiles when installing, carrying a common change into every profile, and folder → profile suggestions.
 
 **Similar tools**: [VPEM](https://pypi.org/project/vscode-profile-extension-manager/) (Python CLI that exports and applies a profile's extension list), [code-profiler](https://github.com/joaopalmeiro/code-profiler) (CLI that builds a profile file from a `.vscode` folder), artagon-vscode-profiles (dotfiles repository: shared base + per-profile overrides + export scripts) and [Profile Switcher](https://github.com/aaronpowell/vscode-profile-switcher) (archived; predates built-in profiles and installs/uninstalls extensions to switch). Profile Kit is an extension with a GUI, uses VS Code's own profiles, picks profiles when you install, checks for missing extensions, and never uninstalls.
 
-CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`), and `profile-kit export <preset.json> --out <dir>` for `.code-profile` files.
+CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]` (`apply` previews unless `--yes`), and `profile-kit export <preset.json> --out <dir>` for `.code-profile` files. Leave out `<preset.json>` to use the preset VS Code uses (`profileKit.preset`, else `profileKit.presetPath`, read from Default's settings.json).
 
 The UI is in English and Korean.
 

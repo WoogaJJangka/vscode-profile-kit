@@ -14,6 +14,8 @@ import { DEFAULT_PROFILE, type Kit } from './kit';
 import { showMenu } from './menu';
 import { ManagerPanel } from './panel/manager';
 import { askNewPresetFile } from './presetFile';
+import { movePresetToFile, storePresetInSettings } from './presetStorage';
+import { SYNCED_PRESET_URI } from './syncedPreset';
 import { startFromStarter } from './starters';
 import { switchProfile } from './switch';
 import type { ProfileNode } from './tree';
@@ -249,7 +251,7 @@ async function createPreset(kit: Kit): Promise<void> {
   const target = await askNewPresetFile();
   if (!target) return;
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(text));
-  await kit.usePreset(target.fsPath);
+  if (!(await kit.usePreset(target.fsPath))) return;
   await vscode.window.showTextDocument(target);
   void vscode.window.showInformationMessage(
     [
@@ -293,11 +295,14 @@ export function registerCommands(kit: Kit): vscode.Disposable[] {
     reg('profileKit.createPreset', () => createPreset(kit)),
     reg('profileKit.startFromStarter', (arg) => startFromStarter(kit, arg)),
     reg('profileKit.editPreset', async () => {
-      const loaded = kit.preset;
-      const file = kit.presetPath();
-      if (!file) return vscode.commands.executeCommand('profileKit.openPreset');
-      await vscode.window.showTextDocument(loaded?.uri ?? vscode.Uri.file(file));
+      const source = kit.presetSource();
+      if (!source) return vscode.commands.executeCommand('profileKit.openPreset');
+      await vscode.window.showTextDocument(
+        kit.preset?.uri ?? (source.kind === 'settings' ? SYNCED_PRESET_URI : vscode.Uri.file(source.file)),
+      );
     }),
+    reg('profileKit.storePresetInSettings', () => storePresetInSettings(kit)),
+    reg('profileKit.movePresetToFile', () => movePresetToFile(kit)),
     reg('profileKit.refresh', () =>
       vscode.window.withProgress({ location: { viewId: 'profileKit.profiles' } }, () =>
         kit.loadPreset().then(() => kit.refresh()),

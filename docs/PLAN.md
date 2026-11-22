@@ -203,3 +203,19 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - `TreeView.description`(프리셋 파일 이름)은 보이지 않았다. 컨테이너에 뷰가 하나면 VS Code가 머리글을 컨테이너 제목에 합치면서 설명을 버린다. 그래서 파일 경로는 맨 위 줄 툴팁에 넣었다.
 
 아직: 설치 후 프로필 고르기(기록 위치를 묻지 않는 흐름)는 화면으로 보지 않았다(격리 VS Code에서 확장을 새로 받아야 함). 기록 위치는 `addExtension.test.ts`가 모든 조합으로 확인한다.
+
+## 12. 설정에 저장하는 프리셋(Sync) (2026-11-22)
+
+문제(사용자): 저장소에 넣지 않는 개인 프리셋(예: CTF 프로필을 더한 것)은 파일로만 둘 수 있었고, `profileKit.presetPath`는 PC마다 다른 경로라 Sync하지 않으니(`ignoreSync`) 다른 PC로 옮길 방법이 없었다.
+
+| 결정 | 이유 |
+| --- | --- |
+| 새 설정 `profileKit.preset`(객체, `scope: application`, Sync함)에 프리셋 내용을 그대로 넣는다. 값이 있으면 `presetPath`보다 먼저 쓴다 | Settings Sync가 옮기는 것은 설정·키 바인딩·스니펫 등 정해진 것뿐이고 임의의 파일은 안 옮긴다. application 범위 설정은 Default settings.json에만 저장되고 모든 프로필에서 같은 값으로 읽혀서, 프로필 설정 공유를 끈 이 PC 구성에서도 한 곳에 있다 |
+| 확장은 이 설정을 가상 파일 `profile-kit:/synced.profile-kit.json`(FileSystemProvider, `src/ui/syncedPreset.ts`)으로 보여 준다. 읽으면 설정을 2칸 JSON 텍스트로, 저장하면 텍스트를 파싱해 설정에 넣는다 | 설치 후 기록, 관리 화면, 가져오기, 직접 편집이 모두 "URI + 텍스트"로 프리셋을 고친다. 출처만 바꾸면 이 흐름을 그대로 쓴다. 이름이 `*.profile-kit.json`이라 편집기에서 스키마 검사도 붙는다 |
+| 문법이 틀린 텍스트는 저장을 거부한다(설정은 JSON 값만 담는다). 프리셋 규칙 위반은 저장하고 파일처럼 "프리셋에 문제" 표시 | 고치는 중간 상태를 저장할 수 있어야 한다. 파일 프리셋과 같은 동작 |
+| 저장할 때 주석과 `$schema`는 버린다 | 설정 값에는 주석이 없고 `$schema`는 파일에서만 뜻이 있다 |
+| 명령 "프리셋을 설정에 저장(Sync)", "프리셋을 파일로 옮기기...". 다른 파일을 쓰게 되는 모든 흐름(파일 열기, 새 프리셋, 내장 프리셋, 가져오기)은 `Kit.usePreset`에서 확인을 받고 설정의 프리셋을 지운다. 지우기 전에 확장 저장소(`globalStorage/.../synced-preset-backups`)에 사본 | 설정 값이 파일보다 먼저라서 지우지 않으면 새 파일이 안 쓰인다. 지우면 Sync가 다른 PC에서도 지우므로 묻고 사본을 남긴다 |
+| CLI: 프리셋 인자를 빼면 Default settings.json의 `profileKit.preset`, 없으면 `presetPath` 파일 | 확장과 같은 프리셋을 새 PC에서 바로 적용(`profile-kit apply --yes`) |
+
+확인(2026-11-22): `npm run check` 통과(테스트 281개, `presetSource.test.ts`). 격리 VS Code 1.147(데이터 폴더 3개 모두 임시)을 `--profile Probe --extensionDevelopmentPath --extensionTestsPath`로 띄운 탐침에서 9개 모두 통과: 프로필 창에서 가상 파일 읽기, JSON으로 열림, 편집·저장이 Default settings.json에 들어가고 프로필 settings.json에는 안 들어감, 문법이 틀린 저장 거부, 바깥에서 settings.json을 고치면(Sync와 같음) 가상 파일과 Kit이 다시 읽음.
+아직: 두 PC 사이 실제 Sync, 두 명령의 확인 창은 화면으로 보지 않았다.

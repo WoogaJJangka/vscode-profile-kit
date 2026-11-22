@@ -254,5 +254,22 @@
   "All {0} profile(s) have their extensions": "프로필 {0}개 모두 확장이 다 있습니다",
   "click to check settings too": "눌러서 설정까지 확인",
   "Applying also writes the preset settings; it shows the changes first, or says everything is up to date.": "적용하면 프리셋 설정도 씁니다. 바뀔 내용을 먼저 보여 주고, 없으면 모두 맞다고 알려 줍니다.",
-  "Preset: {0}": "프리셋: {0}"
+  "Preset: {0}": "프리셋: {0}",
+  "Settings (synced)": "설정(Sync)",
+  "Use the File": "파일 쓰기",
+  "Use {0} instead of the preset stored in Settings?": "설정에 저장된 프리셋 대신 {0}을(를) 쓸까요?",
+  "The synced preset is removed from Settings, and Settings Sync removes it on your other PCs too. A copy is kept in {0}.": "설정의 프리셋을 지우고, Settings Sync가 다른 PC에서도 지웁니다. 사본은 {0}에 남깁니다.",
+  "Move Preset to a File...": "프리셋을 파일로 옮기기...",
+  "stop syncing it": "Sync하지 않음",
+  "Store Preset in Settings (Sync)": "프리셋을 설정에 저장(Sync)",
+  "to use it on your other PCs": "다른 PC에서도 쓰기",
+  "The preset is already stored in Settings.": "프리셋이 이미 설정에 저장되어 있습니다.",
+  "Fix the preset first: {0}": "먼저 프리셋을 고치세요: {0}",
+  "Open or create a preset first.": "먼저 프리셋을 열거나 만드세요.",
+  "Store in Settings": "설정에 저장",
+  "Store the preset in Settings, so Settings Sync takes it to your other PCs?": "프리셋을 설정에 저장해서 Settings Sync로 다른 PC에 옮길까요?",
+  "Profile Kit then reads the preset from the setting profileKit.preset (Default profile) on every PC that syncs settings. {0} is not changed or deleted, but no longer used. Comments in the file are not kept.": "그러면 설정을 Sync하는 모든 PC에서 Profile Kit가 설정 profileKit.preset(Default 프로필)의 프리셋을 읽습니다. {0}은(는) 바꾸거나 지우지 않지만 더 이상 쓰지 않습니다. 파일의 주석은 남지 않습니다.",
+  "The preset is stored in Settings. Turn on Settings in Settings Sync so it reaches your other PCs.": "프리셋을 설정에 저장했습니다. 다른 PC로 옮겨지도록 Settings Sync에서 설정(Settings)을 켜 두세요.",
+  "No preset is stored in Settings.": "설정에 저장된 프리셋이 없습니다.",
+  "The synced preset was not saved: {0}": "Sync 프리셋을 저장하지 못했습니다: {0}"
 }
