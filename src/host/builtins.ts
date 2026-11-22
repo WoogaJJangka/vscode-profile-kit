@@ -5,7 +5,7 @@
  * Shared by the CLI and the extension. docs/PLAN.md section 8-2.
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
-import { readdir, readFile, realpath } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 
 import {
@@ -69,20 +69,33 @@ export interface InstalledManifest {
 }
 
 /**
- * What each installed extension needs or bundles, from the package.json in each folder of `extensionsDir` (every
- * profile installs into that one folder). Folders that cannot be read are skipped: the result only adds reasons to
- * "not in the preset". A folder name carries the version, so its package.json does not change: `cache` (folder
- * name → manifest, null for "not an extension") lets a window read only new folders; gone names are dropped from it.
+ * What each installed extension needs or bundles, from the package.json in each folder of the extensions folder
+ * (every profile installs into that one folder). Only the folder that holds VS Code's own extensions.json is listed,
+ * so an extensions folder VS Code never used gives nothing. Folders that cannot be read are skipped: the result only
+ * adds reasons to "not in the preset". A folder name carries the version, so its package.json does not change:
+ * `cache` (folder name → manifest, null for "not an extension") lets a window read only new folders; gone names are
+ * dropped from it.
+ * Every path is used by its real path and only when that is inside the folder checked before it (canonical path,
+ * then containment check, then use, in this one function: the order SonarQube S8707 asks for). A folder or file
+ * linked from elsewhere is skipped.
  */
 export async function readExtensionRelations(
   extensionsDir: string,
   cache: Map<string, InstalledManifest | null> = new Map(),
 ): Promise<Map<string, ExtensionRelations>> {
   let base: string;
+  let list: string;
+  try {
+    base = realpathSync(extensionsDir);
+    list = realpathSync(path.join(base, EXTENSIONS_MANIFEST));
+  } catch {
+    return new Map(); // no such folder, or VS Code has not installed anything there
+  }
+  if (!list.startsWith(base + path.sep)) return new Map();
+  const dir = path.dirname(list);
   let names: Set<string>;
   try {
-    base = await realpath(extensionsDir);
-    const entries = await readdir(base, { withFileTypes: true });
+    const entries = await readdir(dir, { withFileTypes: true });
     // VS Code unpacks into a dot folder first; extensions.json and .obsolete are files
     names = new Set(entries.filter((d) => !d.isFile() && !d.name.startsWith('.')).map((d) => d.name));
   } catch {
@@ -93,25 +106,23 @@ export async function readExtensionRelations(
     [...names]
       .filter((name) => !cache.has(name))
       .map(async (name) => {
-        cache.set(name, await readInstalledManifest(base, name));
+        cache.set(name, null);
+        let file: string;
+        try {
+          file = realpathSync(path.join(dir, name, 'package.json'));
+        } catch {
+          return; // not an extension folder
+        }
+        if (!file.startsWith(dir + path.sep)) return;
+        try {
+          cache.set(name, parseExtensionManifest(JSON.parse(await readFile(file, 'utf8'))) ?? null);
+        } catch {
+          // unreadable or broken package.json: no reasons from it
+        }
       }),
   );
   const manifests = [...cache.values()].filter((m): m is InstalledManifest => m !== null);
   return relationsById(manifests.sort((a, b) => compareCodeUnits(a.id, b.id)));
-}
-
-/**
- * `<base>/<folder>/package.json`, read by its real path and only when that is inside `base` (canonical path, then
- * containment check, then use: the order SonarQube S8707 asks for). A folder linked from elsewhere is skipped.
- */
-async function readInstalledManifest(base: string, folder: string): Promise<InstalledManifest | null> {
-  try {
-    const file = await realpath(path.join(base, folder, 'package.json'));
-    if (!file.startsWith(base + path.sep)) return null;
-    return parseExtensionManifest(JSON.parse(await readFile(file, 'utf8'))) ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /**

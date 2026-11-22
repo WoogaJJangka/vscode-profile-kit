@@ -94,6 +94,9 @@ describe('files VS Code leaves on disk (read only)', () => {
     expect(again.get('ms-toolsai.jupyter')?.pack).toEqual(['ms-toolsai.jupyter-keymap']);
 
     expect((await readExtensionRelations(path.join(dir, 'no-such-folder'))).size).toBe(0);
+    // a folder without VS Code's extensions.json is not an extensions folder VS Code used: not listed
+    rmSync(path.join(dir, 'extensions.json'));
+    expect((await readExtensionRelations(dir)).size).toBe(0);
   });
 
   it('an extension folder linked from outside the extensions folder is not read', async () => {
@@ -105,12 +108,15 @@ describe('files VS Code leaves on disk (read only)', () => {
     );
     const extDir = path.join(dir, 'extensions');
     mkdirSync(extDir);
+    writeFileSync(path.join(extDir, 'extensions.json'), '[]');
+    mkdirSync(path.join(extDir, 'a.b-1.0.0'));
+    writeFileSync(path.join(extDir, 'a.b-1.0.0', 'package.json'), JSON.stringify({ publisher: 'a', name: 'b' }));
     try {
       symlinkSync(outside, path.join(extDir, 'x.y-1.0.0'), 'junction');
     } catch {
       return; // no symlink rights
     }
-    expect((await readExtensionRelations(extDir)).size).toBe(0);
+    expect([...(await readExtensionRelations(extDir)).keys()]).toEqual(['a.b']);
   });
 
   it('Settings Sync folder', () => {
