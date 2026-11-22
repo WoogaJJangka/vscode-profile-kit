@@ -12,7 +12,7 @@ import { InstallWatcher } from './ui/installFlow';
 import { Kit } from './ui/kit';
 import { StarterAdvisor } from './ui/starters';
 import { ProfileStatusBar } from './ui/switch';
-import { ProfilesTree } from './ui/tree';
+import { decorateView, ProfilesTree } from './ui/tree';
 
 export function activate(context: vscode.ExtensionContext): void {
   const kit = new Kit(context);
@@ -25,6 +25,7 @@ export function activate(context: vscode.ExtensionContext): void {
   if (view.visible) kit.showAllProfiles();
   context.subscriptions.push(
     kit,
+    decorateView(view, kit),
     view,
     view.onDidChangeVisibility((e) => {
       if (e.visible) kit.showAllProfiles();

@@ -181,34 +181,11 @@ async function pickProfiles(
   return picked?.map((p) => p.profile);
 }
 
-interface OptionPick extends vscode.QuickPickItem {
-  option: RecordOption;
-}
-
-async function pickRecordOption(options: RecordOption[], chosen: readonly string[]): Promise<RecordOption | undefined> {
-  // one profile and no group that fits exactly: its own list, no question
-  const exact = options.filter((o) => o.exact);
-  if (options.length === 1 || (chosen.length === 1 && exact.length === 1)) return options[0];
-  const items: OptionPick[] = options.map((option) => {
-    const extra = option.profiles.filter((p) => !chosen.includes(p));
-    const label =
-      option.kind === 'core'
-        ? `$(globe) ${t('core (every profile)')}`
-        : option.kind === 'group'
-          ? `$(symbol-array) ${t('group "{0}"', option.group ?? '')}`
-          : `$(list-flat) ${t("each profile's own extensions")}`;
-    return {
-      option,
-      label,
-      description: option.profiles.join(', '),
-      ...(extra.length ? { detail: t('also adds it to: {0}', extra.join(', ')) } : {}),
-    };
-  });
-  const picked = await vscode.window.showQuickPick(items, {
-    title: t('Where should the preset record it?'),
-    placeHolder: t('Profiles that use the chosen list get the extension'),
-  });
-  return picked?.option;
+/** Where the preset records it, for the result message. */
+function recordLabel(option: RecordOption): string {
+  if (option.kind === 'core') return t('core (every profile)');
+  if (option.kind === 'group') return t('group "{0}"', option.group ?? '');
+  return t("each profile's own extensions");
 }
 
 export interface AddOptions {
@@ -233,7 +210,9 @@ export async function addToProfiles(
   const recs = recommendProfiles(meta, loaded.preset, knownMetas());
   const chosen = options.chosen ?? (await pickProfiles(kit, id, recs, options.installedIn));
   if (!chosen?.length) return;
-  const option = await pickRecordOption(recordOptions(loaded.preset, chosen), chosen);
+  // no second question (1.1.0): the first option gives it to exactly the chosen profiles, preferring core or a
+  // group that matches them, else each profile's own list (core/addExtension.ts). The result message says which.
+  const option = recordOptions(loaded.preset, chosen)[0];
   if (!option) return;
 
   // the preset is the source of truth: write it first
@@ -284,6 +263,7 @@ export async function addToProfiles(
 
   const parts = [
     t('{0} is now in the preset for: {1}.', displayName(id), targets.join(', ')),
+    text === loaded.text ? '' : t('Recorded under {0}.', recordLabel(option)),
     toInstall.length ? t('Installed in {0} profile(s).', toInstall.length - failed.length) : '',
     failed.length ? t('Failed in: {0}.', failed.join(', ')) : '',
     notCreated.length ? t('Not created yet (apply the preset to create them): {0}.', notCreated.join(', ')) : '',

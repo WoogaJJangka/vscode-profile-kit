@@ -2,7 +2,7 @@
   "name": "vscode-profile-kit",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "icon": "media/icon.png",
   "publisher": "woogajjangka",
   "license": "MIT",
@@ -140,6 +140,66 @@
         "when": "!profileKit.hasPreset"
       }
     ],
+    "walkthroughs": [
+      {
+        "id": "profileKit.start",
+        "title": "%walkthrough.title%",
+        "description": "%walkthrough.description%",
+        "steps": [
+          {
+            "id": "preset",
+            "title": "%walkthrough.preset.title%",
+            "description": "%walkthrough.preset.description%",
+            "media": {
+              "svg": "media/walkthrough/preset.svg",
+              "altText": "%walkthrough.preset.alt%"
+            },
+            "completionEvents": [
+              "onContext:profileKit.hasPreset"
+            ]
+          },
+          {
+            "id": "apply",
+            "title": "%walkthrough.apply.title%",
+            "description": "%walkthrough.apply.description%",
+            "media": {
+              "svg": "media/walkthrough/apply.svg",
+              "altText": "%walkthrough.apply.alt%"
+            },
+            "completionEvents": [
+              "onCommand:profileKit.applyAll",
+              "onCommand:profileKit.applyProfile"
+            ]
+          },
+          {
+            "id": "switch",
+            "title": "%walkthrough.switch.title%",
+            "description": "%walkthrough.switch.description%",
+            "media": {
+              "svg": "media/walkthrough/switch.svg",
+              "altText": "%walkthrough.switch.alt%"
+            },
+            "completionEvents": [
+              "onCommand:profileKit.menu",
+              "onCommand:profileKit.switchProfile"
+            ]
+          },
+          {
+            "id": "install",
+            "title": "%walkthrough.install.title%",
+            "description": "%walkthrough.install.description%",
+            "media": {
+              "svg": "media/walkthrough/install.svg",
+              "altText": "%walkthrough.install.alt%"
+            },
+            "completionEvents": [
+              "onCommand:profileKit.installToProfiles",
+              "onCommand:profileKit.openManager"
+            ]
+          }
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "profileKit.showPlan",
@@ -226,17 +286,24 @@
         "command": "profileKit.importCodeProfile",
         "title": "%cmd.importCodeProfile%",
         "category": "%category%"
+      },
+      {
+        "command": "profileKit.menu",
+        "title": "%cmd.menu%",
+        "category": "%category%",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "profileKit.getStarted",
+        "title": "%cmd.getStarted%",
+        "category": "%category%",
+        "icon": "$(book)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "profileKit.refresh",
-          "when": "view == profileKit.profiles",
-          "group": "navigation@1"
-        },
-        {
-          "command": "profileKit.installToProfiles",
+          "command": "profileKit.applyAll",
           "when": "view == profileKit.profiles && profileKit.hasPreset",
           "group": "navigation@0"
         },
@@ -246,39 +313,49 @@
           "group": "navigation@1"
         },
         {
-          "command": "profileKit.applyAll",
-          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "command": "profileKit.refresh",
+          "when": "view == profileKit.profiles",
           "group": "navigation@2"
+        },
+        {
+          "command": "profileKit.installToProfiles",
+          "when": "view == profileKit.profiles && profileKit.hasPreset",
+          "group": "1_extensions@1"
         },
         {
           "command": "profileKit.editPreset",
           "when": "view == profileKit.profiles && profileKit.hasPreset",
-          "group": "navigation@3"
+          "group": "2_preset@1"
         },
         {
           "command": "profileKit.openPreset",
           "when": "view == profileKit.profiles",
-          "group": "1_preset@1"
+          "group": "2_preset@2"
         },
         {
           "command": "profileKit.createPreset",
           "when": "view == profileKit.profiles",
-          "group": "1_preset@2"
+          "group": "2_preset@3"
         },
         {
           "command": "profileKit.startFromStarter",
           "when": "view == profileKit.profiles",
-          "group": "1_preset@3"
+          "group": "2_preset@4"
         },
         {
           "command": "profileKit.importCodeProfile",
           "when": "view == profileKit.profiles",
-          "group": "1_preset@4"
+          "group": "3_share@1"
         },
         {
           "command": "profileKit.exportCodeProfile",
           "when": "view == profileKit.profiles && profileKit.hasPreset",
-          "group": "1_preset@5"
+          "group": "3_share@2"
+        },
+        {
+          "command": "profileKit.getStarted",
+          "when": "view == profileKit.profiles",
+          "group": "4_help@1"
         }
       ],
       "view/item/context": [
@@ -311,6 +388,44 @@
           "command": "profileKit.exportCodeProfile",
           "when": "view == profileKit.profiles && viewItem =~ /:declared\\b/",
           "group": "3_share@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "profileKit.switchTo",
+          "when": "false"
+        },
+        {
+          "command": "profileKit.applyAll",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.applyProfile",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.installMissing",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.installToProfiles",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.openManager",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.editPreset",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.exportCodeProfile",
+          "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.showPlan",
+          "when": "profileKit.hasPreset"
         }
       ]
     },

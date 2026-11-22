@@ -20,6 +20,7 @@ import {
 } from '../core';
 import { exportCodeProfiles, fetchTemplates, readTemplatesUrl } from '../host/builtins';
 import type { Kit } from './kit';
+import { askNewPresetFile } from './presetFile';
 import type { ProfileNode } from './tree';
 
 const t = vscode.l10n.t;
@@ -188,12 +189,7 @@ export async function importProfiles(kit: Kit): Promise<void> {
     uri = loaded.uri;
   } else {
     result = presetFromImported(profiles);
-    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    const saved = await vscode.window.showSaveDialog({
-      ...(folder ? { defaultUri: vscode.Uri.file(path.join(folder, 'extensions.profile-kit.json')) } : {}),
-      filters: { [t('Profile Kit preset')]: ['json'] },
-      saveLabel: t('Create Preset'),
-    });
+    const saved = await askNewPresetFile();
     if (!saved) return;
     uri = saved;
   }

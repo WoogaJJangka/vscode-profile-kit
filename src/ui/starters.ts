@@ -3,8 +3,6 @@
  * while there is no preset, and the command that writes the chosen one to a file and uses it.
  * Signals: the extensions of this window's profile, the names at the top of the open folders, the open files' languages.
  */
-import * as path from 'node:path';
-
 import * as vscode from 'vscode';
 
 import {
@@ -19,6 +17,7 @@ import {
   type StarterSignals,
 } from '../core';
 import type { Kit } from './kit';
+import { askNewPresetFile } from './presetFile';
 
 const t = vscode.l10n.t;
 const CONTEXT_KEY = 'profileKit.recommendedStarter';
@@ -144,12 +143,7 @@ export async function startFromStarter(kit: Kit, arg?: unknown): Promise<void> {
     );
     if (answer !== use) return;
   }
-  const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const target = await vscode.window.showSaveDialog({
-    ...(folder ? { defaultUri: vscode.Uri.file(path.join(folder, 'extensions.profile-kit.json')) } : {}),
-    filters: { [t('Profile Kit preset')]: ['json'] },
-    saveLabel: t('Create Preset'),
-  });
+  const target = await askNewPresetFile();
   if (!target) return;
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(starterPresetText(s)));
   await kit.usePreset(target.fsPath);

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" role="img">
+  <g transform="translate(28 112)">
+    <rect width="168" height="96" rx="6" fill="var(--vscode-editorWidget-background, #252526)" stroke="var(--vscode-widget-border, #454545)"/>
+    <rect x="14" y="16" width="30" height="30" rx="6" fill="var(--vscode-charts-blue, #3794ff)"/>
+    <path d="M29 31h15v15h-9a6 6 0 0 1-6-6z" fill="var(--vscode-charts-yellow, #cca700)"/>
+    <text x="54" y="30" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" font-size="14px" fill="var(--vscode-foreground, #cccccc)" font-weight="600">Python</text>
+    <text x="54" y="46" font-family="var(--vscode-editor-font-family, Consolas, monospace)" font-size="12px" fill="var(--vscode-descriptionForeground, #999999)">ms-python</text>
+    <text x="14" y="76" font-family="var(--vscode-editor-font-family, Consolas, monospace)" font-size="12px" fill="var(--vscode-descriptionForeground, #999999)">ms-python.python</text>
+  </g>
+  <path d="M204 160h48" stroke="var(--vscode-descriptionForeground, #999999)" stroke-width="2" fill="none"/>
+  <path d="M252 154l10 6-10 6z" fill="var(--vscode-descriptionForeground, #999999)"/>
+  <g transform="translate(276 72)">
+    <rect width="176" height="176" rx="6" fill="var(--vscode-editorWidget-background, #252526)" stroke="var(--vscode-widget-border, #454545)"/>
+    <rect x="16" y="22" width="18" height="18" rx="3" fill="var(--vscode-button-background, #0e639c)" stroke="var(--vscode-button-background, #0e639c)"/>
+    <path d="M20 31l4 4 7-8" stroke="var(--vscode-button-foreground, #ffffff)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="44" y="36" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" font-size="14px" fill="var(--vscode-foreground, #cccccc)">Python</text>
+    <path d="M150 22a6 6 0 0 1 4 10.5V35h-8v-2.5A6 6 0 0 1 150 22zM147 37h6v2h-6z" fill="var(--vscode-editorLightBulb-foreground, #ffcc00)"/>
+    <rect x="16" y="62" width="18" height="18" rx="3" fill="var(--vscode-button-background, #0e639c)" stroke="var(--vscode-button-background, #0e639c)"/>
+    <path d="M20 71l4 4 7-8" stroke="var(--vscode-button-foreground, #ffffff)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="44" y="76" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" font-size="14px" fill="var(--vscode-foreground, #cccccc)">Data</text>
+    <path d="M150 62a6 6 0 0 1 4 10.5V75h-8v-2.5A6 6 0 0 1 150 62zM147 77h6v2h-6z" fill="var(--vscode-editorLightBulb-foreground, #ffcc00)"/>
+    <rect x="16" y="102" width="18" height="18" rx="3" fill="var(--vscode-checkbox-background, #3c3c3c)" stroke="var(--vscode-checkbox-border, #6b6b6b)"/>
+    <text x="44" y="116" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" font-size="14px" fill="var(--vscode-foreground, #cccccc)">Web-JS</text>
+    <rect x="16" y="142" width="18" height="18" rx="3" fill="var(--vscode-checkbox-background, #3c3c3c)" stroke="var(--vscode-checkbox-border, #6b6b6b)"/>
+    <text x="44" y="156" font-family="var(--vscode-font-family, 'Segoe UI', sans-serif)" font-size="14px" fill="var(--vscode-foreground, #cccccc)">Java</text>
+  </g>
+</svg>

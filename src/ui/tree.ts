@@ -2,10 +2,12 @@
  * Activity Bar > Profile Kit > Profiles: one row per profile (declared and/or existing) with ok / missing / extra
  * counts, and its extensions underneath. Item context values drive the inline buttons in package.json:
  *   profile:<exists|absent>:<declared|undeclared>[:missing]:<current|other>
+ * Above them, one row with the next step (apply when something is missing; its tooltip names the preset file), and on
+ * the Activity Bar icon a badge with the number of profiles that need changes.
  */
 import * as vscode from 'vscode';
 
-import { extensionOrigins } from '../core';
+import { declaredCount, extensionOrigins, needsChanges } from '../core';
 import { type Kit, type ProfileRow } from './kit';
 
 type Node = ProfileNode | ExtensionNode | MessageNode;
@@ -26,7 +28,10 @@ interface ExtensionNode {
 interface MessageNode {
   kind: 'message';
   label: string;
+  description?: string;
   icon: string;
+  /** Theme color ID for the icon. */
+  color?: string;
   tooltip?: string;
   command?: vscode.Command;
 }
@@ -48,6 +53,9 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
   }
 
   private roots(): Node[] {
+    // no preset: an empty tree, so VS Code shows the welcome view with the ways to start (it only shows when the
+    // tree has no items; before 1.1.0 existing profiles hid it). Switching still works from the status bar.
+    if (!this.kit.presetPath()) return [];
     const out: Node[] = [];
     if (this.kit.presetMissing)
       out.push({
@@ -72,8 +80,55 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
         icon: 'warning',
       });
     for (const p of this.kit.storageInfo.problems) out.push({ kind: 'message', label: p, icon: 'warning' });
+    const next = this.nextStep();
+    if (next) out.push(next);
     out.push(...this.kit.rows().map((row): ProfileNode => ({ kind: 'profile', row })));
     return out;
+  }
+
+  /** The top row: what applying the preset would do, as far as is known, and a click to do it. */
+  private nextStep(): MessageNode | undefined {
+    const loaded = this.kit.preset;
+    if (!loaded) return undefined;
+    const status = this.kit.status();
+    const total = declaredCount(status);
+    if (!total) return undefined;
+    const apply = { command: 'profileKit.applyAll', title: t('Apply Preset to All Profiles...') };
+    // the view's own description would not show: a view alone in its container has its header merged into the
+    // container title, which drops the description (seen in VS Code 1.147)
+    const presetLine = t('Preset: {0}', loaded.uri.fsPath);
+    const todo = needsChanges(status);
+    if (todo.length)
+      return {
+        kind: 'message',
+        label: t('{0} profile(s) need changes', todo.length),
+        description: t('click to preview and apply'),
+        icon: 'arrow-circle-right',
+        color: 'list.warningForeground',
+        tooltip: [
+          status.notCreated.length ? t('Not created yet: {0}', status.notCreated.join(', ')) : '',
+          status.missing.length ? t('Missing extensions: {0}', status.missing.join(', ')) : '',
+          t('Applying shows every change first and asks before doing anything.'),
+          presetLine,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        command: apply,
+      };
+    if (status.checking.length)
+      return { kind: 'message', label: t('Checking {0} profile(s)...', status.checking.length), icon: 'loading~spin' };
+    return {
+      kind: 'message',
+      label: t('All {0} profile(s) have their extensions', total),
+      description: t('click to check settings too'),
+      icon: 'pass',
+      color: 'testing.iconPassed',
+      tooltip: [
+        t('Applying also writes the preset settings; it shows the changes first, or says everything is up to date.'),
+        presetLine,
+      ].join('\n'),
+      command: apply,
+    };
   }
 
   private extensionsOf(row: ProfileRow): ExtensionNode[] {
@@ -114,7 +169,8 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
   getTreeItem(node: Node): vscode.TreeItem {
     if (node.kind === 'message') {
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None);
-      item.iconPath = new vscode.ThemeIcon(node.icon);
+      item.iconPath = new vscode.ThemeIcon(node.icon, node.color ? new vscode.ThemeColor(node.color) : undefined);
+      if (node.description) item.description = node.description;
       if (node.tooltip) item.tooltip = node.tooltip;
       if (node.command) item.command = node.command;
       return item;
@@ -207,4 +263,15 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
     item.command = { command: 'extension.open', title: t('Show Extension'), arguments: [node.id] };
     return item;
   }
+}
+
+/** The Activity Bar badge: the number of profiles that need changes. */
+export function decorateView<T>(view: vscode.TreeView<T>, kit: Kit): vscode.Disposable {
+  const update = () => {
+    // only what is known: profiles not listed yet (the view was never shown in this window) do not count
+    const todo = kit.preset ? needsChanges(kit.status()).length : 0;
+    view.badge = todo ? { value: todo, tooltip: t('{0} profile(s) need changes', todo) } : undefined;
+  };
+  update();
+  return kit.onDidChange(update);
 }

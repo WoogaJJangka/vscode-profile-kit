@@ -18,6 +18,8 @@ import {
   parsePresetText,
   type Preset,
   PresetError,
+  presetStatus,
+  type PresetStatus,
   profileNames,
   resolveProfile,
   type StorageProfiles,
@@ -308,6 +310,18 @@ export class Kit implements vscode.Disposable {
 
   declaredNames(): string[] {
     return this.loaded ? profileNames(this.loaded.preset) : [];
+  }
+
+  /** Declared profiles by state: not created, missing extensions, not listed yet, ok. */
+  status(): PresetStatus {
+    return presetStatus(
+      this.rows().map((r) => ({
+        name: r.name,
+        declared: r.declared,
+        exists: !!r.stored,
+        ...(r.diff ? { missing: r.diff.missing.length } : {}),
+      })),
+    );
   }
 
   /** Declared profiles first (preset order), then profiles only VS Code knows. */

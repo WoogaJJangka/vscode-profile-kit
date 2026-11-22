@@ -11,11 +11,12 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 
 ### 할 수 있는 것
 
-- **프로필 한눈에 보기**: Activity Bar의 Profile Kit 트리에 프로필마다 `정상 · 빠짐 · 추가` 개수가 나오고, 펼치면 확장마다 어디서 왔는지(core, 그룹, 프로필)가 보입니다. 상태 표시줄에는 이 창의 프로필이 나옵니다.
-- **설치할 때 프로필 고르기**: 평소처럼 확장을 설치하면 "다른 프로필에도 넣을까요? 추천: …" 알림이 뜹니다. 추천 프로필이 미리 체크된 목록에서 고르면 프리셋에 기록하고 그 프로필들에도 설치합니다. **프로필에 설치...** 명령으로 아직 설치하지 않은 확장도 같은 방식으로 넣을 수 있습니다.
+- **프로필 한눈에 보기**: Activity Bar의 Profile Kit 트리에 프로필마다 `정상 · 빠짐 · 추가` 개수가 나오고, 펼치면 확장마다 어디서 왔는지(core, 그룹, 프로필)가 보입니다. 맨 위 줄에는 다음 할 일(예: "프로필 2개를 맞춰야 합니다")이 나오고, 누르면 미리보기 뒤 적용합니다. Activity Bar 아이콘의 숫자 배지도 같은 수입니다.
+- **메뉴 하나**: 상태 표시줄의 프로필 이름을 누르면 맨 위에 전환할 프로필 목록, 그 아래에 지금 할 수 있는 작업(적용, 프로필에 설치, 관리 화면, 프리셋 파일, 가져오기·내보내기)이 나옵니다. 명령 팔레트의 **Profile Kit: 메뉴 보기**도 같습니다.
+- **설치할 때 프로필 고르기**: 평소처럼 확장을 설치하면 "다른 프로필에도 넣을까요? 추천: …" 알림이 뜹니다. 추천 프로필이 미리 체크된 목록에서 고르면 프리셋에 기록하고 그 프로필들에도 설치합니다. 기록할 곳은 정확히 고른 프로필만 받는 곳(core, 그룹, 각 프로필의 목록 순)으로 정하고, 결과 알림에 알려 줍니다. **프로필에 설치...** 명령으로 아직 설치하지 않은 확장도 같은 방식으로 넣을 수 있습니다.
 - **추천**: 확장의 언어, 키워드, 의존성과 프리셋의 `match`를 비교해 프로필을 추천합니다. 테마, 키맵, 언어 팩은 core(모든 프로필)를 추천합니다.
 - **관리 화면**: 확장 × 프로필 표에서 체크로 선언을 바꾸고, 설정 표에서 공통 값과 프로필별 값을 고칩니다. 바뀔 내용을 미리 본 뒤 적용합니다.
-- **전환**: 상태 표시줄을 누르면 같은 창에서 바로 프로필이 바뀝니다. 폴더를 열면 `match.files`로 맞는 프로필을 한 번 추천하고, 전환하면 그 폴더는 다음부터 그 프로필로 열립니다.
+- **전환**: 상태 표시줄을 누르고 메뉴 맨 위 목록에서 고르면 같은 창에서 바로 프로필이 바뀝니다. 폴더를 열면 `match.files`로 맞는 프로필을 한 번 추천하고, 전환하면 그 폴더는 다음부터 그 프로필로 열립니다.
 - **설정 호환**: 프리셋의 공통 `settings`와 `profiles.X.settings`를 합쳐 각 프로필의 settings.json에 씁니다. Profile Kit가 쓴 키만 관리하고, 직접 넣은 키와 주석은 그대로 둡니다. 쓰기 전에 백업합니다. Default 설정을 그대로 쓰고 싶은 프로필은 `shareFromDefault.settings: true`로 둡니다.
   모든 프로필에 같은 값을 쓰려면 VS Code의 **모든 프로필에 설정 적용**(`workbench.settings.applyToAllProfiles`)을 쓰세요. 이 목록에 있는 키는 Default 값을 쓰므로 Profile Kit가 프로필 settings.json에 쓰지 않고, 프리셋 값과 다르면 미리보기에서 알려 줍니다. 목록을 바꾼 뒤에는 열린 창을 다시 로드해야 합니다.
 - **VS Code 프로필 파일(`.code-profile`)과 오가기**: **.code-profile로 프로필 내보내기...**는 프리셋의 프로필마다 파일을 만들고 VS Code의 프로필 편집기를 엽니다. 거기에 파일을 끌어다 놓거나 새 프로필 > 프로필 가져오기로 만듭니다. 꼭 **새 프로필로** 가져오세요. 이미 있는 프로필에 가져오면 VS Code가 파일에 없는 확장을 제거합니다. 반대로 **프리셋으로 프로필 가져오기...**는 `.code-profile` 파일이나 VS Code 내장 템플릿(Python, Data Science 등)을 프리셋의 프로필로 넣습니다. 확장과 설정만 가져오고 단축키·스니펫은 가져오지 않습니다.
@@ -82,9 +83,12 @@ VS Code 확장을 **공통(core) + 용도별 그룹**으로 한 파일(프리셋
 
 ### 시작하기
 
-1. Activity Bar의 Profile Kit을 엽니다.
-2. **내장 프리셋으로 시작하기**(추천 프리셋이 맨 위), **프리셋 파일 열기**, **이 프로필로 프리셋 만들기** 중 하나를 누릅니다.
-3. 툴바의 **모든 프로필에 프리셋 적용**으로 미리보기를 확인하고 적용합니다.
+설치하면 VS Code 시작 화면에 **Profile Kit 시작하기** 안내가 열립니다. 단계마다 버튼이 있어 그대로 따라 하면 됩니다. 나중에는 메뉴나 **Profile Kit: 시작하기 안내**로 다시 엽니다.
+
+1. 상태 표시줄의 **Profile Kit**(또는 Activity Bar의 Profile Kit)을 누릅니다.
+2. **내장 프리셋으로 시작하기**(이 PC에 맞는 프리셋이 맨 위), **프리셋 파일 열기**, **이 프로필로 프리셋 만들기** 중 하나를 고릅니다. 새 프리셋 파일은 열린 폴더(없으면 홈 폴더)에 저장하도록 제안합니다.
+3. Profiles 화면 맨 위 줄(또는 툴바의 **모든 프로필에 프리셋 적용**)을 눌러 미리보기를 확인하고 적용합니다.
+4. 그다음부터는 상태 표시줄의 프로필 이름을 누르면 전환과 다른 작업이 한 메뉴에 나옵니다.
 
 ### 새 PC에서 같은 구성 만들기
 
@@ -122,11 +126,13 @@ profile-kit export presets/example.json [--profile <이름>] --out <폴더> [--o
 Profile Kit declares VS Code extensions once, as **core + per-purpose groups**, in one preset file. It then creates profiles from that preset, keeps them in line with it, and lets you switch between them.
 Everything happens in VS Code's UI. The CLI is for setting up a new machine in one go, or for checks in CI.
 
-- **Profiles tree** (Activity Bar): ok / missing / extra counts per profile, and where each extension comes from. The status bar shows this window's profile.
-- **Pick profiles when installing**: after you install an extension the usual way, a notification offers to add it to other profiles, with suggested ones pre-checked. **Install to Profiles...** does the same for any extension ID. The preset file is updated, then the extension is installed.
+- **Get Started guide**: VS Code's Welcome page opens it when Profile Kit is installed; each step has a button. Open it again with **Profile Kit: Get Started**.
+- **Profiles tree** (Activity Bar): ok / missing / extra counts per profile, and where each extension comes from. The top row says what to do next ("2 profile(s) need changes") and applies on click; the Activity Bar badge shows the same number.
+- **One menu**: click this window's profile in the status bar (or run **Profile Kit: Show Menu**) for the profiles to switch to, then the actions that fit now: apply, install to profiles, the manager, the preset file, import and export.
+- **Pick profiles when installing**: after you install an extension the usual way, a notification offers to add it to other profiles, with suggested ones pre-checked. **Install to Profiles...** does the same for any extension ID. The preset file is updated (core or a group when that gives it to exactly the chosen profiles, otherwise their own lists; the message says which), then the extension is installed.
 - **Suggestions**: from the extension's languages, keywords and dependencies matched against each profile's `match`. Themes, keymaps and language packs go to core.
 - **Manager**: an extensions × profiles matrix and a settings table (common and per-profile values). Preview, then apply.
-- **Switching**: from the status bar, in place. When a folder's files match a profile's `match.files`, it is suggested once per folder.
+- **Switching**: from the status bar menu, in place. When a folder's files match a profile's `match.files`, it is suggested once per folder.
 - **Settings**: common `settings` plus `profiles.X.settings` are written to each profile's settings.json. Only keys Profile Kit wrote are managed; your own keys and comments stay, and files are backed up first.
   Keys in VS Code's **Apply Setting to all Profiles** list (`workbench.settings.applyToAllProfiles`) come from Default in every profile, so Profile Kit does not write them to profiles and says so in the preview when the preset wants a different value. Reload open windows after changing that list.
 - **VS Code profile files (`.code-profile`)**: **Export Profiles as .code-profile...** writes one file per preset profile and opens VS Code's Profiles editor; drop a file on it or use New Profile > Import Profile. Import each as a **new** profile: importing into an existing profile makes VS Code uninstall the extensions the file does not list. **Import Profiles into Preset...** takes `.code-profile` files or VS Code's built-in templates (Python, Data Science, ...) into the preset as profiles (extensions and settings; not keybindings or snippets). **Create Preset from This Profile** can also add profiles from those templates.

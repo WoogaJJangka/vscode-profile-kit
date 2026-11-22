@@ -43,6 +43,19 @@ describe('recordOptions', () => {
     expect(kinds(['Python', 'Data', 'Web'])[0]).toEqual(['core', ['Python', 'Data', 'Web'], true]);
   });
 
+  // the install flow records in options[0] without asking (1.1.0), so it must never give the extension to a
+  // profile the user did not choose
+  it('the first option gives it to exactly the chosen profiles, for every choice', () => {
+    const names = ['Python', 'Data', 'Web', 'Bare'];
+    for (let mask = 1; mask < 1 << names.length; mask++) {
+      const chosen = names.filter((_, i) => mask & (1 << i));
+      const [first] = recordOptions(preset, chosen);
+      expect(first?.exact, chosen.join(',')).toBe(true);
+      expect([...(first?.profiles ?? [])].sort(), chosen.join(',')).toEqual([...chosen].sort());
+    }
+    expect(recordOptions(preset, [CORE_TARGET])[0]?.exact).toBe(true);
+  });
+
   it('unknown names are ignored; nothing chosen gives no options', () => {
     expect(recordOptions(preset, ['Nope'])).toEqual([]);
   });

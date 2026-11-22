@@ -17,20 +17,28 @@ export class ProfileStatusBar implements vscode.Disposable {
 
   constructor(private readonly kit: Kit) {
     this.item.name = t('Profile Kit: Profile');
-    this.item.command = 'profileKit.switchProfile';
+    // one place for switching and everything else (the menu lists the profiles first)
+    this.item.command = 'profileKit.menu';
     kit.onDidChange(() => this.update());
     this.update();
     this.item.show();
   }
 
   update(): void {
+    const md = new vscode.MarkdownString(undefined, true);
+    if (!this.kit.presetPath()) {
+      this.item.text = '$(layers) Profile Kit';
+      md.appendMarkdown(`${t('No preset yet. Click to start from a built-in preset or from this profile.')}\n\n`);
+      md.appendMarkdown(t('Click for profiles and actions.'));
+      this.item.tooltip = md;
+      return;
+    }
     const current = this.kit.currentProfile();
     const row = current && this.kit.rows().find((r) => r.name === current.name);
     const missing = row?.diff?.missing.length ?? 0;
     const suggested = this.kit.folderSuggestion;
     const other = suggested && suggested.profile !== current?.name ? suggested : undefined;
     this.item.text = `$(layers) ${current?.name ?? t('Profile ?')}${missing ? ` $(warning) ${missing}` : ''}${other ? ' $(lightbulb)' : ''}`;
-    const md = new vscode.MarkdownString(undefined, true);
     if (other)
       md.appendMarkdown(
         `$(lightbulb) ${t('This folder suggests the profile **{0}** ({1}).', other.profile, other.matched.join(', '))}\n\n`,
@@ -45,7 +53,7 @@ export class ProfileStatusBar implements vscode.Disposable {
         `${t('Profile Kit cannot tell this profile yet: it learns it from the settings it writes. Apply the preset to this profile once.')}\n\n`,
       );
     }
-    md.appendMarkdown(t('Click to switch profiles.'));
+    md.appendMarkdown(t('Click for profiles and actions.'));
     this.item.tooltip = md;
   }
 
@@ -54,44 +62,53 @@ export class ProfileStatusBar implements vscode.Disposable {
   }
 }
 
-interface ProfilePick extends vscode.QuickPickItem {
+export interface ProfilePick extends vscode.QuickPickItem {
   name: string;
   location: string;
 }
 
+/** One item per profile VS Code has (the one this folder suggests first), then Default. For the switch list and the menu. */
+export function profilePicks(kit: Kit): ProfilePick[] {
+  const current = kit.currentProfile()?.name;
+  const rows = new Map(kit.rows().map((r) => [r.name, r]));
+  const suggested = kit.folderSuggestion;
+  const profiles = [...kit.profiles].sort(
+    (a, b) => Number(b.name === suggested?.profile) - Number(a.name === suggested?.profile),
+  );
+  return [
+    ...profiles.map((p) => {
+      const row = rows.get(p.name);
+      const missing = row?.diff?.missing.length ?? 0;
+      const isSuggested = p.name === suggested?.profile;
+      return {
+        name: p.name,
+        location: p.location,
+        label: `${p.name === current ? '$(account)' : isSuggested ? '$(lightbulb)' : '$(layers)'} ${p.name}`,
+        description: [
+          p.name === current ? t('this window') : '',
+          isSuggested ? t('suggested for this folder ({0})', suggested.matched.join(', ')) : '',
+          row?.declared || !kit.preset ? '' : t('not in the preset'),
+          missing ? t('{0} missing', missing) : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      };
+    }),
+    {
+      name: DEFAULT_PROFILE,
+      location: DEFAULT_PROFILE_ID,
+      label: `${current === DEFAULT_PROFILE ? '$(account)' : '$(home)'} ${DEFAULT_PROFILE}`,
+      description: current === DEFAULT_PROFILE ? t('this window') : '',
+    },
+  ];
+}
+
 /** Quick pick of profiles, then switch this window. */
 export async function switchProfile(kit: Kit, target?: string): Promise<void> {
-  const current = kit.currentProfile()?.name;
   let name = target;
   let location: string | undefined;
   if (!name) {
-    const rows = new Map(kit.rows().map((r) => [r.name, r]));
-    const suggested = kit.folderSuggestion;
-    const profiles = [...kit.profiles].sort(
-      (a, b) => Number(b.name === suggested?.profile) - Number(a.name === suggested?.profile),
-    );
-    const items: ProfilePick[] = [
-      ...profiles.map((p) => {
-        const row = rows.get(p.name);
-        const missing = row?.diff?.missing.length ?? 0;
-        const isSuggested = p.name === suggested?.profile;
-        return {
-          name: p.name,
-          location: p.location,
-          label: `${p.name === current ? '$(account)' : isSuggested ? '$(lightbulb)' : '$(layers)'} ${p.name}`,
-          description: [
-            p.name === current ? t('this window') : '',
-            isSuggested ? t('suggested for this folder ({0})', suggested.matched.join(', ')) : '',
-            row?.declared ? '' : t('not in the preset'),
-            missing ? t('{0} missing', missing) : '',
-          ]
-            .filter(Boolean)
-            .join(' · '),
-        };
-      }),
-      { name: DEFAULT_PROFILE, location: DEFAULT_PROFILE_ID, label: `$(home) ${DEFAULT_PROFILE}`, description: '' },
-    ];
-    const picked = await vscode.window.showQuickPick(items, {
+    const picked = await vscode.window.showQuickPick(profilePicks(kit), {
       title: t('Switch Profile'),
       placeHolder: t('Profile for this window'),
     });
@@ -99,15 +116,21 @@ export async function switchProfile(kit: Kit, target?: string): Promise<void> {
     name = picked.name;
     location = picked.location;
   }
-  if (name === current) return;
-  location ??= name === DEFAULT_PROFILE ? DEFAULT_PROFILE_ID : kit.profiles.find((p) => p.name === name)?.location;
-  if (!location) {
+  await switchTo(kit, name, location);
+}
+
+/** Switch this window to `name` (nothing when it already uses it). */
+export async function switchTo(kit: Kit, name: string, location?: string): Promise<void> {
+  if (name === kit.currentProfile()?.name) return;
+  const where =
+    location ?? (name === DEFAULT_PROFILE ? DEFAULT_PROFILE_ID : kit.profiles.find((p) => p.name === name)?.location);
+  if (!where) {
     void vscode.window.showWarningMessage(t('Profile "{0}" does not exist yet. Apply the preset to create it.', name));
     return;
   }
 
   const commands = await vscode.commands.getCommands(true);
-  const direct = profileEntryCommand(location);
+  const direct = profileEntryCommand(where);
   if (commands.includes(direct)) {
     kit.log(`switch: ${direct}`);
     await vscode.commands.executeCommand(direct);
