@@ -220,7 +220,7 @@ export class Kit implements vscode.Disposable {
   private async backupSyncedPreset(value: Record<string, unknown>): Promise<void> {
     const dir = vscode.Uri.joinPath(this.context.globalStorageUri, 'synced-preset-backups');
     await vscode.workspace.fs.createDirectory(dir);
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*$/, '');
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(/[-:]/g, '');
     const target = vscode.Uri.joinPath(dir, `synced-preset-${stamp}.profile-kit.json`);
     await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(syncedPresetText(value)));
     this.log(`synced preset backed up: ${target.fsPath}`);

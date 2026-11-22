@@ -8,8 +8,6 @@
  *   profile-kit export <preset.json> [--profile <name>] --out <dir>   one .code-profile per profile (VS Code import)
  * `apply` only previews unless `--yes` is given. Nothing is uninstalled and the Default profile is never changed.
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
@@ -19,20 +17,17 @@ import {
   formatPlan,
   listExtensionsArgs,
   parseListExtensions,
-  parsePreset,
-  parsePresetText,
   planIsEmpty,
   type Preset,
   PresetError,
-  presetSourceFromSettings,
   profileNames,
   resolveProfile,
 } from '../core';
 import { buildPlans, executePlans, reportOk } from '../host/apply';
 import { exportCodeProfiles, readApplicationScoped, SYNC_NOTE, syncedBefore } from '../host/builtins';
 import { installSucceeded } from '../host/installer';
+import { loadCliPreset } from '../host/presetLoader';
 import { defaultExtensionsDir, defaultUserDataDir, userDataPaths } from '../host/paths';
-import { readSettingsFile } from '../host/settingsWriter';
 
 const USAGE = `Usage:
   profile-kit plan   [<preset.json>] [--profile <name>]
@@ -56,19 +51,6 @@ VS Code options:
   --user-data-dir <dir>      passed to code, and where settings.json / storage.json are read
   --extensions-dir <dir>     passed to code
   --shared-data-dir <dir>    passed to code`;
-
-function loadPreset(file: string | undefined, userDataDir: string): { preset: Preset; from: string } {
-  if (file) return { preset: parsePresetText(readFileSync(file, 'utf8')), from: resolve(file) };
-  const settingsFile = userDataPaths(userDataDir).defaultSettings;
-  const source = presetSourceFromSettings(readSettingsFile(settingsFile).settings);
-  if (!source)
-    throw new Error(
-      `No preset given, and ${settingsFile} has neither profileKit.preset nor profileKit.presetPath. Pass <preset.json>.`,
-    );
-  if (source.kind === 'settings')
-    return { preset: parsePreset(source.value), from: `profileKit.preset in ${settingsFile}` };
-  return { preset: parsePresetText(readFileSync(source.file, 'utf8')), from: source.file };
-}
 
 function selectProfiles(preset: Preset, only?: string): string[] {
   if (!only) return profileNames(preset);
@@ -99,7 +81,7 @@ async function main(argv: string[]): Promise<number> {
     return values.help ? 0 : 2;
   }
 
-  const { preset, from } = loadPreset(presetFile, values['user-data-dir'] ?? defaultUserDataDir());
+  const { preset, from } = loadCliPreset(presetFile, values['user-data-dir'] ?? defaultUserDataDir());
   if (!presetFile) console.log(`Preset: ${from}\n`);
   const names = selectProfiles(preset, values.profile);
 
