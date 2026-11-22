@@ -184,7 +184,7 @@ export class ManagerPanel implements vscode.Disposable {
     }
     const listed = readDefaultSettings(this.kit.paths).state.allProfiles;
     return {
-      presetPath: loaded?.uri.fsPath ?? this.kit.presetPath(),
+      presetPath: this.kit.presetLabel(),
       ...(this.kit.presetError ? { presetError: this.kit.presetError } : {}),
       profiles,
       extensions,

@@ -7,6 +7,7 @@ export * from './diff';
 export * from './extensionsJson';
 export * from './preset';
 export * from './presetEdit';
+export * from './presetSource';
 export * from './profiles';
 export * from './recommend';
 export * from './retry';

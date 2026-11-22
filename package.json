@@ -43,6 +43,15 @@
     "configuration": {
       "title": "%config.title%",
       "properties": {
+        "profileKit.preset": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "default": null,
+          "scope": "application",
+          "markdownDescription": "%config.preset%"
+        },
         "profileKit.presetPath": {
           "type": "string",
           "default": "",
@@ -227,6 +236,18 @@
         "title": "%cmd.editPreset%",
         "category": "%category%",
         "icon": "$(edit)"
+      },
+      {
+        "command": "profileKit.storePresetInSettings",
+        "title": "%cmd.storePresetInSettings%",
+        "category": "%category%",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "profileKit.movePresetToFile",
+        "title": "%cmd.movePresetToFile%",
+        "category": "%category%",
+        "icon": "$(file)"
       },
       {
         "command": "profileKit.refresh",
@@ -426,6 +447,14 @@
         {
           "command": "profileKit.showPlan",
           "when": "profileKit.hasPreset"
+        },
+        {
+          "command": "profileKit.storePresetInSettings",
+          "when": "profileKit.hasPreset && !profileKit.presetInSettings"
+        },
+        {
+          "command": "profileKit.movePresetToFile",
+          "when": "profileKit.presetInSettings"
         }
       ]
     },

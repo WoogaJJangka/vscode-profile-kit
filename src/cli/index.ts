@@ -1,12 +1,13 @@
 /**
  * profile-kit CLI: the batch side of Profile Kit (new PC, CI checks). Day-to-day work is in the extension's GUI.
+ * <preset.json> may be left out: then the preset Profile Kit uses is read from Default's settings.json (the synced
+ * `profileKit.preset`, else the file named by `profileKit.presetPath`).
  *   profile-kit plan   <preset.json> [--profile <name>]           what each profile should contain (no VS Code calls)
  *   profile-kit verify <preset.json> [--profile <name>]           declared vs installed (read-only)
  *   profile-kit apply  <preset.json> [--profile <name>] [--yes]   create profiles, install, write settings
  *   profile-kit export <preset.json> [--profile <name>] --out <dir>   one .code-profile per profile (VS Code import)
  * `apply` only previews unless `--yes` is given. Nothing is uninstalled and the Default profile is never changed.
  */
-import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
 import {
@@ -16,7 +17,6 @@ import {
   formatPlan,
   listExtensionsArgs,
   parseListExtensions,
-  parsePresetText,
   planIsEmpty,
   type Preset,
   PresetError,
@@ -26,13 +26,18 @@ import {
 import { buildPlans, executePlans, reportOk } from '../host/apply';
 import { exportCodeProfiles, readApplicationScoped, SYNC_NOTE, syncedBefore } from '../host/builtins';
 import { installSucceeded } from '../host/installer';
+import { loadCliPreset } from '../host/presetLoader';
 import { defaultExtensionsDir, defaultUserDataDir, userDataPaths } from '../host/paths';
 
 const USAGE = `Usage:
-  profile-kit plan   <preset.json> [--profile <name>]
-  profile-kit verify <preset.json> [--profile <name>] [VS Code options]
-  profile-kit apply  <preset.json> [--profile <name>] [--yes] [--no-create] [VS Code options]
-  profile-kit export <preset.json> [--profile <name>] --out <dir> [--offline]
+  profile-kit plan   [<preset.json>] [--profile <name>]
+  profile-kit verify [<preset.json>] [--profile <name>] [VS Code options]
+  profile-kit apply  [<preset.json>] [--profile <name>] [--yes] [--no-create] [VS Code options]
+  profile-kit export [<preset.json>] [--profile <name>] --out <dir> [--offline]
+
+Without <preset.json>, the preset Profile Kit uses in VS Code: the one stored in Settings (profileKit.preset,
+carried by Settings Sync), else the file in profileKit.presetPath. They are read from Default's settings.json
+(under --user-data-dir when given).
 
 apply previews the changes; add --yes to carry them out.
   --no-create   do not create missing profiles (creating one opens a VS Code window)
@@ -46,10 +51,6 @@ VS Code options:
   --user-data-dir <dir>      passed to code, and where settings.json / storage.json are read
   --extensions-dir <dir>     passed to code
   --shared-data-dir <dir>    passed to code`;
-
-function loadPreset(path: string): Preset {
-  return parsePresetText(readFileSync(path, 'utf8'));
-}
 
 function selectProfiles(preset: Preset, only?: string): string[] {
   if (!only) return profileNames(preset);
@@ -75,12 +76,12 @@ async function main(argv: string[]): Promise<number> {
     },
   });
   const [command, presetPath] = positionals;
-  if (values.help || !command || !presetPath) {
+  if (values.help || !command) {
     console.log(USAGE);
     return values.help ? 0 : 2;
   }
 
-  const preset = loadPreset(presetPath);
+  const { preset } = loadCliPreset(presetPath, values['user-data-dir'] ?? defaultUserDataDir(), console.log);
   const names = selectProfiles(preset, values.profile);
 
   if (command === 'plan') {

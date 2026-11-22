@@ -18,7 +18,10 @@ import {
   parsePresetText,
   type Preset,
   PresetError,
+  type PresetSource,
+  presetSourceFrom,
   presetStatus,
+  syncedPresetText,
   type PresetStatus,
   profileNames,
   resolveProfile,
@@ -36,6 +39,7 @@ import {
   userDataPaths,
   type UserDataPaths,
 } from '../host/paths';
+import { readSyncedPreset, SYNCED_PRESET_URI, writeSyncedPreset } from './syncedPreset';
 
 export interface LoadedPreset {
   uri: vscode.Uri;
@@ -157,15 +161,69 @@ export class Kit implements vscode.Disposable {
     return this.storage;
   }
 
+  /** The preset file on this PC (`profileKit.presetPath`), or '' for none. Used only without a synced preset. */
   presetPath(): string {
     return vscode.workspace.getConfiguration('profileKit').get<string>('presetPath', '').trim();
   }
 
-  /** Use this preset file from now on (application scope: one value for every profile) and load it. */
-  async usePreset(file: string): Promise<void> {
+  /** Where the preset comes from: the synced setting `profileKit.preset` first, then the file on this PC. */
+  presetSource(): PresetSource | undefined {
+    return presetSourceFrom(readSyncedPreset(), this.presetPath());
+  }
+
+  hasPreset(): boolean {
+    return !!this.presetSource();
+  }
+
+  /** The preset stored in Settings (and carried by Settings Sync) is the one in use. */
+  presetInSettings(): boolean {
+    return this.presetSource()?.kind === 'settings';
+  }
+
+  /** For messages and the tree: the file path, or "Settings (Sync)". */
+  presetLabel(): string {
+    const source = this.presetSource();
+    if (!source) return '';
+    return source.kind === 'settings' ? vscode.l10n.t('Settings (synced)') : source.file;
+  }
+
+  /**
+   * Use this preset file from now on (application scope: one value for every profile) and load it. A synced preset
+   * would still win over the file, so it is removed first, after asking and with a copy in global storage.
+   * Returns false when the user keeps the synced preset.
+   */
+  async usePreset(file: string): Promise<boolean> {
+    const synced = readSyncedPreset();
+    if (synced) {
+      const use = vscode.l10n.t('Use the File');
+      const answer = await vscode.window.showWarningMessage(
+        vscode.l10n.t('Use {0} instead of the preset stored in Settings?', file),
+        {
+          modal: true,
+          detail: vscode.l10n.t(
+            'The synced preset is removed from Settings, and Settings Sync removes it on your other PCs too. A copy is kept in {0}.',
+            vscode.Uri.joinPath(this.context.globalStorageUri, 'synced-preset-backups').fsPath,
+          ),
+        },
+        use,
+      );
+      if (answer !== use) return false;
+      await this.backupSyncedPreset(synced);
+      await writeSyncedPreset(undefined);
+    }
     await vscode.workspace.getConfiguration('profileKit').update('presetPath', file, vscode.ConfigurationTarget.Global);
     await this.loadPreset();
     await this.refresh();
+    return true;
+  }
+
+  private async backupSyncedPreset(value: Record<string, unknown>): Promise<void> {
+    const dir = vscode.Uri.joinPath(this.context.globalStorageUri, 'synced-preset-backups');
+    await vscode.workspace.fs.createDirectory(dir);
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(/[-:]/g, '');
+    const target = vscode.Uri.joinPath(dir, `synced-preset-${stamp}.profile-kit.json`);
+    await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(syncedPresetText(value)));
+    this.log(`synced preset backed up: ${target.fsPath}`);
   }
 
   /** Extensions installed in this window's profile, lower-case, without VS Code's built-in ones and Profile Kit. */
@@ -176,15 +234,26 @@ export class Kit implements vscode.Disposable {
       .map((e) => e.id.toLowerCase());
   }
 
-  /** Read the preset file named by `profileKit.presetPath` and watch it. Does not call the code CLI. */
+  /**
+   * Read the preset (the synced one, or the file named by `profileKit.presetPath`) and watch the file. Does not call
+   * the code CLI. A synced preset is reloaded from onDidChangeConfiguration (extension.ts).
+   */
   async loadPreset(): Promise<void> {
     this.watcher?.dispose();
     this.watcher = undefined;
     this.loaded = undefined;
     this.loadError = undefined;
     this.presetMissing = false;
-    const file = this.presetPath();
-    if (file) {
+    const source = this.presetSource();
+    if (source?.kind === 'settings') {
+      try {
+        const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(SYNCED_PRESET_URI));
+        this.loaded = { uri: SYNCED_PRESET_URI, text, preset: parsePresetText(text) };
+      } catch (error) {
+        this.loadError = error instanceof Error ? error.message : String(error);
+      }
+    } else if (source) {
+      const file = source.file;
       const uri = vscode.Uri.file(file);
       try {
         const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
@@ -209,7 +278,8 @@ export class Kit implements vscode.Disposable {
       this.watcher.onDidCreate(reload);
       this.watcher.onDidDelete(reload);
     }
-    await vscode.commands.executeCommand('setContext', 'profileKit.hasPreset', !!file);
+    await vscode.commands.executeCommand('setContext', 'profileKit.hasPreset', !!source);
+    await vscode.commands.executeCommand('setContext', 'profileKit.presetInSettings', source?.kind === 'settings');
     this.changed.fire();
   }
 

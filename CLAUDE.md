@@ -40,6 +40,8 @@
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
   (VS Code는 프로필 settings.json을 그대로 둠, 11-20 옛 사본) → `apply --yes`로 8개 프로필에 마커, Web-JS에 `[html]`. 다시 돌린 미리보기 "Nothing to do".
   `[html]`은 목록으로 묶을 수 없어 프리셋 공통 `settings`에 넣었다. 프로필 창에서 목록에 없는 새 설정을 바꾸면 그 프로필에만 저장된다.
+- 프리셋 출처(2026-11-22, `docs/PLAN.md` 12절): 설정 `profileKit.preset`(application 범위, Sync됨)이 있으면 그것, 없으면 `profileKit.presetPath` 파일(Sync 안 됨).
+  확장은 `profile-kit:/synced.profile-kit.json` 가상 파일(`src/ui/syncedPreset.ts`)로 읽고 쓴다. CLI는 프리셋 인자를 빼면 Default settings.json에서 같은 순서로 읽는다.
 - 설정은 프리셋 공통 `settings` + `profiles.X.settings`를 각 프로필 settings.json에 쓴다(도구가 쓴 키만 관리, 백업). 관리 키 목록은 각 settings.json의 `profileKit.managedKeys`(Sync로 같이 이동). 옛 `globalStorage/.../managed-settings.json`은 읽기만. UI에서 추가하면 프리셋도 고친다.
   Default의 `workbench.settings.applyToAllProfiles`에 있는 키는 프로필에 쓰지 않는다(VS Code가 Default 값을 쓰고 프로필 값은 무시, `docs/PLAN.md` 8-1절). 도구는 Default settings.json을 읽기만 한다.
   공유 문제의 결정(2026-11-21): 설정 공유를 끄고 공통 키는 이 목록으로 묶는다(추천안 C). 도구 수정은 PR #11로 main에 머지됨(2026-11-21), 실제 PC 전환도 끝(위).
@@ -81,6 +83,7 @@
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
   `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
+  `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트),
   `compat.ts`(공개 API가 아닌 VS Code 동작 10가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
 - `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.

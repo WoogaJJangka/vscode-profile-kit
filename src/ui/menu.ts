@@ -79,12 +79,25 @@ function presetItems(kit: Kit): MenuItem[] {
       action('check-all', t('Apply Preset to All Profiles...'), state, 'profileKit.applyAll'),
       action('add', t('Install to Profiles...'), t('pick profiles for an extension'), 'profileKit.installToProfiles'),
       action('table', t('Open Manager'), t('extensions × profiles, settings'), 'profileKit.openManager'),
-      action('edit', t('Edit Preset'), path.basename(loaded.uri.fsPath), 'profileKit.editPreset'),
+      action(
+        'edit',
+        t('Edit Preset'),
+        kit.presetInSettings() ? kit.presetLabel() : path.basename(loaded.uri.fsPath),
+        'profileKit.editPreset',
+      ),
     );
   }
   out.push(
     separator(t('More')),
     action('folder-opened', t('Open Preset File...'), t('use another preset'), 'profileKit.openPreset'),
+    kit.presetInSettings()
+      ? action('file', t('Move Preset to a File...'), t('stop syncing it'), 'profileKit.movePresetToFile')
+      : action(
+          'sync',
+          t('Store Preset in Settings (Sync)'),
+          t('to use it on your other PCs'),
+          'profileKit.storePresetInSettings',
+        ),
     action('library', t('Start from a Built-in Preset...'), t('Python, Web, Java, ...'), 'profileKit.startFromStarter'),
     importItem(),
     ...(loaded
@@ -114,7 +127,7 @@ function switchItems(kit: Kit): MenuItem[] {
 export async function showMenu(kit: Kit): Promise<void> {
   // the menu shows every profile's state, like the tree (review P5: only once something shows them all)
   kit.showAllProfiles();
-  const hasPreset = !!kit.presetPath();
+  const hasPreset = kit.hasPreset();
   const items = hasPreset
     ? [...switchItems(kit), ...presetItems(kit)]
     : [...(await startItems(kit)), ...switchItems(kit)];
