@@ -9,7 +9,7 @@
 
 ### Fixed
 
-- CLI `verify` listed Profile Kit itself as "extra" in every profile.
+- CLI `verify` listed Profile Kit itself as "extra" in every profile, and apply previews (extension and CLI) counted it as "installed but not declared".
 - A preset that declares Profile Kit itself showed it as missing in the tree, so applying always wanted to install it.
 
 ## [1.3.0] - pre-release
