@@ -15,6 +15,7 @@ import {
   parseSettingsText,
   planIsEmpty,
   planProfile,
+  PROFILE_KIT_ID,
   PROFILE_MARKER_KEY,
   type StoredProfile,
 } from '../src/core';
@@ -56,6 +57,17 @@ describe('planProfile', () => {
     });
     expect(planIsEmpty(plan)).toBe(true);
     expect(plan.extensions.extra).toEqual(['ms-python.debugpy']);
+  });
+
+  it('Profile Kit itself is not counted as installed but not declared', () => {
+    const plan = planProfile(preset, 'Python', {
+      stored: stored('Python'),
+      installed: ['esbenp.prettier-vscode', 'ms-python.python', PROFILE_KIT_ID],
+      settings: { 'editor.formatOnSave': true, 'editor.tabSize': 4, [PROFILE_MARKER_KEY]: 'Python' },
+      managed: ['editor.formatOnSave', 'editor.tabSize', PROFILE_MARKER_KEY],
+    });
+    expect(plan.extensions.extra).toEqual([]);
+    expect(formatPlan([plan]).join('\n')).not.toContain('not declared');
   });
 
   it('keys dropped from the preset are removed only when Profile Kit wrote them', () => {

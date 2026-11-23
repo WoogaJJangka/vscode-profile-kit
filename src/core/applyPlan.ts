@@ -5,6 +5,7 @@
  */
 import { applyEdits, modify } from 'jsonc-parser';
 
+import { PROFILE_KIT_ID } from './dependencies';
 import { diffExtensions, type ExtensionDiff } from './diff';
 import { type Preset, resolveProfile, type SettingsMap, stripBom } from './preset';
 import { detectFormatting } from './presetEdit';
@@ -133,7 +134,10 @@ export function planProfile(
 ): ProfileApplyPlan {
   const notes: string[] = [];
   const create = !state.stored;
-  const extensions = diffExtensions(resolveProfile(preset, name), state.installed ?? []);
+  // Profile Kit itself is in every profile it runs in: not "installed but not declared" (same as verify and the tree)
+  const extensions = diffExtensions(resolveProfile(preset, name), state.installed ?? [], {
+    ignoreExtra: [PROFILE_KIT_ID],
+  });
   const desired = desiredSettings(preset, name, allProfiles);
   const vscodeShares = state.stored?.useDefaultFlags.settings === true;
   const presetShares = preset.profiles[name]?.shareFromDefault?.settings === true;
