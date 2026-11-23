@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.1] - pre-release
+
+Extensions you did not add yourself now say why they are there, and Profile Kit no longer counts itself.
 
 ### Changed
 
