@@ -64,7 +64,7 @@
 - [x] 현재 PC: Default 정리 → Core에 없는 53개를 Default에서만 `code --uninstall-extension`으로 제거(2026-11-21, 사용자 요청, uninstall 금지 규칙의 1회 예외). Default = Core 27개, 다른 8개 프로필은 `verify`로 그대로인 것 확인. 의존 관계 때문에 한 번에 안 지워지는 것(.NET Install Tool, C# Dev Kit, Container Tools, Java 디버거·언어 지원)은 두 번째 패스에서 지워짐. 백업 `extensions-backup-20261121-104351-before-core-match.txt`(80개). Settings Sync로 다른 PC의 Default에도 전파될 수 있음
 - [x] 타당성 검증 후 구조 결정 → 8절 (확장 중심 GUI + 공유 core + 보조 CLI)
 - [x] 저장소 초기화, CI, 문서, 테스트
-- [ ] 배포: publisher 생성과 계정 작업은 사용자가 직접
+- [x] 배포: publisher 생성과 계정 작업은 사용자가 직접 했다. 0.1.0 pre-release(2026-11-21)부터 1.3.1 pre-release(2026-11-23)까지 Release workflow(Trusted Publishing)로 게시. 절차는 `docs/RELEASE.md`
 
 ## 8. Phase 2 실험 결과 (2026-11-21, VS Code 1.147.0, Windows)
 

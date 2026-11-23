@@ -32,7 +32,7 @@
   첫 번째 PC 개인 프리셋(같은 날, 사용자 승인): web-js에서 `xyc.vscode-mdx-preview`를 빼고 `ggfincke.vsc-mdx-preview`(Modern MDX Preview, 후속작, 의존성 `unifiedjs.vscode-mdx`뿐)를 넣음.
   Web-JS에서 옛 것 uninstall(팩 멤버 `silvenon.mdx`도 CLI가 같이 지움) → `apply --profile Web-JS --yes`로 새 것 설치. 백업 `Documents/vscode-profiles-setup/*-20261123-*`. 두 번째 PC는 아직.
   첫 번째 PC: 개인 프리셋 `~/vscode-profiles.json`(example 8개 + CTF 42개)을 Default settings.json `profileKit.preset`에도 넣었다
-  (백업 `Documents/vscode-profiles-setup/settings-backup-20261122-131725-before-synced-preset.json`). `presetPath`는 1.1.0용으로 남김. 두 PC 사이 실제 Sync는 아직 확인하지 않았다.
+  (백업 `Documents/vscode-profiles-setup/settings-backup-20261122-131725-before-synced-preset.json`). `presetPath`는 1.1.0용으로 남김(언제 뺄지는 정하지 않음). 두 PC 사이 Sync는 아래 "두 번째 PC 확인 끝"(2026-11-22)에서 확인했다.
   walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
   두 번째 PC 확인 끝(2026-11-22): Sync 뒤 `apply` 미리보기에 설정 변경·"[overrides your value]" 없음(확장 설치 예정 1개만). `docs/REVIEW-2026-11-21.md` 단계 A.
   주의: 새 PC 첫 Sync에서 Default 설정 충돌이 나면 그 PC 내용이 원격을 덮어 `applyToAllProfiles`가 빠질 수 있다. Default에 목록이 있는지 먼저 보고 확인한다.
