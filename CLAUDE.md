@@ -47,7 +47,11 @@
   두 번째 PC는 Sync로(2026-11-23 확인): 첫 번째 PC의 확장 추가·삭제와 프리셋 변경은 프로필마다 Sync 서버에 올라간다(`userDataSync.log`의
   `Extensions (<프로필>): Updated remote extensions. Added/Removed`, `Settings: Updated remote settings`). Sync가 남긴 서버 사본 `User/sync/<프로필>/extensions/lastSyncextensions.json`에서
   9개 프로필 모두 Cool Theme Kit은 새 ID만, Material Icon Theme 있음, Web-JS는 `ggfincke.vsc-mdx-preview`만(옛 MDX 둘 없음). Sync는 추가와 삭제를 한 번에 맞추니
-  옛 것을 먼저 지울 필요도 없다. 두 번째 PC에서는 Sync가 돈 뒤 `verify`로 확인만 한다(아직 안 함). 그 PC가 마지막 동기화 뒤 옛 것을 직접 설치했다면 그 설치가 다시 올라올 수 있다.
+  옛 것을 먼저 지울 필요도 없다. 그 PC가 마지막 동기화 뒤 옛 것을 직접 설치했다면 그 설치가 다시 올라올 수 있다.
+  두 번째 PC 결과(2026-11-23, 사용자가 확장의 apply로 확인): Sync가 다 따라오기 전이라 apply가 5개 프로필에 `atommaterial.a-file-icon-vscode`,
+  Web-JS에 `ggfincke.vsc-mdx-preview`, CTF에 `anthropic.claude-code`·`sonarsource.sonarlint-vscode`를 설치했다. Web-JS의 "2 installed but not declared"(옛 MDX 둘)는
+  apply가 지우지 않는데 뒤에 0 extra가 되어 Sync가 지운 것으로 본다(그 PC의 Sync 로그는 안 봄). 트리는 9개 모두 빠진 것 없음, extra는 첫 번째 PC와 같다.
+  그때 apply가 한 창에서 세 번 겹쳐 돌았다(프로필 읽는 몇 초 동안 다시 눌림): 다음 배포부터 변경 작업은 창마다 하나씩(`src/core/oneAtATime.ts`, `Kit.exclusive`).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
@@ -97,6 +101,7 @@
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
   `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
   `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트), `dependencies.ts`(extra의 이유: 같은 프로필의 다른 확장이 의존·팩으로 끌어온 것, 자기 ID `PROFILE_KIT_ID`는 extra 아님, `docs/PLAN.md` 13절),
+  `oneAtATime.ts`(변경 작업은 창마다 하나씩: apply·누락 설치·프로필에 추가·관리 화면 적용이 `Kit.exclusive`로 감싸짐),
   `compat.ts`(공개 API가 아닌 VS Code 동작 11가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
 - `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·설치된 확장 폴더의 package.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.

@@ -6,6 +6,7 @@ export * from './compat';
 export * from './dependencies';
 export * from './diff';
 export * from './extensionsJson';
+export * from './oneAtATime';
 export * from './preset';
 export * from './presetEdit';
 export * from './presetSource';

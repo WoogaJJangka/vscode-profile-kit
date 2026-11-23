@@ -84,6 +84,10 @@ async function confirmCreate(name: string): Promise<boolean> {
 
 /** Install the declared-but-missing extensions of one profile (creating the profile first if needed). */
 async function installMissing(kit: Kit, arg: unknown): Promise<void> {
+  await kit.exclusive(t('installing missing extensions'), () => installMissingNow(kit, arg));
+}
+
+async function installMissingNow(kit: Kit, arg: unknown): Promise<void> {
   const loaded = requirePreset(kit);
   if (!loaded) return;
   const name =
@@ -143,17 +147,26 @@ async function installMissing(kit: Kit, arg: unknown): Promise<void> {
   void show.then((a) => a === showOutput && kit.output.show(true));
 }
 
-/** Full apply (create, install, settings) for some declared profiles, after a preview and a modal confirm. */
+/**
+ * Full apply (create, install, settings) for some declared profiles, after a preview and a modal confirm.
+ * One at a time: reading the profiles takes seconds, and a second click then used to start another apply.
+ */
 async function apply(kit: Kit, names: string[]): Promise<void> {
+  await kit.exclusive(t('applying the preset'), () => applyNow(kit, names));
+}
+
+async function applyNow(kit: Kit, names: string[]): Promise<void> {
   const loaded = requirePreset(kit);
   if (!loaded || !names.length) return;
   const env = { run: kit.run, paths: kit.paths };
+  // a notification, not only the status bar, so the click visibly started something
   const { plans, problems } = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Window, title: t('Profile Kit: reading profiles...') },
+    { location: vscode.ProgressLocation.Notification, title: t('Profile Kit: reading profiles...') },
     () => buildPlans(env, loaded.preset, names),
   );
   kit.output.clear();
-  kit.log(`Preset: ${loaded.uri.fsPath}`);
+  // the synced preset is a virtual file (profile-kit:/synced.profile-kit.json): name the setting, not its path
+  kit.log(`Preset: ${kit.presetInSettings() ? 'profileKit.preset (Settings)' : loaded.uri.fsPath}`);
   for (const p of problems) kit.log(`! ${p}`);
   for (const line of formatPlan(plans)) kit.log(line);
   const todo = plans.filter((p) => !planIsEmpty(p));

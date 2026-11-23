@@ -18,6 +18,7 @@ import {
   type ExtraReason,
   folderProfile,
   mapLimit,
+  OneAtATime,
   parsePresetText,
   type Preset,
   PresetError,
@@ -453,6 +454,26 @@ export class Kit implements vscode.Disposable {
 
   log(line: string): void {
     this.output.appendLine(line);
+  }
+
+  private readonly changes = new OneAtATime();
+
+  /**
+   * Run a change (apply, installs, preset edits that install) unless another one still runs in this window; then say
+   * what runs and return undefined. Covers the whole change, from reading profiles to the result, so a second click
+   * while the first is still reading does not start the same installs again.
+   */
+  async exclusive<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
+    const result = await this.changes.run(label, fn);
+    if (result.ran) return result.value;
+    const showOutput = vscode.l10n.t('Show Output');
+    void vscode.window
+      .showInformationMessage(
+        vscode.l10n.t('Profile Kit is still busy: {0}. Try again when it has finished.', result.running),
+        showOutput,
+      )
+      .then((a) => a === showOutput && this.output.show(true));
+    return undefined;
   }
 
   dispose(): void {

@@ -195,13 +195,17 @@ export interface AddOptions {
   chosen?: string[];
 }
 
-/** Choose profiles, record the extension in the preset, install where needed. */
+/** Choose profiles, record the extension in the preset, install where needed. One change at a time (Kit.exclusive). */
 export async function addToProfiles(
   kit: Kit,
   id: string,
   meta: ExtensionMeta,
   options: AddOptions = {},
 ): Promise<void> {
+  await kit.exclusive(t('adding {0} to profiles', id), () => addToProfilesNow(kit, id, meta, options));
+}
+
+async function addToProfilesNow(kit: Kit, id: string, meta: ExtensionMeta, options: AddOptions): Promise<void> {
   const loaded = kit.preset;
   if (!loaded) {
     void vscode.window.showWarningMessage(kit.presetError ?? t('No preset file is set.'));

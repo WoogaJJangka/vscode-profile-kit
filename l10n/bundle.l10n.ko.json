@@ -278,5 +278,11 @@
   "In extension pack: {0}": "포함한 확장 팩: {0}",
   "VS Code installed it together with that extension; you did not add it yourself.": "VS Code가 그 확장과 함께 설치했습니다. 직접 추가한 확장이 아닙니다.",
   "dependency": "함께 설치됨",
-  "VS Code installed it together with these extensions (they need it, or it is in their extension pack):": "VS Code가 다음 확장과 함께 설치했습니다(그 확장에 필요하거나 그 확장 팩에 들어 있음):"
+  "VS Code installed it together with these extensions (they need it, or it is in their extension pack):": "VS Code가 다음 확장과 함께 설치했습니다(그 확장에 필요하거나 그 확장 팩에 들어 있음):",
+  "Profile Kit is still busy: {0}. Try again when it has finished.": "Profile Kit이 아직 작업 중입니다: {0}. 끝난 뒤 다시 시도하세요.",
+  "installing missing extensions": "빠진 확장 설치",
+  "applying the preset": "프리셋 적용",
+  "adding {0} to profiles": "{0}을(를) 프로필에 추가",
+  "applying changes from the manager": "관리 화면의 변경 적용",
+  "Another Profile Kit change is still running. Try again when it has finished.": "다른 Profile Kit 작업이 아직 실행 중입니다. 끝난 뒤 다시 시도하세요."
 }
