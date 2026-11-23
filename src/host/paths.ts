@@ -6,10 +6,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { PROFILES_FOLDER, SYNC_FOLDER } from '../core/compat';
+import { PROFILE_KIT_ID } from '../core/dependencies';
 
 /** Folder under `User/globalStorage/` for Profile Kit's own files. One path for all profiles: the extension's
  * globalStorageUri is the same in every profile (PLAN.md section 8, #3), and the CLI must find the same files. */
-export const STATE_DIR_NAME = 'woogajjangka.vscode-profile-kit';
+export const STATE_DIR_NAME = PROFILE_KIT_ID;
 
 /** VS Code's default user data folder (what `--user-data-dir` replaces). */
 export function defaultUserDataDir(

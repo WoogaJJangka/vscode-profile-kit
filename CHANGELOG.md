@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Extensions that VS Code installed along with another extension of the profile (a dependency, or a member of an extension pack) are no longer a bare "not in the preset": the tree, the manager and CLI `verify` name the extension that brought them in.
+- Example preset: Web · JS no longer includes `xyc.vscode-mdx-preview`. Installing it also installs `silvenon.mdx`, which the Marketplace marks deprecated and which registers `.mdx` a second time next to `unifiedjs.vscode-mdx` (still included).
+
+### Fixed
+
+- CLI `verify` listed Profile Kit itself as "extra" in every profile.
+- A preset that declares Profile Kit itself showed it as missing in the tree, so applying always wanted to install it.
+
 ## [1.3.0] - pre-release
 
 A preset that travels with Settings Sync, without a repository.

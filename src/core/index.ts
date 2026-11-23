@@ -3,6 +3,7 @@ export * from './applyPlan';
 export * from './codeCli';
 export * from './codeProfile';
 export * from './compat';
+export * from './dependencies';
 export * from './diff';
 export * from './extensionsJson';
 export * from './preset';

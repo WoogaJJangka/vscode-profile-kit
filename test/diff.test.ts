@@ -8,6 +8,20 @@ describe('diffExtensions', () => {
     expect(diff).toEqual({ missing: ['c.three'], extra: ['y.dep', 'z.dep'], present: ['a.one', 'b.two'] });
   });
 
+  it('never reports ignored IDs (Profile Kit itself) as extra, but counts them when declared', () => {
+    const installed = ['a.one', 'Woogajjangka.Vscode-Profile-Kit'];
+    expect(diffExtensions(['a.one'], installed, { ignoreExtra: ['woogajjangka.vscode-profile-kit'] })).toEqual({
+      missing: [],
+      extra: [],
+      present: ['a.one'],
+    });
+    expect(
+      diffExtensions(['a.one', 'woogajjangka.vscode-profile-kit'], installed, {
+        ignoreExtra: ['woogajjangka.vscode-profile-kit'],
+      }),
+    ).toEqual({ missing: [], extra: [], present: ['a.one', 'woogajjangka.vscode-profile-kit'] });
+  });
+
   it('handles empty lists', () => {
     expect(diffExtensions([], [])).toEqual({ missing: [], extra: [], present: [] });
   });

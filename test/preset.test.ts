@@ -75,7 +75,7 @@ describe('resolveProfile', () => {
       'Python-Data': 43,
       Java: 35,
       'C-Cpp': 35,
-      'Web-JS': 34,
+      'Web-JS': 33,
       'CSharp-Unity': 32,
       Go: 29,
       'Docker-Infra': 32,

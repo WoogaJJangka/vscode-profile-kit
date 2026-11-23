@@ -7,7 +7,7 @@
  */
 import * as vscode from 'vscode';
 
-import { declaredCount, extensionOrigins, needsChanges } from '../core';
+import { declaredCount, extensionOrigins, type ExtraReason, needsChanges } from '../core';
 import { type Kit, type ProfileRow } from './kit';
 
 type Node = ProfileNode | ExtensionNode | MessageNode;
@@ -24,6 +24,8 @@ interface ExtensionNode {
   origin?: string;
   /** VS Code applies it to all profiles ("Apply Extension to all Profiles"), so every profile lists it. */
   allProfiles?: boolean;
+  /** An extra that another installed extension needs or bundles: VS Code installed it along with that one. */
+  via?: ExtraReason;
 }
 interface MessageNode {
   kind: 'message';
@@ -135,6 +137,10 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
     const preset = this.kit.preset?.preset;
     const origins = preset && row.declared ? extensionOrigins(preset, row.name) : new Map<string, string>();
     if (row.diff) {
+      const via = (id: string, state: ExtensionNode['state']): { via?: ExtraReason } => {
+        const reason = state === 'extra' ? row.extraReasons?.get(id) : undefined;
+        return reason ? { via: reason } : {};
+      };
       const node = (id: string, state: ExtensionNode['state']): ExtensionNode => ({
         kind: 'extension',
         profile: row.name,
@@ -142,6 +148,7 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
         state,
         ...(origins.get(id) ? { origin: origins.get(id) } : {}),
         ...(this.kit.appliedToAll(id) ? { allProfiles: true } : {}),
+        ...via(id, state),
       });
       return [
         ...row.diff.missing.map((id) => node(id, 'missing')),
@@ -235,12 +242,17 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
       extra: t('installed, not in the preset'),
       installed: t('installed'),
     };
-    // an "extra" that VS Code applies to all profiles is not something the user added to this profile
+    // an "extra" that VS Code applies to all profiles, or installed along with another extension, is not something
+    // the user added to this profile
     const scopedExtra = node.allProfiles === true && node.state === 'extra';
+    const neededBy = node.via?.neededBy ?? [];
+    const inPack = node.via?.inPack ?? [];
     item.description = [
       node.origin,
-      node.state === 'ok' || node.state === 'installed' || scopedExtra ? '' : label[node.state],
+      node.state === 'ok' || node.state === 'installed' || scopedExtra || node.via ? '' : label[node.state],
       node.allProfiles ? t('all profiles (VS Code)') : '',
+      neededBy.length ? t('needed by {0}', neededBy.join(', ')) : '',
+      inPack.length ? t('in pack {0}', inPack.join(', ')) : '',
     ]
       .filter(Boolean)
       .join(' · ');
@@ -250,6 +262,9 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
       node.origin ? `${t('from')}: ${node.origin}` : '',
       node.allProfiles ? t('VS Code applies this extension to all profiles (Apply Extension to all Profiles).') : '',
       node.allProfiles && node.origin === 'core' ? t('It is also in core; either one is enough.') : '',
+      neededBy.length ? t('Needed by: {0}', neededBy.join(', ')) : '',
+      inPack.length ? t('In extension pack: {0}', inPack.join(', ')) : '',
+      node.via ? t('VS Code installed it together with that extension; you did not add it yourself.') : '',
     ]
       .filter(Boolean)
       .join('\n');
@@ -259,7 +274,11 @@ export class ProfilesTree implements vscode.TreeDataProvider<Node> {
       missing: new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('list.warningForeground')),
       extra: new vscode.ThemeIcon('dash', new vscode.ThemeColor('disabledForeground')),
     };
-    item.iconPath = scopedExtra ? new vscode.ThemeIcon('globe') : icons[node.state];
+    item.iconPath = scopedExtra
+      ? new vscode.ThemeIcon('globe')
+      : node.via
+        ? new vscode.ThemeIcon('link', new vscode.ThemeColor('disabledForeground'))
+        : icons[node.state];
     item.command = { command: 'extension.open', title: t('Show Extension'), arguments: [node.id] };
     return item;
   }

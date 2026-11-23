@@ -10,14 +10,22 @@ export interface ExtensionDiff {
   present: string[];
 }
 
-/** Compare declared extension IDs with what `code --profile X --list-extensions` reported. */
-export function diffExtensions(wanted: readonly string[], installed: readonly string[]): ExtensionDiff {
+/**
+ * Compare declared extension IDs with what `code --profile X --list-extensions` reported.
+ * `ignoreExtra` (Profile Kit itself): never reported as extra, but still counted as present when declared.
+ */
+export function diffExtensions(
+  wanted: readonly string[],
+  installed: readonly string[],
+  options: { ignoreExtra?: readonly string[] } = {},
+): ExtensionDiff {
   const want = [...new Set(wanted.map(normalizeId))];
   const have = new Set(installed.map(normalizeId));
   const wantSet = new Set(want);
+  const ignored = new Set((options.ignoreExtra ?? []).map(normalizeId));
   return {
     missing: want.filter((id) => !have.has(id)),
-    extra: [...have].filter((id) => !wantSet.has(id)).sort(compareCodeUnits),
+    extra: [...have].filter((id) => !wantSet.has(id) && !ignored.has(id)).sort(compareCodeUnits),
     present: want.filter((id) => have.has(id)),
   };
 }

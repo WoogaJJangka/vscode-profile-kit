@@ -158,7 +158,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 ## 10. VS Code 내부 의존과 호환성 점검 (2026-11-21~, 단계 D)
 
-공개 API가 아닌 VS Code 동작 10가지(6가지 + 단계 C의 4가지, 8-2절)는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
+공개 API가 아닌 VS Code 동작 11가지(6가지 + 단계 C의 4가지, 8-2절 + 확장 폴더의 package.json, 13절)는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
 손으로 확인한 버전은 `COMPAT_CHECKED_VERSION`(1.147.0). 확장은 시작할 때 출력 창 첫 줄에 VS Code 버전과 이 버전을 적는다(버그 보고용, `.github/ISSUE_TEMPLATE/bug_report.yml`).
 
 호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
@@ -219,3 +219,19 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 확인(2026-11-22): `npm run check` 통과(테스트 281개, `presetSource.test.ts`). 격리 VS Code 1.147(데이터 폴더 3개 모두 임시)을 `--profile Probe --extensionDevelopmentPath --extensionTestsPath`로 띄운 탐침에서 9개 모두 통과: 프로필 창에서 가상 파일 읽기, JSON으로 열림, 편집·저장이 Default settings.json에 들어가고 프로필 settings.json에는 안 들어감, 문법이 틀린 저장 거부, 바깥에서 settings.json을 고치면(Sync와 같음) 가상 파일과 Kit이 다시 읽음.
 아직: 두 PC 사이 실제 Sync, 두 명령의 확인 창은 화면으로 보지 않았다.
+
+## 13. extra의 이유: 의존성·확장 팩, 자기 자신 (2026-11-23)
+
+문제: 실제 PC `verify`에서 Profile Kit 자신이 9개 프로필 모두 extra로 나왔고(CLI만. 트리·관리 화면은 이미 뺐다), VS Code가 다른 확장과 함께 설치한 것
+(CTF의 jupyter 팩 4개와 `ms-python.vscode-python-envs`, Java의 `vscjava.vscode-gradle`, Web-JS의 `silvenon.mdx`)이 이유 없이 "프리셋에 없음"이었다.
+
+| 결정 | 이유 |
+| --- | --- |
+| extra마다 "같은 프로필에 설치된 어떤 확장이 `extensionDependencies`·`extensionPack`으로 이것을 부르는지"를 붙인다(`core/dependencies.ts`). 숨기지 않고 이유만 단다 | 모든 프로필에 적용된 확장(C-2)과 같은 방식. 사용자가 직접 넣은 것과 구분되면 충분하다 |
+| 관계는 확장 폴더(`--extensions-dir`, 모든 프로필이 같이 씀)의 폴더마다 `package.json`을 읽어 얻는다(`host/builtins.ts` `readExtensionRelations`). 버전이 여러 개면 합친다. 폴더 이름에 버전이 있어 확장은 폴더별로 캐시한다. 목록을 읽는 폴더는 VS Code의 `extensions.json`이 있는 폴더(실제 경로, 준 폴더 안인지 확인)뿐이고, 각 `package.json`도 실제 경로가 그 안일 때만 같은 함수 안에서 읽는다 | Marketplace 조회는 네트워크가 필요하고 설치된 버전과 다를 수 있다. 이 PC 81개 폴더, package.json 합계 3.8MB. 비공개 의존 11번째로 `compat.ts`에 넣고 호환성 점검에 검사 하나 추가. 경로 확인 순서는 SonarQube S8707이 요구하는 것과 같다. PR #40에서 세 번 분석했다: 파일 읽기는 `readApplicationScoped`와 같은 모양(한 함수 안에서 폴더·파일 실제 경로 → 안쪽 확인 → `readFileSync`)으로 고치니 닫혔고, 사용자가 지정한 폴더의 목록을 읽는 `readdir` 1건은 비교할 신뢰 폴더가 없어 Accept(2026-11-23, 사용자 승인, 9절과 같은 이유) |
+| 자기 자신은 extra로 세지 않되, 프리셋에 있으면 present로 센다(`diffExtensions`의 `ignoreExtra`) | 트리는 설치 목록에서 자기 ID를 지워서, 프리셋에 Profile Kit을 넣으면 늘 "빠짐"이 되고 적용할 때마다 설치하려 했다 |
+| 예제 프리셋 `web-js`에서 `xyc.vscode-mdx-preview`를 뺐다(Web-JS 34 → 33, 레거시 스크립트도) | 격리 VS Code에서 설치하면 경고 없이 `silvenon.mdx` v0.1.1이 같이 설치된다. Marketplace에서 deprecated이고, 같은 그룹의 `unifiedjs.vscode-mdx`와 `.mdx`를 겹쳐 등록한다 (이슈 #25) |
+
+확인: `npm run check` 통과(테스트 297개). 실제 PC `verify`(읽기만): Profile Kit extra 사라짐, CTF 5개·Java gradle·Web-JS `silvenon.mdx`에 이유가 붙음.
+이유가 없는 extra는 Python-Data의 `vscjava.vscode-gradle` 하나(이 프로필에서는 아무 확장도 부르지 않음).
+아직: 트리·관리 화면의 새 표시는 화면으로 보지 않았다. 개인 프리셋(`profileKit.preset`, `~/vscode-profiles.json`)의 `web-js`와 실제 Web-JS 프로필의 두 확장은 그대로다.
