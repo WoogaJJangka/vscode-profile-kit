@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.2] - pre-release
+
+Profile Kit's changes no longer run twice at once when a button is pressed again.
 
 ### Fixed
 
