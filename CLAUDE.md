@@ -3,7 +3,7 @@
 선언형 프리셋(core + groups + profiles) 하나로 VS Code 프로필을 만들고 점검하는 도구. 한국어로 답한다.
 배경·결정·겪은 문제는 `docs/PLAN.md`, 단계와 게이트는 `docs/ROADMAP.md`(Phase 0~5).
 
-## 진행 상태 (2026-11-22)
+## 진행 상태 (2026-11-23)
 
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
   단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
@@ -26,6 +26,11 @@
   `npm run check` 통과(테스트 274개). 격리 VS Code 1.147에서 화면 확인 끝(`docs/PLAN.md` 11절). 설치 후 프로필 고르기 흐름만 화면으로 보지 않았다.
   1.3.0 게시(2026-11-22, 사용자 결정 pre-release, 1.2.0은 건너뜀): PR #37(설정에 저장하는 프리셋 `profileKit.preset`, Sync됨, `docs/PLAN.md` 12절) + PR #38(version, CHANGELOG)
   → 태그 `v1.3.0` → Release 성공("Published ... v1.3.0", `--pre-release`). 테스트 286개. Sonar S8707(`presetLoader.ts`, CLI 인자 경로) 1건은 같은 이유로 accept.
+  1.3.1 게시(2026-11-23, 사용자 결정 pre-release): PR #40(extra에 이유 표시 `src/core/dependencies.ts`, Profile Kit 자기 자신은 extra 아님, 예제 web-js에서 `xyc.vscode-mdx-preview` 제거, `docs/PLAN.md` 13절)
+  + PR #41(apply 계획도 Profile Kit 제외) + PR #42(version, CHANGELOG) → 태그 `v1.3.1`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.3.1", `--pre-release`)
+  → Marketplace 1.3.1 validated·pre-release(게시 약 4분 뒤 반영, 01:11 UTC). 테스트 298개. Sonar S8707(`builtins.ts` 확장 폴더 목록, CLI 인자 경로) 1건 accept. 이슈 #25 닫음(남은 선택 항목: deprecated 경고, VS Code 내장 Java 템플릿 2개에 설치 금지 IntelliCode 확장).
+  첫 번째 PC 개인 프리셋(같은 날, 사용자 승인): web-js에서 `xyc.vscode-mdx-preview`를 빼고 `ggfincke.vsc-mdx-preview`(Modern MDX Preview, 후속작, 의존성 `unifiedjs.vscode-mdx`뿐)를 넣음.
+  Web-JS에서 옛 것 uninstall(팩 멤버 `silvenon.mdx`도 CLI가 같이 지움) → `apply --profile Web-JS --yes`로 새 것 설치. 백업 `Documents/vscode-profiles-setup/*-20261123-*`. 두 번째 PC는 아직.
   첫 번째 PC: 개인 프리셋 `~/vscode-profiles.json`(example 8개 + CTF 42개)을 Default settings.json `profileKit.preset`에도 넣었다
   (백업 `Documents/vscode-profiles-setup/settings-backup-20261122-131725-before-synced-preset.json`). `presetPath`는 1.1.0용으로 남김. 두 PC 사이 실제 Sync는 아직 확인하지 않았다.
   walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
