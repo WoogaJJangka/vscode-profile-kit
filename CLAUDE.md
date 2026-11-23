@@ -51,7 +51,9 @@
   두 번째 PC 결과(2026-11-23, 사용자가 확장의 apply로 확인): Sync가 다 따라오기 전이라 apply가 5개 프로필에 `atommaterial.a-file-icon-vscode`,
   Web-JS에 `ggfincke.vsc-mdx-preview`, CTF에 `anthropic.claude-code`·`sonarsource.sonarlint-vscode`를 설치했다. Web-JS의 "2 installed but not declared"(옛 MDX 둘)는
   apply가 지우지 않는데 뒤에 0 extra가 되어 Sync가 지운 것으로 본다(그 PC의 Sync 로그는 안 봄). 트리는 9개 모두 빠진 것 없음, extra는 첫 번째 PC와 같다.
-  그때 apply가 한 창에서 세 번 겹쳐 돌았다(프로필 읽는 몇 초 동안 다시 눌림): 다음 배포부터 변경 작업은 창마다 하나씩(`src/core/oneAtATime.ts`, `Kit.exclusive`).
+  그때 apply가 한 창에서 세 번 겹쳐 돌았다(프로필 읽는 몇 초 동안 다시 눌림): 1.3.2부터 변경 작업은 창마다 하나씩(`src/core/oneAtATime.ts`, `Kit.exclusive`).
+  1.3.2 게시(2026-11-23, 사용자 결정 pre-release): PR #46(변경 작업은 창마다 하나씩, 프로필 읽는 동안 알림, 출력의 프리셋 이름 `profileKit.preset (Settings)`) + PR #47(version, CHANGELOG)
+  → 태그 `v1.3.2`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.3.2", `--pre-release`) → Marketplace 1.3.2 validated·pre-release(게시 약 6분 뒤 반영, 05:56 UTC). 테스트 300개. 실제 창에서 두 번 누르기는 화면으로 보지 않았다.
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
