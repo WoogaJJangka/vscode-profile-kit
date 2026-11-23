@@ -30,7 +30,7 @@
   PR #41(apply 계획도 Profile Kit 제외) + PR #42(version, CHANGELOG) → 태그 `v1.3.1`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.3.1", `--pre-release`)
   → Marketplace 1.3.1 validated·pre-release(게시 약 4분 뒤 반영, 01:11 UTC). 테스트 298개. Sonar S8707(`builtins.ts` 확장 폴더 목록, CLI 인자 경로) 1건 accept. 이슈 #25 닫음(남은 선택 항목: deprecated 경고, VS Code 내장 Java 템플릿 2개에 설치 금지 IntelliCode 확장).
   첫 번째 PC 개인 프리셋(같은 날, 사용자 승인): web-js에서 `xyc.vscode-mdx-preview`를 빼고 `ggfincke.vsc-mdx-preview`(Modern MDX Preview, 후속작, 의존성 `unifiedjs.vscode-mdx`뿐)를 넣음.
-  Web-JS에서 옛 것 uninstall(팩 멤버 `silvenon.mdx`도 CLI가 같이 지움) → `apply --profile Web-JS --yes`로 새 것 설치. 백업 `Documents/vscode-profiles-setup/*-20261123-*`. 두 번째 PC는 아직.
+  Web-JS에서 옛 것 uninstall(팩 멤버 `silvenon.mdx`도 CLI가 같이 지움) → `apply --profile Web-JS --yes`로 새 것 설치. 백업 `Documents/vscode-profiles-setup/*-20261123-*`. 두 번째 PC는 Sync로(아래 "두 번째 PC는 Sync로").
   첫 번째 PC: 개인 프리셋 `~/vscode-profiles.json`(example 8개 + CTF 42개)을 Default settings.json `profileKit.preset`에도 넣었다
   (백업 `Documents/vscode-profiles-setup/settings-backup-20261122-131725-before-synced-preset.json`). `presetPath`는 1.1.0용으로 남김(언제 뺄지는 정하지 않음). 두 PC 사이 Sync는 아래 "두 번째 PC 확인 끝"(2026-11-22)에서 확인했다.
   walkthrough SVG는 `<style>`·class 없이 `fill="var(--vscode-…, #기본값)"` 속성으로만 색을 쓴다(Welcome 화면 CSP가 인라인 스타일을 막아 전부 검게 나옴, `manifest.test.ts`가 지킴).
@@ -41,9 +41,13 @@
   PC마다 다른 `python.defaultInterpreterPath`·`python.condaPath`·`snyk.trustedFolders`는 `settingsSync.ignoredSettings`로 Sync에서 뺐다. 되돌릴 때는 Sync의 로컬 백업을 먼저 본다.
   Cool Theme Kit 확장 ID는 `woogajjangka.cool-theme-kit`(PR #32, 옛 `cool-icon-vscode`는 Marketplace에 없음). 첫 번째 PC는 2026-11-22에 바꿈(사용자 요청, uninstall 금지 규칙의 예외):
   `apply --yes`로 8개 프로필에 새 것 설치 → Default·8개 프로필에서 옛 것 uninstall. 테마·아이콘 ID가 같아 설정은 그대로, `verify` 8개 모두 빠진 것 없음.
-  되돌리기 기준 `Documents/vscode-profiles-setup/extensions-backup-20261122-082400-before-cool-theme-kit.txt`. 두 번째 PC는 아직(옛 것이 남은 프로필에 새 것만 넣으면 같은 테마 ID가 둘).
+  되돌리기 기준 `Documents/vscode-profiles-setup/extensions-backup-20261122-082400-before-cool-theme-kit.txt`. 두 번째 PC는 Sync로(아래).
   Material Icon Theme(`pkief.material-icon-theme`)은 Cool Theme Kit의 아이콘 섞기 층(`a-file-icon-vscode.iconThemeLayers`)이라 Core에 넣었다(2026-11-22, Core 28개).
-  첫 번째 PC는 같은 날 Default·8개 프로필에 `code --install-extension`으로 설치함. 두 번째 PC는 아직(`apply --yes`로 설치).
+  첫 번째 PC는 같은 날 Default·8개 프로필에 `code --install-extension`으로 설치함. 두 번째 PC는 Sync로(아래).
+  두 번째 PC는 Sync로(2026-11-23 확인): 첫 번째 PC의 확장 추가·삭제와 프리셋 변경은 프로필마다 Sync 서버에 올라간다(`userDataSync.log`의
+  `Extensions (<프로필>): Updated remote extensions. Added/Removed`, `Settings: Updated remote settings`). Sync가 남긴 서버 사본 `User/sync/<프로필>/extensions/lastSyncextensions.json`에서
+  9개 프로필 모두 Cool Theme Kit은 새 ID만, Material Icon Theme 있음, Web-JS는 `ggfincke.vsc-mdx-preview`만(옛 MDX 둘 없음). Sync는 추가와 삭제를 한 번에 맞추니
+  옛 것을 먼저 지울 필요도 없다. 두 번째 PC에서는 Sync가 돈 뒤 `verify`로 확인만 한다(아직 안 함). 그 PC가 마지막 동기화 뒤 옛 것을 직접 설치했다면 그 설치가 다시 올라올 수 있다.
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
