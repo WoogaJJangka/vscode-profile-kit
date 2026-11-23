@@ -234,7 +234,7 @@ export class ManagerPanel implements vscode.Disposable {
           await this.post({ type: 'preview', kind: 'extensions', preview: this.previewExtensions(m.changes).preview });
           return;
         case 'applyExtensions':
-          await this.applyExtensions(m.changes, m.token);
+          await this.oneChange(() => this.applyExtensions(m.changes, m.token));
           return;
         case 'previewSettings': {
           const preview = await this.busy(t('Reading settings...'), () => this.previewSettings(m.changes));
@@ -242,7 +242,7 @@ export class ManagerPanel implements vscode.Disposable {
           return;
         }
         case 'applySettings':
-          await this.applySettings(m.changes, m.token);
+          await this.oneChange(() => this.applySettings(m.changes, m.token));
           return;
       }
     } catch (error) {
@@ -250,6 +250,16 @@ export class ManagerPanel implements vscode.Disposable {
       this.kit.log(`! manager: ${message}`);
       await this.post({ type: 'error', message });
     }
+  }
+
+  /** An apply from this panel, unless another change (apply, install) still runs in this window (Kit.exclusive). */
+  private async oneChange(fn: () => Promise<void>): Promise<void> {
+    const ran = await this.kit.exclusive(t('applying changes from the manager'), () => fn().then(() => true));
+    if (!ran)
+      await this.post({
+        type: 'error',
+        message: t('Another Profile Kit change is still running. Try again when it has finished.'),
+      });
   }
 
   private async busy<T>(message: string, fn: () => Promise<T>): Promise<T> {

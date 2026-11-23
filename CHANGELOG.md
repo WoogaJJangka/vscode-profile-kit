@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Applying the preset again while an apply was still reading the profiles started a second apply, which installed the same extensions at the same time. Apply, installing missing extensions, adding an extension to profiles and the manager's apply now run one at a time per window; a second one says what is still running.
+- Reading the profiles before an apply now shows a notification, not only a status bar line, so the click visibly started something.
+- The apply output named a preset stored in Settings as `\synced.profile-kit.json`; it now says `profileKit.preset (Settings)`.
+
 ## [1.3.1] - pre-release
 
 Extensions you did not add yourself now say why they are there, and Profile Kit no longer counts itself.
