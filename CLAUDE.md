@@ -26,8 +26,8 @@
   `npm run check` 통과(테스트 274개). 격리 VS Code 1.147에서 화면 확인 끝(`docs/PLAN.md` 11절). 설치 후 프로필 고르기 흐름만 화면으로 보지 않았다.
   1.3.0 게시(2026-11-22, 사용자 결정 pre-release, 1.2.0은 건너뜀): PR #37(설정에 저장하는 프리셋 `profileKit.preset`, Sync됨, `docs/PLAN.md` 12절) + PR #38(version, CHANGELOG)
   → 태그 `v1.3.0` → Release 성공("Published ... v1.3.0", `--pre-release`). 테스트 286개. Sonar S8707(`presetLoader.ts`, CLI 인자 경로) 1건은 같은 이유로 accept.
-  1.3.1 게시(2026-11-23, 사용자 결정 pre-release): PR #40(extra에 이유 표시 `src/core/dependencies.ts`, Profile Kit 자기 자신은 extra 아님, 예제 web-js에서 `xyc.vscode-mdx-preview` 제거, `docs/PLAN.md` 13절)
-  + PR #41(apply 계획도 Profile Kit 제외) + PR #42(version, CHANGELOG) → 태그 `v1.3.1`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.3.1", `--pre-release`)
+  1.3.1 게시(2026-11-23, 사용자 결정 pre-release): PR #40(extra에 이유 표시 `src/core/dependencies.ts`, Profile Kit 자기 자신은 extra 아님, 예제 web-js에서 `xyc.vscode-mdx-preview` 제거, `docs/PLAN.md` 13절) +
+  PR #41(apply 계획도 Profile Kit 제외) + PR #42(version, CHANGELOG) → 태그 `v1.3.1`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.3.1", `--pre-release`)
   → Marketplace 1.3.1 validated·pre-release(게시 약 4분 뒤 반영, 01:11 UTC). 테스트 298개. Sonar S8707(`builtins.ts` 확장 폴더 목록, CLI 인자 경로) 1건 accept. 이슈 #25 닫음(남은 선택 항목: deprecated 경고, VS Code 내장 Java 템플릿 2개에 설치 금지 IntelliCode 확장).
   첫 번째 PC 개인 프리셋(같은 날, 사용자 승인): web-js에서 `xyc.vscode-mdx-preview`를 빼고 `ggfincke.vsc-mdx-preview`(Modern MDX Preview, 후속작, 의존성 `unifiedjs.vscode-mdx`뿐)를 넣음.
   Web-JS에서 옛 것 uninstall(팩 멤버 `silvenon.mdx`도 CLI가 같이 지움) → `apply --profile Web-JS --yes`로 새 것 설치. 백업 `Documents/vscode-profiles-setup/*-20261123-*`. 두 번째 PC는 아직.
