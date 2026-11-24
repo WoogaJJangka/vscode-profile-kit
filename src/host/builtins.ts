@@ -24,6 +24,7 @@ import {
   relationsById,
   type ProfileTemplate,
   resolveProfile,
+  retry,
   serializeCodeProfile,
   templatesUrlFromProduct,
   toCodeProfile,
@@ -162,9 +163,28 @@ type GetFetch = (
   init: { headers: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
+/**
+ * Why a template is missing. `download`: it could not be fetched (network, time-out, HTTP error), which says
+ * nothing about its format. `read`: it was fetched but is not a profile file Profile Kit can read.
+ * `reason` names the kind of failure only, never the downloaded text or the network error's own message.
+ */
+export interface TemplateFailure {
+  stage: 'download' | 'read';
+  reason: string;
+}
+
 export interface FetchedTemplate extends ProfileTemplate {
   profile?: ImportedProfile;
-  error?: string;
+  failure?: TemplateFailure;
+}
+
+class DownloadError extends Error {
+  constructor(
+    url: string,
+    readonly reason: string,
+  ) {
+    super(`${url}: ${reason}`);
+  }
 }
 
 async function getText(doFetch: GetFetch, url: string, timeoutMs: number): Promise<string> {
@@ -172,8 +192,14 @@ async function getText(doFetch: GetFetch, url: string, timeoutMs: number): Promi
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await doFetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
-    if (!res.ok) throw new Error(`${url} answered ${res.status}`);
+    if (!res.ok) throw new DownloadError(url, `answered ${res.status}`);
     return await res.text();
+  } catch (error) {
+    if (error instanceof DownloadError) throw error;
+    throw new DownloadError(
+      url,
+      controller.signal.aborted ? `timed out after ${timeoutMs / 1000}s` : 'could not be reached',
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -181,15 +207,21 @@ async function getText(doFetch: GetFetch, url: string, timeoutMs: number): Promi
 
 /**
  * VS Code's template list and each template's `.code-profile`. Throws when the list itself cannot be read;
- * a template that cannot be read is returned with `error`.
+ * a template that cannot be read is returned with `failure`. `downloadAttempts` (default 1) tries each download
+ * that many times in all.
  */
 export async function fetchTemplates(
   url: string,
-  options: { fetch?: GetFetch; timeoutMs?: number } = {},
+  options: { fetch?: GetFetch; timeoutMs?: number; downloadAttempts?: number; retryDelayMs?: number } = {},
 ): Promise<FetchedTemplate[]> {
   const doFetch = options.fetch ?? (globalThis.fetch as unknown as GetFetch);
   const timeoutMs = options.timeoutMs ?? 10_000;
-  const text = await getText(doFetch, url, timeoutMs);
+  const download = (u: string) =>
+    retry(() => getText(doFetch, u, timeoutMs), {
+      attempts: Math.max(1, options.downloadAttempts ?? 1),
+      baseDelayMs: options.retryDelayMs ?? 2_000,
+    });
+  const text = await download(url);
   // the parse error itself is not kept (not even as `cause`): it quotes the text it failed on
   let json: unknown;
   let failure: string | undefined;
@@ -202,10 +234,17 @@ export async function fetchTemplates(
   const list = parseTemplateList(json);
   return Promise.all(
     list.map(async (t): Promise<FetchedTemplate> => {
+      let body: string;
       try {
-        return { ...t, profile: parseCodeProfile(await getText(doFetch, t.url, timeoutMs)) };
+        body = await download(t.url);
       } catch (error) {
-        return { ...t, error: error instanceof Error ? error.message : String(error) };
+        const reason = error instanceof DownloadError ? error.reason : 'could not be reached';
+        return { ...t, failure: { stage: 'download', reason } };
+      }
+      try {
+        return { ...t, profile: parseCodeProfile(body) };
+      } catch (error) {
+        return { ...t, failure: { stage: 'read', reason: readErrorSummary(error) } };
       }
     }),
   );

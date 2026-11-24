@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- When one of VS Code's profile templates cannot be offered, the output now says whether it could not be downloaded or was not a profile file, without the network error's own text.
+
 ## [1.3.2] - pre-release
 
 Profile Kit's changes no longer run twice at once when a button is pressed again.

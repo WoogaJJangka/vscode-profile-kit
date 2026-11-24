@@ -165,6 +165,8 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 세 데이터 폴더를 모두 임시 폴더로 준 채 `scripts/compat/check.ts`(빌드: `npm run build:compat` → `out/compat.js`)가 Profile Kit의 host 함수를 그대로 돌린다.
 대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable. 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
 확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
+첫 예약 실행(2026-11-23, 월 03:17 UTC 예약이 12:44 UTC에 돔)에서 insiders job만 템플릿 7개 중 Doc Writer 하나를 못 받아 FAIL이 났다. 같은 시각 stable job은 같은 파일을 읽었고, 파일은 2025-03 뒤 바뀌지 않았고, 다음 날 수동 실행은 모두 통과했다.
+그래서 `fetchTemplates`는 실패를 받기(`download`: 네트워크·시간 초과·HTTP 오류)와 읽기(`read`: 받았는데 프로필 파일이 아님)로 나누고, 점검은 받기를 한 번 더 시도한 뒤에도 못 받은 템플릿은 SKIP, 받은 것만 형식을 본다. 확장 화면은 그대로 한 번만 받는다(오프라인일 때 기다림이 늘지 않게).
 
 2026-11-21 이 PC(Windows, VS Code 1.147.0, 격리 폴더)에서 `out/compat.js` 9개 모두 통과(단계 C 뒤 13개: 언어 팩을 Default에 설치하면 `extensions.json`에 `isApplicationScoped`가 붙고 다른 프로필 목록에도 나옴, `profileTemplatesUrl`과 템플릿 7개 읽기). 묶음 설치 출력은 확장마다 한 줄씩 나온다:
 `Extension 'a' v1 was successfully installed.` / `... is already installed. Use '--force' ... for example: 'a@1.2.3'.` / 없는 ID는 `Extension 'x' not found.` + 끝에 `Failed Installing Extensions: x`. 프로필이 없으면 `Profile 'Nope' not found.` 한 줄.
