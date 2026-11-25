@@ -163,7 +163,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
 세 데이터 폴더를 모두 임시 폴더로 준 채 `scripts/compat/check.ts`(빌드: `npm run build:compat` → `out/compat.js`)가 Profile Kit의 host 함수를 그대로 돌린다.
-대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable. 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
+대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable, macOS 최신 stable(2026-11-25 추가, `darwin-universal` 압축 파일의 `.app` 안 `Contents/Resources/app/bin/code`. CI에서 아직 돌려 보지 않았다). 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
 확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
 첫 예약 실행(2026-11-23, 월 03:17 UTC 예약이 12:44 UTC에 돔)에서 insiders job만 템플릿 7개 중 Doc Writer 하나를 못 받아 FAIL이 났다. 같은 시각 stable job은 같은 파일을 읽었고, 파일은 2025-03 뒤 바뀌지 않았고, 다음 날 수동 실행은 모두 통과했다.
 그래서 `fetchTemplates`는 실패를 받기(`download`: 네트워크·시간 초과·HTTP 오류)와 읽기(`read`: 받았는데 프로필 파일이 아님)로 나누고, 점검은 받기를 한 번 더 시도한 뒤에도 못 받은 템플릿은 SKIP, 받은 것만 형식을 본다. 확장 화면은 그대로 한 번만 받는다(오프라인일 때 기다림이 늘지 않게).
@@ -173,7 +173,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 단계 D에서 같이 고친 것 (`docs/REVIEW-2026-11-21.md` 2절):
 - P5: 창을 열 때는 이 창의 프로필만 `--list-extensions` 한다. 트리가 보이거나 관리 화면을 열면 그때부터 전체를 한 번에 최대 3개씩.
-- P6: 설치 후 알림은 같은 프로필의 창들 중 한 창에서만 묻는다(globalState에 "이 창이 묻는다"를 쓰고 1.5초 뒤 다시 읽어 자기 것이 남은 창만). 직전 `--list-extensions`에 있던 확장(사용 안 함 → 사용)은 묻지 않는다. 여러 창에서의 동작은 아직 실제로 확인하지 않았다.
+- P6: 설치 후 알림은 같은 프로필의 창들 중 한 창에서만 묻는다(globalState에 "이 창이 묻는다"를 쓰고 1.5초 뒤 다시 읽어 자기 것이 남은 창만). 직전 `--list-extensions`에 있던 확장(사용 안 함 → 사용)은 묻지 않는다. 여러 창에서의 동작은 아직 실제로 확인하지 않았다. → 2026-11-25 같은 프로필의 창 두 개로 확인(14절).
 - P7: 프로필을 만들려고 연 창은 닫아도 된다고 확인 창·결과 알림·CLI 출력에 적는다. 자동으로 닫는 공식 방법은 없다.
 - P8: 설치는 10개씩 한 번에(`--install-extension a --install-extension b ...`), 끝나면 목록으로 확인하고 없는 것만 하나씩 재시도.
 - P10: 출력으로 판단이 안 되면(`unknown`) 목록에 있으면 설치됨으로 본다. 네트워크 오류 정규식은 확장 ID를 뺀 출력에만 적용한다.
@@ -205,6 +205,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 - `TreeView.description`(프리셋 파일 이름)은 보이지 않았다. 컨테이너에 뷰가 하나면 VS Code가 머리글을 컨테이너 제목에 합치면서 설명을 버린다. 그래서 파일 경로는 맨 위 줄 툴팁에 넣었다.
 
 아직: 설치 후 프로필 고르기(기록 위치를 묻지 않는 흐름)는 화면으로 보지 않았다(격리 VS Code에서 확장을 새로 받아야 함). 기록 위치는 `addExtension.test.ts`가 모든 조합으로 확인한다.
+→ 2026-11-25 통합 테스트로 확인(14절).
 
 ## 12. 설정에 저장하는 프리셋(Sync) (2026-11-22)
 
@@ -221,6 +222,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 확인(2026-11-22): `npm run check` 통과(테스트 281개, `presetSource.test.ts`). 격리 VS Code 1.147(데이터 폴더 3개 모두 임시)을 `--profile Probe --extensionDevelopmentPath --extensionTestsPath`로 띄운 탐침에서 9개 모두 통과: 프로필 창에서 가상 파일 읽기, JSON으로 열림, 편집·저장이 Default settings.json에 들어가고 프로필 settings.json에는 안 들어감, 문법이 틀린 저장 거부, 바깥에서 settings.json을 고치면(Sync와 같음) 가상 파일과 Kit이 다시 읽음.
 아직: 두 PC 사이 실제 Sync, 두 명령의 확인 창은 화면으로 보지 않았다.
+→ 두 PC 사이 Sync는 2026-11-22에 확인(CLAUDE.md), 두 확인 창은 2026-11-25 통합 테스트로 확인(14절).
 
 ## 13. extra의 이유: 의존성·확장 팩, 자기 자신 (2026-11-23)
 
@@ -237,3 +239,47 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 확인: `npm run check` 통과(테스트 297개). 실제 PC `verify`(읽기만): Profile Kit extra 사라짐, CTF 5개·Java gradle·Web-JS `silvenon.mdx`에 이유가 붙음.
 이유가 없는 extra는 Python-Data의 `vscjava.vscode-gradle` 하나(이 프로필에서는 아무 확장도 부르지 않음).
 아직: 트리·관리 화면의 새 표시는 화면으로 보지 않았다. 개인 프리셋(`profileKit.preset`, `~/vscode-profiles.json`)의 `web-js`와 실제 Web-JS 프로필의 두 확장은 그대로다.
+→ 트리 항목의 문구와 관리 화면이 받는 값은 2026-11-25 통합 테스트로 확인(14절). 개인 프리셋과 Web-JS는 2026-11-23에 바꿨다(CLAUDE.md).
+
+## 14. 통합 테스트: 실제 창에서 도는 검사 (2026-11-25)
+
+목적: "화면으로 보지 않았다"로 남은 다섯 가지(11절 설치 후 프로필 고르기, 12절 확인 창 두 개, 13절 extra 이유 표시, P6 여러 창 알림, 1.3.2 두 번 누르기)를 정식 1.4.0 전에 확인하고,
+8·12절에서 임시 탐침으로 하던 확인을 저장소에 남긴다(`docs/ROADMAP.md` "2026-11-25 다음 방향").
+
+방법: `scripts/integration/run.ts`(Node)가 VS Code 실행 파일을 임시 데이터 폴더 세 개(`--user-data-dir`, `--extensions-dir`, `--shared-data-dir`)와
+`--extensionDevelopmentPath=<저장소> --extensionTestsPath=out/integration/suite.js --profile Alpha --locale=en`으로 띄운다. 실제로 쓰는 VS Code, 그 프로필과 로그인은 건드리지 않는다.
+`suite.ts`는 확장 폴더 안에서 로드되어 확장과 같은 `vscode` API 객체를 받으므로, `vscode.window`의 알림·선택 목록·저장 창 함수를 바꿔 끼워 대화 상자를 기록하고 답한다.
+확장은 테스트로 뜬 창(`ExtensionMode.Test`)에서만 `{ kit, tree }`를 내보낸다(`src/extension.ts`). 프리셋은 프로필 둘(Alpha = 이 창, Beta = 아직 없음), core 1개, Alpha에만 확장 팩 1개, 공통 설정 1개.
+
+```sh
+npm run build && npm run build:integration
+node out/integration/run.js --exe "<VS Code 실행 파일>" --data <빈 폴더>   # Windows: Code.exe, bin\code.cmd가 아니다
+```
+
+이 PC(Windows, VS Code 1.147.0): 검사 31개 모두 통과, 약 2분, 창 세 개가 열렸다가 스스로 닫힌다. 마지막 코드로 두 번 돌려 두 번 통과(129초, 125초). Marketplace에서 작은 확장 10개를 받는다.
+
+| 남아 있던 것 | 검사가 보는 것 | 못 보는 것 |
+| --- | --- | --- |
+| 두 번 누르기 (1.3.2) | `applyAll`을 연달아 두 번 → 두 번째는 "still busy" 알림, 확인 창은 한 번 | 버튼을 실제로 누르는 것 |
+| 적용 전체 흐름 | 확인 창이 만들 프로필과 "창이 열림"을 말함 → Beta가 생김 → 두 프로필에 빠진 확장 없음 → 이 창이 마커로 자기 프로필을 앎, 공통 설정이 이 창에 적용됨, Beta의 settings.json에 마커·관리 키 목록 | 호환성 점검이 못 보던 "창이 있어야 하는 것" 가운데 설정 반영까지. 창 전환은 여전히 못 본다(확장 개발 창에서는 안 됨, 8절 #4) |
+| extra의 이유 (13절) | 선언한 팩의 멤버가 extra로 잡힘, 트리 항목의 설명 `in pack <팩>`·툴팁·`contextValue`, 관리 화면이 열려 페이지가 `ready`를 보내고 받는 값의 `via` | 트리 아이콘, 관리 화면이 `via`를 그린 모양 |
+| 설치 후 프로필 고르기 (11절) | CLI로 이 프로필에 설치 → 알림 한 번(버튼 세 개) → 체크 목록 한 번, 기록 위치 질문 없음 → 프리셋 core에 기록 → 다른 프로필에 설치 → 결과 문구. "프로필에 설치..."로 한 프로필만 고르면 그 프로필의 목록에 기록 | 알림과 목록의 모양 |
+| 여러 창 알림 (P6) | 같은 프로필의 창 두 개를 실제로 열고 설치 → 두 창 모두 감지, 질문은 둘을 합쳐 한 번. 다른 창의 claim이 이미 있으면 묻지 않음 | 창 세 개 이상. 두 창이 같은 순간에 claim을 쓰는 경우는 통과했지만 타이밍에 달린 일이다 |
+| 확인 창 두 개 (12절) | "설정에 저장": 파일 이름이 든 확인 창, 닫으면 그대로, 수락하면 Default settings.json에만 들어가고 파일은 그대로. "파일로 옮기기": 저장 창이 열린 폴더에서 시작, 경고 확인 창, 닫으면 설정 유지, 수락하면 사본·설정 삭제·`presetPath` | |
+
+찾은 것:
+
+1. **적용하면 팩의 멤버를 "직접 설치한 것"처럼 묻는다(버그, 1.3.2까지).** Profile Kit이 이 창의 프로필에 확장 팩(또는 의존성이 있는 확장)을 설치하면, VS Code가 같이 설치한 멤버마다
+   "… was installed in Alpha. Add it to other profiles too?"가 떴다. `markInstalling`은 선언한 ID만 알기 때문이다. 고침: 이 창의 Profile Kit이 변경 작업 중(끝나고 5초까지, `Kit.changeRunning`)에 도착한 확장은 묻지 않는다.
+2. **사용자가 팩을 직접 설치하면 멤버를 묻고 팩은 묻지 않는다(버그).** 수정 전 코드는 멤버 둘을 묻고 팩은 묻지 않았다. 한 번의 설치가 여러 번에 나뉘어 도착하기 때문으로 본다(도착 시각을 재지는 않았다): 멤버는 설명해 줄 팩이 아직 없어서 물었고,
+   팩은 "전부터 있던 것"으로 넘어갔다: 첫 변화가 이미 프로필 목록을 다시 읽게 해서, 그 목록에 팩이 들어 있었다(P6의 "다시 켠 확장" 판정). 고침: 새 확장을 모아 두고 3초 동안 변화가 없으면 한꺼번에 본다(`InstallWatcher`, `SETTLE_MS`).
+   다른 확장이 의존성·팩 멤버로 부르는 것은 묻지 않고(`core/dependencies.ts` `installedAlongWith`), "전부터 있던 것"은 이번 변화가 시작되기 전의 목록으로 판정한다. 그래서 질문이 전보다 조금 늦게(설치가 끝나고 약 4.5초 뒤) 나온다.
+   서로 부르는 경우: 팩의 멤버가 그 팩에 의존하면(`ms-vscode.remote-repositories` ↔ `github.remotehub`) 팩을 고른 것으로 본다. 수정 전 코드로 같은 검사를 돌리면 이 둘만 실패한다(29 통과, 2 실패).
+   남은 경우: 멤버가 팩보다 3초 넘게 먼저 도착하면(큰 팩) 멤버를 먼저 묻는다. 다른 창의 Profile Kit이 이 프로필에 설치하는 중인지는 이 창이 알 수 없다(그때는 `installedAlongWith`만 막아 준다).
+3. **확장 테스트로 띄운 VS Code는 모든 창이 개발 중인 확장과 테스트를 싣는다.** Profile Kit이 프로필을 만들려고 연 창에서도 같은 테스트가 한 번 더 돌았다. 그래서 첫 창만 검사를 돌리고(`checks.lock`),
+   나머지 창은 자기 창에 뜬 알림을 파일에 적기만 한다. 같은 프로필의 두 번째 창이 무엇을 했는지는 그 파일로 본다. 일반 설치에서는 상관없는 동작이다.
+4. **개발 폴더에서 실행하면 확장 폴더를 실제 `~/.vscode/extensions`로 읽었다.** 격리 실행("Run Extension (isolated profiles)" 포함)에서 "모든 프로필에 적용"과 extra의 이유가 실제 PC의 것으로 나왔다(읽기만).
+   이제 `PROFILE_KIT_CODE_ARGS`의 `--extensions-dir`를 쓴다(`Kit` 생성자).
+
+CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님). 아직 CI에서 돌려 보지 않았다.
+Linux는 `xvfb-run`으로 돌리는데 창이 여러 개 열리는 흐름이 거기서 되는지, macOS와 VS Code 1.95에서 되는지도 확인하지 않았다.

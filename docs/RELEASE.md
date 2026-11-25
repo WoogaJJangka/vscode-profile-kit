@@ -30,6 +30,8 @@
    - minor가 홀수(0.1.x, 0.3.x)면 pre-release, 짝수면 정식으로 게시된다(Marketplace 권장 방식). Marketplace는 `1.0.0-beta` 같은 semver pre-release 표기를 받지 않는다.
 2. 로컬에서 미리 확인: `npm run check`, `npx vsce package --no-dependencies --pre-release -o <tmp>/x.vsix`,
    격리 VS Code에 설치 `code --user-data-dir <tmp>/u --extensions-dir <tmp>/x --shared-data-dir <tmp>/s --install-extension <tmp>/x.vsix`.
+   창이 있어야 하는 흐름은 통합 테스트로 본다: `npm run build`, `npm run build:integration`,
+   `node out/integration/run.js --exe "<VS Code 실행 파일>" --data <빈 폴더>` (`docs/PLAN.md` 14절, 약 2분, 창이 열렸다가 스스로 닫힌다).
 3. main의 머지 커밋에 태그를 달고 push한다(태그 = `v` + version).
    ```powershell
    git switch main; git pull --ff-only; git tag v0.1.0; git push origin v0.1.0
