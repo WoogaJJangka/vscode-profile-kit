@@ -29,8 +29,10 @@ if (!values.exe) {
   process.exit(2);
 }
 const exe = path.resolve(values.exe);
-// the names of VS Code's own program (stable and Insiders; Windows, Linux, macOS): nothing else is started
-if (!/[\\/](code( - insiders)?\.exe|code(-insiders)?|electron)$/i.test(exe)) {
+// The whole path has to match: folders, then one of the names VS Code's own program has (stable and Insiders;
+// Windows, Linux, macOS). Nothing else is started.
+const VSCODE_PROGRAM = /^(?:[a-z]:)?(?:[\\/][^\\/]+)*[\\/](?:code(?: - insiders)?\.exe|code(?:-insiders)?|electron)$/i;
+if (!VSCODE_PROGRAM.test(exe)) {
   console.error(`--exe is not a VS Code program (Code.exe, code, Electron): ${exe}`);
   process.exit(2);
 }
