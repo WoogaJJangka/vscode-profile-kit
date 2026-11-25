@@ -62,6 +62,7 @@
   PR #50 첫 실행에서 CI 통합 테스트(Linux xvfb·Windows, 31개)와 macOS 호환성 점검(14개)이 통과했다.
   같은 실행에서 SonarQube 게이트는 `scripts/integration/run.ts`의 보안 지적 6건(인자 → 경로·실행 파일, `taskkill`을 PATH에서 찾음)으로 실패해 러너를 바꿨다:
   데이터 폴더는 인자로 받지 않고 임시 폴더에 직접 만들며, `--exe`는 VS Code 실행 파일 이름일 때만 띄운다(`docs/PLAN.md` 14절).
+  통합 테스트의 "직접 설치한 팩은 한 번만 묻는다" 검사는 가끔 실패할 수 있다(이 PC 4번 중 1번, CI 4번 중 0번): VS Code 창이 CLI로 설치한 팩을 놓치면 `InstallWatcher`가 멤버를 묻는다. 고치지 않았다(14절 "찾은 것" 5, 1.5.x 후보).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔

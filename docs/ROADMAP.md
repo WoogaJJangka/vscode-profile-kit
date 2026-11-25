@@ -108,6 +108,7 @@ VS Code 프로필 프리셋 도구를 제대로 된 프로젝트로 만든다: �
 
 - **설치 목록을 파일에서 읽기**: 프로필 폴더의 `extensions.json` + Default의 "모든 프로필에 적용" 항목이 `code --list-extensions --profile X`와 같다. 이 PC(VS Code 1.147, Windows)에서 Core 30 = 30, CTF 49 = 49, 차이 0(2026-11-25, 읽기만). CLI는 프로필당 약 0.8초에 프로세스 하나.
   되면 `Kit.listAll`·동시 3개 제한이 필요 없고, 창을 열자마자 배지가 전체 프로필 기준으로 맞고, 파일 watcher로 다른 프로필의 설치도 바로 보인다. 같은 형식을 Default 쪽에서 이미 읽는다(`compat.ts`의 `isApplicationScoped`).
+  설치 후 알림(`InstallWatcher`)도 이 목록으로 판정하면, 창이 밖에서 설치한 확장을 놓쳤을 때 팩의 멤버를 묻는 일이 없어진다(`docs/PLAN.md` 14절 "찾은 것" 5, 통합 테스트가 가끔 실패하는 원인).
   확인할 것: VS Code 1.95와 Linux에서도 같은지(호환성 점검에 검사 추가). 확장을 Default와 공유하는 프로필(`useDefaultFlags.extensions`, 이 PC의 `Agents`)은 프로필 폴더에 파일이 없으니 Default 목록을 쓴다. CLI는 대체 경로와 설치 후 확인용으로 남긴다.
 - **새 프리셋의 기본 위치를 설정(`profileKit.preset`)으로**: 내장 프리셋을 고르면 파일 저장 창이 먼저 뜬다. 설정에 바로 넣으면 첫 단계의 질문이 하나 줄고 Sync도 된다. 파일은 "프리셋을 파일로 옮기기"를 고른 사람만 쓴다.
 - **트리의 extra 항목에 "프리셋에 추가"**: 지금은 관리 화면의 표에서만 할 수 있고 트리의 extra에는 동작이 없다.
