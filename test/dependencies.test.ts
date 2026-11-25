@@ -6,10 +6,52 @@ import { describe, expect, it } from 'vitest';
 import {
   explainExtras,
   extraNote,
+  installedAlongWith,
   parseExtensionManifest,
   PROFILE_KIT_ID,
   relationsById,
 } from '../src/core/dependencies';
+
+describe('installedAlongWith', () => {
+  const ext = (id: string, dependencies: string[] = [], pack: string[] = []) => ({
+    id,
+    relations: { dependencies, pack },
+  });
+  const along = (...manifests: ReturnType<typeof ext>[]) => [...installedAlongWith(manifests)].sort();
+
+  it('names dependencies and pack members, not the extension that names them', () => {
+    expect(
+      along(
+        ext('ms-vscode-remote.remote-ssh', [], ['ms-vscode-remote.remote-ssh-edit', 'ms-vscode.remote-explorer']),
+        ext('ms-vscode-remote.remote-ssh-edit'),
+        ext('ms-vscode.remote-explorer'),
+        ext('ms-python.debugpy', ['ms-python.python']),
+        ext('ms-python.python'),
+        ext('esbenp.prettier-vscode'),
+      ),
+    ).toEqual(['ms-python.python', 'ms-vscode-remote.remote-ssh-edit', 'ms-vscode.remote-explorer']);
+  });
+
+  it('keeps a pack as the picked one when its members depend on it', () => {
+    expect(
+      along(
+        ext('ms-vscode.remote-repositories', [], ['github.remotehub', 'ms-vscode.azure-repos']),
+        ext('github.remotehub', ['ms-vscode.remote-repositories']),
+        ext('ms-vscode.azure-repos', ['ms-vscode.remote-repositories']),
+      ),
+    ).toEqual(['github.remotehub', 'ms-vscode.azure-repos']);
+  });
+
+  it('takes neither of two extensions that name each other the same way', () => {
+    expect(along(ext('a.one', ['a.two']), ext('a.two', ['a.one']))).toEqual([]);
+    expect(along(ext('a.one', [], ['a.two']), ext('a.two', [], ['a.one']))).toEqual([]);
+  });
+
+  it('ignores an extension that names itself, and names not installed count as brought along', () => {
+    expect(along(ext('a.one', ['a.one'], ['a.one']))).toEqual([]);
+    expect(along(ext('a.one', ['b.absent']))).toEqual(['b.absent']);
+  });
+});
 
 describe('parseExtensionManifest', () => {
   it('reads publisher.name, extensionDependencies and extensionPack (lower case, no duplicates)', () => {

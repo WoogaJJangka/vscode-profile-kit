@@ -59,6 +59,27 @@ export function relationsById(
 }
 
 /**
+ * IDs that another of these extensions names as a dependency or a pack member. VS Code installs those along with the
+ * extension that names them, so they are not something the user picked (ui/installFlow.ts does not ask about them).
+ * Two that name each other: a pack whose member depends on it stays the one that was picked
+ * (`ms-vscode.remote-repositories` bundles `github.remotehub`, which depends on it); otherwise neither counts as
+ * brought along, so that one of them is still asked about.
+ */
+export function installedAlongWith(manifests: Iterable<{ id: string; relations: ExtensionRelations }>): Set<string> {
+  const list = [...manifests];
+  const byId = new Map(list.map((m) => [m.id, m.relations]));
+  const out = new Set<string>();
+  for (const { id, relations } of list) {
+    for (const member of relations.pack) if (member !== id && !byId.get(member)?.pack.includes(id)) out.add(member);
+    for (const needed of relations.dependencies) {
+      const back = byId.get(needed);
+      if (needed !== id && !back?.pack.includes(id) && !back?.dependencies.includes(id)) out.add(needed);
+    }
+  }
+  return out;
+}
+
+/**
  * For each extra of a profile, the other extensions installed in that profile that need or bundle it.
  * Extras that no installed extension names are left out (the user, or something else, added them).
  */

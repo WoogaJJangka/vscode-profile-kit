@@ -174,6 +174,7 @@ npm run package   # VSIX
 
 - `src/core/`: pure logic (preset, recommendations, settings, plans), unit-tested. `src/host/`: Node side (code CLI, files), shared by the CLI and the extension. `src/ui/`: the extension's GUI. `src/cli/`: the CLI.
 - Try the extension against throwaway profiles with the launch config **Run Extension (isolated profiles)** (all data folders under `.vscode-test/`). Switching profiles in place does not work in an Extension Development Host; install the VSIX into an isolated VS Code for that (`docs/PLAN.md` section 8).
+- The flows that need a window (dialogs, the tree, the manager, two windows of one profile) are checked inside a real VS Code on throwaway data folders: `npm run build && npm run build:integration`, then `node out/integration/run.js` (`docs/PLAN.md` section 14). It starts the VS Code unpacked into `.vscode-test/vscode`, otherwise the installed one. Windows open and close by themselves; it installs a few small extensions from the Marketplace.
 - UI strings go through `vscode.l10n.t`; Korean is in `l10n/bundle.l10n.ko.json` and `package.nls.ko.json`, and `test/l10n.test.ts` keeps them in step with the code.
 - `scripts/legacy/` holds the original PowerShell scripts this project grew from (`docs/PLAN.md`).
 

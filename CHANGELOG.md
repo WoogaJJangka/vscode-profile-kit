@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Applying a preset to this window's profile asked "… was installed in … Add it to other profiles too?" for every extension VS Code installed along with a declared one (the members of an extension pack, dependencies), as if you had installed them yourself. Profile Kit no longer asks about what arrives while it is installing.
+- Installing an extension pack yourself asked about its members and not about the pack. It is now asked about once, about the pack. New extensions are looked at together once the install has finished arriving, so the question comes a few seconds later than before.
+
 ### Changed
 
 - When one of VS Code's profile templates cannot be offered, the output now says whether it could not be downloaded or was not a profile file, without the network error's own text.

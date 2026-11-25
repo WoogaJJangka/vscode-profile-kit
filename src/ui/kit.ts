@@ -68,6 +68,17 @@ export interface ProfileRow {
 
 export const DEFAULT_PROFILE = 'Default';
 
+/** PROFILE_KIT_CODE_ARGS: a JSON list of `code` options for an isolated VS Code (launch.json, scripts/integration). */
+function testCodeArgs(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(process.env.PROFILE_KIT_CODE_ARGS ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((a): a is string => typeof a === 'string') : [];
+  } catch {
+    // ignore a malformed test variable
+    return [];
+  }
+}
+
 /** The extension's view of the world. One instance per window. */
 export class Kit implements vscode.Disposable {
   readonly output = vscode.window.createOutputChannel('Profile Kit');
@@ -98,10 +109,15 @@ export class Kit implements vscode.Disposable {
     this.paths = userDataPaths(userData);
     this.ownId = context.extension.id.toLowerCase();
     this.codeCli = findCodeCli(vscode.env.appRoot);
-    // the folder this extension is installed in, unless it runs from a development folder (F5)
+    // The folder this extension is installed in. From a development folder (F5, the integration checks) that is not
+    // an extensions folder: then the one the test setup names, so an isolated VS Code does not read the real one.
+    const testArgs = testCodeArgs();
     const ownDir = path.dirname(context.extensionPath);
-    this.extensionsDir = existsSync(path.join(ownDir, 'extensions.json')) ? ownDir : defaultExtensionsDir();
-    const { baseArgs, windowsBlocked } = this.codeBaseArgs(userData);
+    const named = testArgs.indexOf('--extensions-dir');
+    this.extensionsDir = existsSync(path.join(ownDir, 'extensions.json'))
+      ? ownDir
+      : ((named >= 0 ? testArgs[named + 1] : undefined) ?? defaultExtensionsDir());
+    const { baseArgs, windowsBlocked } = this.codeBaseArgs(userData, testArgs);
     this.windowsBlocked = windowsBlocked;
     this.run = createCodeRunner(this.codeCli ?? 'code', { baseArgs, timeoutMs: 5 * 60_000 });
     // for bug reports: which VS Code this is, and the version Profile Kit's use of VS Code internals was checked on
@@ -126,28 +142,25 @@ export class Kit implements vscode.Disposable {
    * PROFILE_KIT_CODE_ARGS (a JSON list, for the isolated test setup; it must include `--shared-data-dir` to allow
    * window calls).
    */
-  private codeBaseArgs(userData: string): { baseArgs: string[]; windowsBlocked: string | undefined } {
+  private codeBaseArgs(
+    userData: string,
+    extra: readonly string[],
+  ): { baseArgs: string[]; windowsBlocked: string | undefined } {
     const same = (a: string, b: string) =>
       process.platform === 'win32' || process.platform === 'darwin'
         ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase()
         : path.resolve(a) === path.resolve(b);
-    const args: string[] = [];
-    if (!same(userData, defaultUserDataDir())) args.push('--user-data-dir', userData);
-    if (!same(this.extensionsDir, defaultExtensionsDir())) args.push('--extensions-dir', this.extensionsDir);
-    let extra: string[] = [];
-    try {
-      const parsed: unknown = JSON.parse(process.env.PROFILE_KIT_CODE_ARGS ?? '[]');
-      if (Array.isArray(parsed)) extra = parsed.filter((a): a is string => typeof a === 'string');
-    } catch {
-      // ignore a malformed test variable
-    }
-    const custom = args.length > 0;
+    const derived: [string, string][] = [];
+    if (!same(userData, defaultUserDataDir())) derived.push(['--user-data-dir', userData]);
+    if (!same(this.extensionsDir, defaultExtensionsDir())) derived.push(['--extensions-dir', this.extensionsDir]);
     const windowsBlocked =
-      custom && !extra.includes('--shared-data-dir')
+      derived.length > 0 && !extra.includes('--shared-data-dir')
         ? vscode.l10n.t(
             'This VS Code runs with its own data folders, so Profile Kit cannot open windows for it safely (a window could start a second VS Code that signs you out). Create the profile in VS Code first (Profiles editor), then try again.',
           )
         : undefined;
+    // the test variable names the same folders again: each option once (VS Code warns about a repeated one)
+    const args = derived.filter(([option]) => !extra.includes(option)).flat();
     return { baseArgs: [...args, ...extra], windowsBlocked };
   }
 
@@ -457,6 +470,16 @@ export class Kit implements vscode.Disposable {
   }
 
   private readonly changes = new OneAtATime();
+  private changeEndedAt = 0;
+
+  /**
+   * A change by Profile Kit runs in this window, or ended a moment ago (VS Code reports the last installs a little
+   * after the `code` call has returned). Extensions that show up in this window's profile meanwhile came with that
+   * change, including the dependencies and pack members VS Code adds by itself, which markInstalling never sees.
+   */
+  changeRunning(graceMs = 5000): boolean {
+    return this.changes.current !== undefined || Date.now() - this.changeEndedAt < graceMs;
+  }
 
   /**
    * Run a change (apply, installs, preset edits that install) unless another one still runs in this window; then say
@@ -464,7 +487,13 @@ export class Kit implements vscode.Disposable {
    * while the first is still reading does not start the same installs again.
    */
   async exclusive<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
-    const result = await this.changes.run(label, fn);
+    const result = await this.changes.run(label, async () => {
+      try {
+        return await fn();
+      } finally {
+        this.changeEndedAt = Date.now();
+      }
+    });
     if (result.ran) return result.value;
     const showOutput = vscode.l10n.t('Show Output');
     void vscode.window
