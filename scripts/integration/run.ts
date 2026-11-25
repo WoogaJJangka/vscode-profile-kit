@@ -1,32 +1,39 @@
 /**
  * Starts a real VS Code on throwaway data folders with this repository as the extension under development, and lets
  * it run scripts/integration/suite.ts (the checks of the flows that need a window: dialogs, the tree, the manager).
- * All three data folders are below --data, so the VS Code you use, its profiles and its sign-ins are not involved
- * (CLAUDE.md, docs/PLAN.md section 8 #8). A window opens, and a second one when the suite creates a profile; VS Code
- * closes itself when the suite has finished.
+ * All three data folders are in a new folder below the system's temporary folder, so the VS Code you use, its
+ * profiles and its sign-ins are not involved (CLAUDE.md, docs/PLAN.md section 8 #8). A window opens, and more when the
+ * suite creates a profile; VS Code closes itself when the suite has finished. The folder is removed when every check
+ * passed; otherwise it is kept and its path is printed.
  *
  *   npm run build && npm run build:integration
- *   node out/integration/run.js --exe <VS Code executable> --data <empty folder> [--timeout <seconds>]
+ *   node out/integration/run.js --exe <VS Code executable> [--timeout <seconds>]
  *
  * --exe is the program itself, not bin/code: Code.exe (Windows), code (Linux, in the unpacked folder),
  * "Visual Studio Code.app/Contents/MacOS/Electron" (macOS).
+ *
+ * The command line decides as little as possible, because CI and coding agents run this too: only a file with one of
+ * those names is started, and where the data goes is not an argument (SonarQube S8701, S8705, S8707).
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { type IntegrationConfig, INTEGRATION_ENV, PRESET_FILE, PROFILE_HERE, startPreset } from './config';
 
-const { values } = parseArgs({
-  options: { exe: { type: 'string' }, data: { type: 'string' }, timeout: { type: 'string' } },
-});
-if (!values.exe || !values.data) {
-  console.error('usage: run.js --exe <VS Code executable> --data <empty folder> [--timeout <seconds>]');
+const { values } = parseArgs({ options: { exe: { type: 'string' }, timeout: { type: 'string' } } });
+if (!values.exe) {
+  console.error('usage: run.js --exe <VS Code executable> [--timeout <seconds>]');
   process.exit(2);
 }
 const exe = path.resolve(values.exe);
-const data = path.resolve(values.data);
+// the names of VS Code's own program (stable and Insiders; Windows, Linux, macOS): nothing else is started
+if (!/[\\/](code( - insiders)?\.exe|code(-insiders)?|electron)$/i.test(exe)) {
+  console.error(`--exe is not a VS Code program (Code.exe, code, Electron): ${exe}`);
+  process.exit(2);
+}
 const timeoutMs = Number(values.timeout ?? 600) * 1000;
 // out/integration/run.js → the repository
 const repo = path.resolve(__dirname, '..', '..');
@@ -39,9 +46,10 @@ function fail(message: string): never {
 if (!existsSync(exe)) fail(`not found: ${exe}`);
 if (!existsSync(path.join(repo, 'dist', 'extension.js'))) fail('dist/extension.js is missing: run "npm run build"');
 if (!existsSync(suite)) fail('out/integration/suite.js is missing: run "npm run build:integration"');
-// never reuse a folder: the checks start from a VS Code that has no profiles, extensions or settings yet
-if (existsSync(data) && readdirSync(data).length) fail(`--data must be an empty folder: ${data}`);
 
+// A new folder each time: the checks start from a VS Code that has no profiles, extensions or settings yet.
+// realpath, because Windows may name the temporary folder in its short form (RUNNER~1) and VS Code uses the long one.
+const data = mkdtempSync(path.join(realpathSync.native(tmpdir()), 'profile-kit-it-'));
 const [userData, extensionsDir, sharedData, workspace] = ['u', 'x', 's', 'ws'].map((d) => path.join(data, d));
 for (const d of [path.join(userData, 'User'), extensionsDir, sharedData, workspace]) mkdirSync(d, { recursive: true });
 
@@ -100,9 +108,11 @@ let timedOut = false;
 const timer = setTimeout(() => {
   timedOut = true;
   // only this VS Code: the process started here and what it started
-  if (process.platform === 'win32' && child.pid !== undefined)
-    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' }).on('error', () => child.kill());
-  else child.kill();
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    // by its full path, not whatever "taskkill" is found first through PATH (SonarQube S4036)
+    const taskkill = path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, 'System32', 'taskkill.exe');
+    spawn(taskkill, ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' }).on('error', () => child.kill());
+  } else child.kill();
 }, timeoutMs);
 
 child.on('error', (error) => {
@@ -116,5 +126,16 @@ child.on('exit', (code) => {
   const finished = /^(all checks passed|\d+ check\(s\) failed)$/m.test(log);
   if (timedOut) console.error(`VS Code was ended after ${timeoutMs / 1000} s without finishing the checks`);
   else if (!finished) console.error(`VS Code ended (exit code ${code}) before the checks finished`);
-  process.exitCode = !timedOut && finished && code === 0 && /^all checks passed$/m.test(log) ? 0 : 1;
+  const passed = !timedOut && finished && code === 0 && /^all checks passed$/m.test(log);
+  process.exitCode = passed ? 0 : 1;
+  if (!passed) {
+    console.error(`data kept: ${data}`);
+    return;
+  }
+  try {
+    // VS Code's last processes may still hold files for a moment after its main process has ended
+    rmSync(data, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+  } catch {
+    console.error(`could not remove ${data}`);
+  }
 });

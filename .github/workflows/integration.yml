@@ -73,9 +73,9 @@ jobs:
 
       - name: Run the checks (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a node out/integration/run.js --exe "$CODE_EXE" --data "$RUNNER_TEMP/integration"
+        run: xvfb-run -a node out/integration/run.js --exe "$CODE_EXE"
 
       - name: Run the checks (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: node out/integration/run.js --exe "$env:CODE_EXE" --data "$env:RUNNER_TEMP\integration"
+        run: node out/integration/run.js --exe "$env:CODE_EXE"
