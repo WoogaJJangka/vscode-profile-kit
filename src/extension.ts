@@ -15,7 +15,16 @@ import { SYNCED_PRESET_SCHEME, SyncedPresetFileSystem } from './ui/syncedPreset'
 import { ProfileStatusBar } from './ui/switch';
 import { decorateView, ProfilesTree } from './ui/tree';
 
-export function activate(context: vscode.ExtensionContext): void {
+/**
+ * What the integration checks read (scripts/integration/suite.ts). Only handed out when VS Code runs extension tests
+ * (`--extensionTestsPath`); a normal window exports nothing.
+ */
+export interface TestApi {
+  kit: Kit;
+  tree: ProfilesTree;
+}
+
+export function activate(context: vscode.ExtensionContext): TestApi | undefined {
   // the synced preset (profileKit.preset) as a file, before anything reads the preset
   const syncedPreset = new SyncedPresetFileSystem();
   context.subscriptions.push(
@@ -78,6 +87,7 @@ export function activate(context: vscode.ExtensionContext): void {
     .loadPreset()
     .then(() => kit.refresh())
     .then(() => folders.check());
+  return context.extensionMode === vscode.ExtensionMode.Test ? { kit, tree } : undefined;
 }
 
 export function deactivate(): void {

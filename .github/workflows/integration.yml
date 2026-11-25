@@ -1,0 +1,81 @@
+name: Integration
+
+# Runs the extension inside a real VS Code and drives the flows that need a window (scripts/integration/suite.ts,
+# docs/PLAN.md section 14): apply with its confirmation, the install prompt and the profile picker, the reasons shown
+# for extras, two windows of one profile, moving the preset between a file and Settings.
+# Not a required check: it downloads VS Code and installs Marketplace extensions, so it can also fail on the network.
+# Weekly, by hand, and on pull requests that touch the extension or the checks.
+
+on:
+  schedule:
+    - cron: '47 3 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/**
+      - scripts/integration/**
+      - esbuild.mjs
+      - .github/workflows/integration.yml
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    name: ${{ matrix.os }} latest stable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build the extension
+        run: npm run build
+
+      - name: Build the checks
+        run: npm run build:integration
+
+      # the same download URL @vscode/test-electron uses; the program itself, not bin/code
+      - name: Download VS Code (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.tar.gz "https://update.code.visualstudio.com/latest/linux-x64/stable"
+          mkdir vscode && tar -xzf vscode.tar.gz -C vscode --strip-components=1
+          echo "CODE_EXE=$PWD/vscode/code" >> "$GITHUB_ENV"
+          # Ubuntu 24.04 blocks the unprivileged user namespaces Electron's sandbox needs
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          sudo apt-get install -y --no-install-recommends xvfb > /dev/null
+
+      - name: Download VS Code (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.zip "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
+          mkdir vscode && unzip -q vscode.zip -d vscode
+          echo "CODE_EXE=$(cygpath -w "$PWD/vscode/Code.exe")" >> "$GITHUB_ENV"
+
+      - name: Run the checks (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node out/integration/run.js --exe "$CODE_EXE" --data "$RUNNER_TEMP/integration"
+
+      - name: Run the checks (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: node out/integration/run.js --exe "$env:CODE_EXE" --data "$env:RUNNER_TEMP\integration"
