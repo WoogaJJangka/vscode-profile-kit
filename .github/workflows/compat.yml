@@ -33,11 +33,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # engines.vscode floor, latest stable and insiders on Linux; latest stable on Windows
+          # engines.vscode floor, latest stable and insiders on Linux; latest stable on Windows and macOS
           - { os: ubuntu-latest, version: 1.95.0, quality: stable }
           - { os: ubuntu-latest, version: latest, quality: stable }
           - { os: ubuntu-latest, version: latest, quality: insider }
           - { os: windows-latest, version: latest, quality: stable }
+          - { os: macos-latest, version: latest, quality: stable }
     name: ${{ matrix.os }} ${{ matrix.version }} ${{ matrix.quality }}
 
     steps:
@@ -83,9 +84,25 @@ jobs:
           echo "CODE_CLI=$(cygpath -w "$PWD/$cli")" >> "$GITHUB_ENV"
           echo "APP_ROOT=$(cygpath -w "$PWD/$app")" >> "$GITHUB_ENV"
 
+      # one .app for Intel and Apple silicon; the CLI is inside it (host/codeLocator.ts: appRoot/bin/code)
+      - name: Download VS Code (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.zip "https://update.code.visualstudio.com/${{ matrix.version }}/darwin-universal/${{ matrix.quality }}"
+          mkdir vscode && unzip -q vscode.zip -d vscode
+          app=$(find "$PWD/vscode" -maxdepth 4 -type d -path '*.app/Contents/Resources/app' | head -1)
+          cli="$app/bin/code"; [ -f "$cli" ] || cli="$app/bin/code-insiders"
+          echo "CODE_CLI=$cli" >> "$GITHUB_ENV"
+          echo "APP_ROOT=$app" >> "$GITHUB_ENV"
+
       - name: Run the check (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a node out/compat.js --code "$CODE_CLI" --app-root "$APP_ROOT" --data "$RUNNER_TEMP/compat"
+
+      - name: Run the check (macOS)
+        if: runner.os == 'macOS'
+        run: node out/compat.js --code "$CODE_CLI" --app-root "$APP_ROOT" --data "$RUNNER_TEMP/compat"
 
       - name: Run the check (Windows)
         if: runner.os == 'Windows'
