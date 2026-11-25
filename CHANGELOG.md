@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.0]
+
+The second release that is not a pre-release. Coming from 1.0.0, it brings what the pre-releases 1.1.0 to 1.3.2 added: the menu behind the status bar and the Get Started guide (1.1.0), a preset stored in Settings and carried by Settings Sync (1.3.0), the reason an extension you did not declare is there (1.3.1), and Profile Kit's changes running one at a time (1.3.2). New since 1.3.2 are the fixes below.
 
 ### Fixed
 
@@ -10,6 +12,7 @@
 ### Changed
 
 - When one of VS Code's profile templates cannot be offered, the output now says whether it could not be downloaded or was not a profile file, without the network error's own text.
+- The flows that need a window (applying a preset, the question after an install, the reasons shown for extra extensions, two windows of one profile, moving the preset between a file and Settings) are now checked automatically inside a real VS Code on Linux and Windows, and the compatibility check also runs on macOS.
 
 ## [1.3.2] - pre-release
 

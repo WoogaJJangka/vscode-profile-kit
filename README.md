@@ -110,7 +110,7 @@ Settings Sync와 같이 쓸 때:
 
 ### 지원 범위
 
-- 최신 stable VS Code를 기준으로 만들고 확인합니다. 최소 버전은 1.95입니다. Windows에서 직접 확인했고, Linux는 매주 도는 호환성 점검(CLI 동작만)으로 봅니다.
+- 최신 stable VS Code를 기준으로 만들고 확인합니다. 최소 버전은 1.95입니다. Windows에서 직접 확인했습니다. 매주 실제 VS Code로 도는 자동 점검이 CLI 동작은 Linux·Windows·macOS에서, 창이 있어야 하는 흐름은 Linux·Windows에서 봅니다. macOS에서 확장의 화면은 확인하지 않았습니다.
 - VS Code에는 프로필을 만들거나 바꾸는 공개 API가 없어서, Profile Kit은 공개되지 않은 VS Code 동작 몇 가지(storage.json 형식, 프로필 폴더 위치, 프로필 전환 명령, `code` CLI 출력 문구 등)에 기댑니다. VS Code가 이것을 바꾸면 업데이트 뒤 일부 기능이 깨질 수 있습니다. 목록은 `src/core/compat.ts`에 있습니다.
 - 문제를 알릴 때는 출력 창 **Profile Kit**의 첫 줄(VS Code 버전과 확인한 버전)을 같이 붙여 주세요.
 
@@ -157,7 +157,7 @@ CLI: `profile-kit plan | verify | apply <preset.json> [--profile <name>] [--yes]
 
 The UI is in English and Korean.
 
-**Support**: built and checked against the latest stable VS Code (minimum 1.95). Checked by hand on Windows; a weekly compatibility run covers the CLI behavior on Linux. VS Code has no public API for creating or switching profiles, so Profile Kit relies on a few VS Code internals (the storage.json format, the profile folder, the profile switch command, the `code` CLI's output, the `.code-profile` format, the template list). A VS Code update that changes them can break parts of Profile Kit; the list is in `src/core/compat.ts`. When reporting a problem, include the first line of the **Profile Kit** output channel (VS Code version and the version the internals were checked on).
+**Support**: built and checked against the latest stable VS Code (minimum 1.95). Checked by hand on Windows. Automatic checks run every week against a real VS Code: the CLI behavior on Linux, Windows and macOS, and the flows that need a window on Linux and Windows. The extension's views have not been tried on macOS. VS Code has no public API for creating or switching profiles, so Profile Kit relies on a few VS Code internals (the storage.json format, the profile folder, the profile switch command, the `code` CLI's output, the `.code-profile` format, the template list). A VS Code update that changes them can break parts of Profile Kit; the list is in `src/core/compat.ts`. When reporting a problem, include the first line of the **Profile Kit** output channel (VS Code version and the version the internals were checked on).
 
 ## Development
 
