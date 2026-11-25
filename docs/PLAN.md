@@ -163,7 +163,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
 세 데이터 폴더를 모두 임시 폴더로 준 채 `scripts/compat/check.ts`(빌드: `npm run build:compat` → `out/compat.js`)가 Profile Kit의 host 함수를 그대로 돌린다.
-대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable, macOS 최신 stable(2026-11-25 추가, `darwin-universal` 압축 파일의 `.app` 안 `Contents/Resources/app/bin/code`. CI에서 아직 돌려 보지 않았다). 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
+대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable, macOS 최신 stable(2026-11-25 추가, `darwin-universal` 압축 파일의 `.app` 안 `Contents/Resources/app/bin/code`. PR #50의 첫 실행에서 VS Code 1.147.0으로 14개 모두 통과). 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
 확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
 첫 예약 실행(2026-11-23, 월 03:17 UTC 예약이 12:44 UTC에 돔)에서 insiders job만 템플릿 7개 중 Doc Writer 하나를 못 받아 FAIL이 났다. 같은 시각 stable job은 같은 파일을 읽었고, 파일은 2025-03 뒤 바뀌지 않았고, 다음 날 수동 실행은 모두 통과했다.
 그래서 `fetchTemplates`는 실패를 받기(`download`: 네트워크·시간 초과·HTTP 오류)와 읽기(`read`: 받았는데 프로필 파일이 아님)로 나누고, 점검은 받기를 한 번 더 시도한 뒤에도 못 받은 템플릿은 SKIP, 받은 것만 형식을 본다. 확장 화면은 그대로 한 번만 받는다(오프라인일 때 기다림이 늘지 않게).
@@ -253,10 +253,14 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 ```sh
 npm run build && npm run build:integration
-node out/integration/run.js --exe "<VS Code 실행 파일>" --data <빈 폴더>   # Windows: Code.exe, bin\code.cmd가 아니다
+node out/integration/run.js --exe "<VS Code 실행 파일>"   # Windows: Code.exe, bin\code.cmd가 아니다
 ```
 
-이 PC(Windows, VS Code 1.147.0): 검사 31개 모두 통과, 약 2분, 창 세 개가 열렸다가 스스로 닫힌다. 마지막 코드로 두 번 돌려 두 번 통과(129초, 125초). Marketplace에서 작은 확장 10개를 받는다.
+데이터 폴더는 러너가 시스템 임시 폴더 아래에 새로 만든다(`profile-kit-it-*`). 모두 통과하면 지우고, 아니면 남기고 경로를 알려 준다. `--exe`는 VS Code 실행 파일 이름(`Code.exe`, `code`, `Electron`, Insiders 포함)일 때만 띄운다.
+처음에는 `--data <빈 폴더>`도 받았다. PR #50에서 SonarQube가 명령줄 인자가 그대로 쓸 경로와 실행할 프로그램이 되는 것을 지적해(S8707 3건, S8701, S8705, `taskkill`을 PATH에서 찾는 S4036) 품질 게이트가 실패했다.
+CI와 에이전트도 돌리는 스크립트라 인자가 틀리면 엉뚱한 폴더에 쓰거나 다른 프로그램을 띄울 수 있으므로, 인자가 정하는 것을 줄였다. `taskkill`은 `%SystemRoot%\System32`의 것을 부른다.
+
+이 PC(Windows, VS Code 1.147.0): 검사 31개 모두 통과, 약 2분, 창 세 개가 열렸다가 스스로 닫힌다. 마지막 코드로 두 번 돌려 두 번 통과(129초, 125초). 러너를 바꾼 뒤 한 번 더 통과(106초, 임시 폴더는 지워짐). Marketplace에서 작은 확장 10개를 받는다.
 
 | 남아 있던 것 | 검사가 보는 것 | 못 보는 것 |
 | --- | --- | --- |
@@ -281,5 +285,6 @@ node out/integration/run.js --exe "<VS Code 실행 파일>" --data <빈 폴더> 
 4. **개발 폴더에서 실행하면 확장 폴더를 실제 `~/.vscode/extensions`로 읽었다.** 격리 실행("Run Extension (isolated profiles)" 포함)에서 "모든 프로필에 적용"과 extra의 이유가 실제 PC의 것으로 나왔다(읽기만).
    이제 `PROFILE_KIT_CODE_ARGS`의 `--extensions-dir`를 쓴다(`Kit` 생성자).
 
-CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님). 아직 CI에서 돌려 보지 않았다.
-Linux는 `xvfb-run`으로 돌리는데 창이 여러 개 열리는 흐름이 거기서 되는지, macOS와 VS Code 1.95에서 되는지도 확인하지 않았다.
+CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님).
+첫 실행(PR #50, 2026-11-25, VS Code 1.147.0): Linux(`xvfb-run`)와 Windows 모두 31개 통과(job 1분 31초, 2분 20초). 창이 여러 개 열리는 흐름은 xvfb에서도 된다.
+macOS와 VS Code 1.95에서는 돌리지 않는다(되는지 확인하지 않았다).

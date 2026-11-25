@@ -59,7 +59,9 @@
   1.4.0 준비(2026-11-25): 통합 테스트 `scripts/integration/`(격리 VS Code 안에서 검사 31개, 이 PC에서 통과, `docs/PLAN.md` 14절), `.github/workflows/integration.yml`(필수 검사 아님), `compat.yml`에 macOS 최신 stable.
   통합 테스트로 찾아 고친 버그 둘: 프리셋을 적용하면 확장 팩의 멤버마다 "설치했으니 다른 프로필에도?"를 묻던 것(`Kit.changeRunning`: Profile Kit이 설치하는 동안 온 확장은 묻지 않음),
   팩을 직접 설치하면 멤버를 묻고 팩은 안 묻던 것(`InstallWatcher`가 새 확장을 모아 3초 잠잠해진 뒤 한꺼번에 봄, `core/dependencies.ts` `installedAlongWith`). 단위 테스트 308개.
-  CI에서 통합 테스트와 macOS 호환성 점검은 아직 돌려 보지 않았다.
+  PR #50 첫 실행에서 CI 통합 테스트(Linux xvfb·Windows, 31개)와 macOS 호환성 점검(14개)이 통과했다.
+  같은 실행에서 SonarQube 게이트는 `scripts/integration/run.ts`의 보안 지적 6건(인자 → 경로·실행 파일, `taskkill`을 PATH에서 찾음)으로 실패해 러너를 바꿨다:
+  데이터 폴더는 인자로 받지 않고 임시 폴더에 직접 만들며, `--exe`는 VS Code 실행 파일 이름일 때만 띄운다(`docs/PLAN.md` 14절).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
@@ -92,17 +94,17 @@
 
 ## 명령
 
-| 목적                                         | 명령                                                                                                                                                                          |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 전부 점검 (typecheck + lint + format + test) | `npm run check`                                                                                                                                                               |
-| 빌드 (`dist/extension.js`, `dist/cli.js`)    | `npm run build` (`watch`, `build:prod`)                                                                                                                                       |
-| 단위 테스트                                  | `npm test`                                                                                                                                                                    |
-| 단위 테스트 + 커버리지 (Sonar CI용)          | `npm run test:coverage`                                                                                                                                                       |
-| CLI                                          | `node dist/cli.js plan presets/example.json` / `verify ... [--profile X]`                                                                                                     |
-| CLI apply (격리 VS Code로 시험)              | `node dist/cli.js apply <preset> --user-data-dir <tmp>/u --extensions-dir <tmp>/x --shared-data-dir <tmp>/s [--yes]`                                                          |
-| 호환성 점검 (실제 VS Code, 격리 폴더)        | `npm run build:compat` → `node out/compat.js --code <bin/code> --app-root <resources/app> --data <빈 폴더>` (창이 하나 열림, 끝나면 그 프로세스만 닫는다)                     |
-| 통합 테스트 (실제 VS Code, 격리 폴더)        | `npm run build`, `npm run build:integration` → `node out/integration/run.js --exe <Code.exe> --data <빈 폴더>` (창 세 개가 열렸다가 스스로 닫힘, 약 2분, `docs/PLAN.md` 14절) |
-| VSIX                                         | `npm run package`                                                                                                                                                             |
+| 목적                                         | 명령                                                                                                                                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 전부 점검 (typecheck + lint + format + test) | `npm run check`                                                                                                                                                                                         |
+| 빌드 (`dist/extension.js`, `dist/cli.js`)    | `npm run build` (`watch`, `build:prod`)                                                                                                                                                                 |
+| 단위 테스트                                  | `npm test`                                                                                                                                                                                              |
+| 단위 테스트 + 커버리지 (Sonar CI용)          | `npm run test:coverage`                                                                                                                                                                                 |
+| CLI                                          | `node dist/cli.js plan presets/example.json` / `verify ... [--profile X]`                                                                                                                               |
+| CLI apply (격리 VS Code로 시험)              | `node dist/cli.js apply <preset> --user-data-dir <tmp>/u --extensions-dir <tmp>/x --shared-data-dir <tmp>/s [--yes]`                                                                                    |
+| 호환성 점검 (실제 VS Code, 격리 폴더)        | `npm run build:compat` → `node out/compat.js --code <bin/code> --app-root <resources/app> --data <빈 폴더>` (창이 하나 열림, 끝나면 그 프로세스만 닫는다)                                               |
+| 통합 테스트 (실제 VS Code, 격리 폴더)        | `npm run build`, `npm run build:integration` → `node out/integration/run.js --exe <Code.exe>` (창 세 개가 열렸다가 스스로 닫힘, 약 2분, 데이터는 임시 폴더에 만들고 통과하면 지움, `docs/PLAN.md` 14절) |
+| VSIX                                         | `npm run package`                                                                                                                                                                                       |
 
 ## 구조
 
@@ -151,3 +153,4 @@
 - SonarQube Cloud(조직 `woogajjangka`, 프로젝트 `WoogaJJangka_vscode-profile-kit`): `sonar.yml` CI 분석 + 커버리지(`npm run test:coverage` → `coverage/lcov.info`) + 품질 게이트.
   secret `SONAR_TOKEN`이 있을 때만 돈다. Automatic Analysis는 꺼 둔다(켜면 CI 스캔 실패). 설정은 `.sonarcloud.properties`(CI가 `sonar-project.properties`로 복사).
   프로젝트 생성·토큰 등록은 사용자가 직접. 결과는 SonarQube MCP로 읽는다.
+  스캐너는 `sonar.sources`·`sonar.tests`를 무시하고 저장소 전체를 분석한다(로그의 경고, 2026-11-25 확인). 빼는 것은 `sonar.exclusions`뿐이라 `scripts/`와 `esbuild.mjs`도 보안 규칙 대상이다.

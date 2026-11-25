@@ -99,10 +99,10 @@ VS Code 프로필 프리셋 도구를 제대로 된 프로젝트로 만든다: �
 
 1. 통합 테스트(`scripts/integration/`): 격리 VS Code(데이터 폴더 3개 모두 임시)에서 확장을 띄우고 실제 명령을 돌린다. 8·12절에서 임시 탐침으로 하던 확인을 저장소에 고정한다. 대상은 `docs/PLAN.md`에 "화면으로 보지 않았다"로 남은 다섯 가지:
    설치 후 프로필 고르기(기록 위치를 묻지 않는 흐름, 11절), 프리셋을 설정에 저장·파일로 옮기기의 확인 창(12절), 트리·관리 화면의 extra 이유 표시(13절), 여러 창에서 설치 알림이 한 번만(P6), 두 번 누르기 막기(1.3.2).
-   → 2026-11-25 이 PC(Windows, VS Code 1.147)에서 검사 31개 통과. 그 과정에서 설치 알림 버그 둘을 찾아 고쳤다(`docs/PLAN.md` 14절). CI(`integration.yml`)에서는 아직 돌려 보지 않았다.
-2. `compat.yml`에 macOS 최신 stable 추가. 지금은 실제 VS Code로 Linux·Windows만 돈다. → 워크플로에 넣었다. 첫 실행 결과는 아직 없다.
+   → 2026-11-25 이 PC(Windows, VS Code 1.147)에서 검사 31개 통과. 그 과정에서 설치 알림 버그 둘을 찾아 고쳤다(`docs/PLAN.md` 14절). CI(`integration.yml`) 첫 실행(PR #50)에서 Linux·Windows 모두 31개 통과.
+2. `compat.yml`에 macOS 최신 stable 추가. 지금은 실제 VS Code로 Linux·Windows만 돈다. → 워크플로에 넣었다. 첫 실행(PR #50)에서 14개 모두 통과.
 3. 확인이 끝나면 version 1.4.0 + CHANGELOG(`[Unreleased]` 포함) PR → 태그 `v1.4.0`(게시, 사용자 승인).
-   그 전에 볼 것: CI의 통합 테스트와 macOS 호환성 점검 첫 결과, Open VSX를 할지(아래 "정하지 않은 것").
+   그 전에 볼 것: Open VSX를 할지(아래 "정하지 않은 것"). CI의 통합 테스트와 macOS 호환성 점검 첫 결과는 위에 적었다.
 
 ### 1.5.x 후보와 근거
 
