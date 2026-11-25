@@ -290,7 +290,7 @@ macOS에서 찾는 위치(`Visual Studio Code.app/Contents/MacOS/Electron`)는 �
    검사하는 창의 로그에는 "Extensions added from another source"가 멤버 둘에만 찍혔고 팩은 그 창에 끝까지(약 140초) 나타나지 않았다. 나중에 연 같은 프로필의 창에는 있었다.
    그 창의 `InstallWatcher`는 팩을 모르니 멤버 둘을 물었다(검사 "a pack the user installs is asked about once, and its members are not" 실패). 새 확장인지와 "같이 설치된 것"인지를 그 창에 로드된 확장(`vscode.extensions.all`)만으로 판정하기 때문이다.
    그 창의 확장 화면에서 설치할 때는 해당이 없고, CLI나 같은 프로필의 다른 창에서 설치할 때만 생길 수 있다. 고치려면 프로필의 설치 목록과 확장 폴더의 package.json(트리가 쓰는 `Kit.relations`)으로 판정해야 한다. 1.5.x "설치 목록을 파일에서 읽기"와 같은 방향이다.
-   그때까지 이 검사는 가끔 실패할 수 있다: 마지막 제품 코드로 이 PC 5번 중 1번, CI 6번(세 push × Linux·Windows) 중 0번. 임시 폴더를 C: 드라이브로 옮긴 것이 이 PC에서 더 자주 나게 하는지는 모른다.
+   그때까지 이 검사는 가끔 실패할 수 있다: 마지막 제품 코드로 이 PC 5번 중 1번, CI 8번(네 push × Linux·Windows) 중 0번. 사용자 결정(2026-11-25): 1.4.0에서는 두고 1.5.x에서 고친다. 임시 폴더를 C: 드라이브로 옮긴 것이 이 PC에서 더 자주 나게 하는지는 모른다.
 
 CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님).
 첫 실행(PR #50, 2026-11-25, VS Code 1.147.0): Linux(`xvfb-run`)와 Windows 모두 31개 통과(job 1분 31초, 2분 20초). 창이 여러 개 열리는 흐름은 xvfb에서도 된다.
