@@ -159,15 +159,71 @@ describe('fetchTemplates', () => {
       text: () => Promise.resolve(pages[url] ?? ''),
     });
 
-  it('reads the list and each template; a failed template carries its error', async () => {
+  it('reads the list and each template; a template that did not download says so', async () => {
     const got = await fetchTemplates('https://cdn.example/t.json', { fetch: fakeFetch });
     expect(got.map((t) => t.name)).toEqual(['Python', 'Gone']);
     expect(got[0].profile?.extensions).toEqual(['ms-python.python']);
-    expect(got[1].error).toMatch(/404/);
+    expect(got[0].failure).toBeUndefined();
+    expect(got[1].failure).toEqual({ stage: 'download', reason: 'answered 404' });
   });
 
   it('throws when the list itself fails', async () => {
     await expect(fetchTemplates('https://cdn.example/none.json', { fetch: fakeFetch })).rejects.toThrow(/404/);
+  });
+
+  it('a downloaded template that is not a profile is a read failure, without its content', async () => {
+    const withBad = (url: string) =>
+      url.endsWith('gone.code-profile')
+        ? Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<html>secret-page') })
+        : fakeFetch(url);
+    const got = await fetchTemplates('https://cdn.example/t.json', { fetch: withBad });
+    expect(got[1].failure).toEqual({ stage: 'read', reason: 'not valid JSON' });
+    expect(JSON.stringify(got)).not.toContain('secret-page');
+  });
+
+  it('a network error is a download failure that does not keep the error text', async () => {
+    const offline = (url: string) =>
+      url.endsWith('python.code-profile')
+        ? Promise.reject(new Error('getaddrinfo ENOTFOUND secret-host'))
+        : fakeFetch(url);
+    const got = await fetchTemplates('https://cdn.example/t.json', { fetch: offline });
+    expect(got[0].failure).toEqual({ stage: 'download', reason: 'could not be reached' });
+    expect(JSON.stringify(got)).not.toContain('secret-host');
+  });
+
+  it('a download that takes too long is a time-out', async () => {
+    const hangs = (url: string, init: { signal?: AbortSignal }) =>
+      url.endsWith('python.code-profile')
+        ? new Promise<never>((_, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted'))))
+        : fakeFetch(url);
+    const got = await fetchTemplates('https://cdn.example/t.json', { fetch: hangs, timeoutMs: 20 });
+    expect(got[0].failure).toEqual({ stage: 'download', reason: 'timed out after 0.02s' });
+  });
+
+  it('downloadAttempts tries a failed download again', async () => {
+    const calls: string[] = [];
+    let first = true;
+    const flaky = (url: string) => {
+      calls.push(url);
+      if (url.endsWith('python.code-profile') && first) {
+        first = false;
+        return Promise.resolve({ ok: false, status: 503, text: () => Promise.resolve('') });
+      }
+      return fakeFetch(url);
+    };
+    const once = await fetchTemplates('https://cdn.example/t.json', { fetch: flaky, retryDelayMs: 0 });
+    expect(once[0].failure).toEqual({ stage: 'download', reason: 'answered 503' });
+    first = true;
+    calls.length = 0;
+    const twice = await fetchTemplates('https://cdn.example/t.json', {
+      fetch: flaky,
+      downloadAttempts: 2,
+      retryDelayMs: 0,
+    });
+    expect(twice[0].profile?.extensions).toEqual(['ms-python.python']);
+    expect(calls.filter((u) => u.endsWith('python.code-profile'))).toHaveLength(2);
+    // still failing after the last try: reported as before
+    expect(twice[1].failure).toEqual({ stage: 'download', reason: 'answered 404' });
   });
 
   it('a list that is not JSON is reported without its content', async () => {

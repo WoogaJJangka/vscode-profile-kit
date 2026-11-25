@@ -117,7 +117,11 @@ export async function pickTemplates(kit: Kit, title: string): Promise<ImportedPr
     void vscode.window.showWarningMessage(t('VS Code profile templates could not be read (offline?).'));
     return [];
   }
-  for (const f of templates.filter((x) => x.error)) kit.log(`! template ${f.name}: ${f.error}`);
+  for (const { name, url: from, failure } of templates)
+    if (failure)
+      kit.log(
+        `! template ${name} (${from}) ${failure.stage === 'download' ? 'not downloaded' : 'not read'}: ${failure.reason}`,
+      );
   const items = templates.flatMap((x) =>
     x.profile
       ? [

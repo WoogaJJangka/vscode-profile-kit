@@ -128,19 +128,33 @@ async function main(): Promise<void> {
   if (url) {
     let templates: Awaited<ReturnType<typeof fetchTemplates>> | undefined;
     try {
-      templates = await fetchTemplates(url);
+      templates = await fetchTemplates(url, { downloadAttempts: 2 });
     } catch {
       // The list is on VS Code's own CDN; older builds name a host that no longer answers (seen on 1.95.0:
       // "fetch failed"). VS Code's New Profile > template list is then empty too, and Profile Kit only shows no
       // suggestions. The error text is not logged: it comes from the download (SonarQube S8689).
       console.log("SKIP  profile templates: the list in this build's product.json could not be downloaded or read");
     }
-    if (templates)
-      check(
-        'profile templates are .code-profile files Profile Kit can read',
-        templates.length > 0 && templates.every((x) => !!x.profile?.extensions.length),
-        templates.map((x) => ({ name: x.name, extensions: x.profile?.extensions.length ?? 0, failed: !!x.error })),
-      );
+    if (templates) {
+      // A template that could not be downloaded (twice) says nothing about its format. Seen once: 2026-11-23, one
+      // template of seven in one job, while another job read it at the same time. Only downloaded ones are checked.
+      const notDownloaded = templates.filter((x) => x.failure?.stage === 'download');
+      const downloaded = templates.filter((x) => x.failure?.stage !== 'download');
+      if (notDownloaded.length)
+        console.log(
+          `SKIP  profile templates not downloaded after 2 tries: ${notDownloaded.map((x) => `${x.name} (${x.failure?.reason})`).join(', ')}`,
+        );
+      if (downloaded.length || !templates.length)
+        check(
+          'profile templates are .code-profile files Profile Kit can read',
+          templates.length > 0 && downloaded.every((x) => !!x.profile?.extensions.length),
+          downloaded.map((x) => ({
+            name: x.name,
+            extensions: x.profile?.extensions.length ?? 0,
+            ...(x.failure ? { notRead: x.failure.reason } : {}),
+          })),
+        );
+    }
   }
 }
 
