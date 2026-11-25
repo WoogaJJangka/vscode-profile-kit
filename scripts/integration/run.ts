@@ -7,45 +7,56 @@
  * passed; otherwise it is kept and its path is printed.
  *
  *   npm run build && npm run build:integration
- *   node out/integration/run.js --exe <VS Code executable> [--timeout <seconds>]
+ *   node out/integration/run.js [--timeout <seconds>]
  *
- * --exe is the program itself, not bin/code: Code.exe (Windows), code (Linux, in the unpacked folder),
- * "Visual Studio Code.app/Contents/MacOS/Electron" (macOS).
+ * The VS Code that is started is the one unpacked into .vscode-test/vscode of this repository (to check another
+ * version, or in CI), otherwise the VS Code installed on this PC. Only its program is used; the data is separate.
  *
- * The command line decides as little as possible, because CI and coding agents run this too: only a file with one of
- * those names is started, and where the data goes is not an argument (SonarQube S8701, S8705, S8707).
+ * Neither the program nor the data folder is an argument. CI and coding agents run this too, and a wrong argument
+ * must not start another program or write into another folder (SonarQube S8701, S8705, S8707).
  */
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { type IntegrationConfig, INTEGRATION_ENV, PRESET_FILE, PROFILE_HERE, startPreset } from './config';
 
-const { values } = parseArgs({ options: { exe: { type: 'string' }, timeout: { type: 'string' } } });
-if (!values.exe) {
-  console.error('usage: run.js --exe <VS Code executable> [--timeout <seconds>]');
-  process.exit(2);
-}
-const exe = path.resolve(values.exe);
-// The whole path has to match: folders, then one of the names VS Code's own program has (stable and Insiders;
-// Windows, Linux, macOS). Nothing else is started.
-const VSCODE_PROGRAM = /^(?:[a-z]:)?(?:[\\/][^\\/]+)*[\\/](?:code(?: - insiders)?\.exe|code(?:-insiders)?|electron)$/i;
-if (!VSCODE_PROGRAM.test(exe)) {
-  console.error(`--exe is not a VS Code program (Code.exe, code, Electron): ${exe}`);
-  process.exit(2);
-}
+const { values } = parseArgs({ options: { timeout: { type: 'string' } } });
 const timeoutMs = Number(values.timeout ?? 600) * 1000;
 // out/integration/run.js → the repository
 const repo = path.resolve(__dirname, '..', '..');
 const suite = path.join(repo, 'out', 'integration', 'suite.js');
 
+/**
+ * Where VS Code's own program is looked for, the unpacked one first. The program itself, not bin/code.
+ * macOS is not checked (the integration checks have not run there).
+ */
+function programCandidates(): string[] {
+  const unpacked = path.join(repo, '.vscode-test', 'vscode');
+  if (process.platform === 'win32') {
+    const { LOCALAPPDATA, ProgramFiles } = process.env;
+    const installed = [LOCALAPPDATA ? path.join(LOCALAPPDATA, 'Programs') : undefined, ProgramFiles];
+    return [
+      path.join(unpacked, 'Code.exe'),
+      ...installed.flatMap((dir) => (dir ? [path.join(dir, 'Microsoft VS Code', 'Code.exe')] : [])),
+    ];
+  }
+  if (process.platform === 'darwin')
+    return [unpacked, '/Applications', path.join(homedir(), 'Applications')].map((dir) =>
+      path.join(dir, 'Visual Studio Code.app', 'Contents', 'MacOS', 'Electron'),
+    );
+  return [path.join(unpacked, 'code'), '/usr/share/code/code', '/snap/code/current/usr/share/code/code'];
+}
+
 function fail(message: string): never {
   console.error(message);
   process.exit(2);
 }
-if (!existsSync(exe)) fail(`not found: ${exe}`);
+const candidates = programCandidates();
+const exe = candidates.find((p) => existsSync(p));
+if (!exe) fail(['VS Code was not found. Looked for:', ...candidates].join('\n  '));
 if (!existsSync(path.join(repo, 'dist', 'extension.js'))) fail('dist/extension.js is missing: run "npm run build"');
 if (!existsSync(suite)) fail('out/integration/suite.js is missing: run "npm run build:integration"');
 

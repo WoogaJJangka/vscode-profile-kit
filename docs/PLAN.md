@@ -253,14 +253,16 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 ```sh
 npm run build && npm run build:integration
-node out/integration/run.js --exe "<VS Code 실행 파일>"   # Windows: Code.exe, bin\code.cmd가 아니다
+node out/integration/run.js
 ```
 
-데이터 폴더는 러너가 시스템 임시 폴더 아래에 새로 만든다(`profile-kit-it-*`). 모두 통과하면 지우고, 아니면 남기고 경로를 알려 준다. `--exe`는 VS Code 실행 파일 이름(`Code.exe`, `code`, `Electron`, Insiders 포함)일 때만 띄운다.
-처음에는 `--data <빈 폴더>`도 받았다. PR #50에서 SonarQube가 명령줄 인자가 그대로 쓸 경로와 실행할 프로그램이 되는 것을 지적해(S8707 3건, S8701, S8705, `taskkill`을 PATH에서 찾는 S4036) 품질 게이트가 실패했다.
-CI와 에이전트도 돌리는 스크립트라 인자가 틀리면 엉뚱한 폴더에 쓰거나 다른 프로그램을 띄울 수 있으므로, 인자가 정하는 것을 줄였다. `taskkill`은 `%SystemRoot%\System32`의 것을 부른다.
+러너는 경로를 인자로 받지 않는다. 띄울 VS Code는 저장소의 `.vscode-test/vscode`에 풀어 둔 것(다른 버전을 볼 때, CI), 없으면 이 PC에 설치된 것이다(프로그램만 쓰고 데이터는 따로다). Windows는 `Code.exe`이고 `bin\code.cmd`가 아니다.
+데이터 폴더는 시스템 임시 폴더 아래에 새로 만든다(`profile-kit-it-*`). 모두 통과하면 지우고, 아니면 남기고 경로를 알려 준다.
+처음에는 `--exe <VS Code 실행 파일> --data <빈 폴더>`를 받았다. PR #50에서 SonarQube가 명령줄 인자가 그대로 쓸 경로와 실행할 프로그램이 되는 것을 지적해(S8707 3건, S8701, S8705, `taskkill`을 PATH에서 찾는 S4036) 품질 게이트가 실패했다.
+CI와 에이전트도 돌리는 스크립트라 인자가 틀리면 엉뚱한 폴더에 쓰거나 다른 프로그램을 띄울 수 있으므로 두 인자를 없앴다. `--exe`를 남기고 파일 이름만 검사하는 것으로는 S8701이 그대로였다. `taskkill`은 `%SystemRoot%\System32`의 것을 부른다.
+macOS에서 찾는 위치(`Visual Studio Code.app/Contents/MacOS/Electron`)는 돌려 보지 않았다.
 
-이 PC(Windows, VS Code 1.147.0): 검사 31개 모두 통과, 약 2분, 창 세 개가 열렸다가 스스로 닫힌다. 마지막 코드로 두 번 돌려 두 번 통과(129초, 125초). 러너를 바꾼 뒤 두 번 돌려 한 번 통과(106초, 임시 폴더는 지워짐), 한 번은 검사 하나가 실패했다(218초, 아래 "찾은 것" 5). Marketplace에서 작은 확장 10개를 받는다.
+이 PC(Windows, VS Code 1.147.0): 검사 31개 모두 통과, 약 2분, 창 세 개가 열렸다가 스스로 닫힌다. 마지막 코드로 두 번 돌려 두 번 통과(129초, 125초). 러너를 바꾼 뒤 세 번 돌려 두 번 통과(106초, 115초, 임시 폴더는 지워짐), 한 번은 검사 하나가 실패했다(218초, 아래 "찾은 것" 5). Marketplace에서 작은 확장 10개를 받는다.
 
 | 남아 있던 것 | 검사가 보는 것 | 못 보는 것 |
 | --- | --- | --- |
@@ -288,7 +290,7 @@ CI와 에이전트도 돌리는 스크립트라 인자가 틀리면 엉뚱한 �
    검사하는 창의 로그에는 "Extensions added from another source"가 멤버 둘에만 찍혔고 팩은 그 창에 끝까지(약 140초) 나타나지 않았다. 나중에 연 같은 프로필의 창에는 있었다.
    그 창의 `InstallWatcher`는 팩을 모르니 멤버 둘을 물었다(검사 "a pack the user installs is asked about once, and its members are not" 실패). 새 확장인지와 "같이 설치된 것"인지를 그 창에 로드된 확장(`vscode.extensions.all`)만으로 판정하기 때문이다.
    그 창의 확장 화면에서 설치할 때는 해당이 없고, CLI나 같은 프로필의 다른 창에서 설치할 때만 생길 수 있다. 고치려면 프로필의 설치 목록과 확장 폴더의 package.json(트리가 쓰는 `Kit.relations`)으로 판정해야 한다. 1.5.x "설치 목록을 파일에서 읽기"와 같은 방향이다.
-   그때까지 이 검사는 가끔 실패할 수 있다: 마지막 제품 코드로 이 PC 4번 중 1번, CI 4번(두 push × Linux·Windows) 중 0번. 임시 폴더를 C: 드라이브로 옮긴 것이 이 PC에서 더 자주 나게 하는지는 모른다.
+   그때까지 이 검사는 가끔 실패할 수 있다: 마지막 제품 코드로 이 PC 5번 중 1번, CI 6번(세 push × Linux·Windows) 중 0번. 임시 폴더를 C: 드라이브로 옮긴 것이 이 PC에서 더 자주 나게 하는지는 모른다.
 
 CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님).
 첫 실행(PR #50, 2026-11-25, VS Code 1.147.0): Linux(`xvfb-run`)와 Windows 모두 31개 통과(job 1분 31초, 2분 20초). 창이 여러 개 열리는 흐름은 xvfb에서도 된다.

@@ -51,14 +51,14 @@ jobs:
       - name: Build the checks
         run: npm run build:integration
 
-      # the same download URL @vscode/test-electron uses; the program itself, not bin/code
+      # The same download URL @vscode/test-electron uses. Unpacked into .vscode-test/vscode, where the runner looks first
+      # (scripts/integration/run.ts takes no path).
       - name: Download VS Code (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.tar.gz "https://update.code.visualstudio.com/latest/linux-x64/stable"
-          mkdir vscode && tar -xzf vscode.tar.gz -C vscode --strip-components=1
-          echo "CODE_EXE=$PWD/vscode/code" >> "$GITHUB_ENV"
+          mkdir -p .vscode-test/vscode && tar -xzf vscode.tar.gz -C .vscode-test/vscode --strip-components=1
           # Ubuntu 24.04 blocks the unprivileged user namespaces Electron's sandbox needs
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           sudo apt-get install -y --no-install-recommends xvfb > /dev/null
@@ -68,14 +68,13 @@ jobs:
         shell: bash
         run: |
           curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL -o vscode.zip "https://update.code.visualstudio.com/latest/win32-x64-archive/stable"
-          mkdir vscode && unzip -q vscode.zip -d vscode
-          echo "CODE_EXE=$(cygpath -w "$PWD/vscode/Code.exe")" >> "$GITHUB_ENV"
+          mkdir -p .vscode-test/vscode && unzip -q vscode.zip -d .vscode-test/vscode
 
       - name: Run the checks (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a node out/integration/run.js --exe "$CODE_EXE"
+        run: xvfb-run -a node out/integration/run.js
 
       - name: Run the checks (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: node out/integration/run.js --exe "$env:CODE_EXE"
+        run: node out/integration/run.js
