@@ -52,6 +52,12 @@ export const PRIVATE_DEPENDENCIES: readonly PrivateDependency[] = [
     ifChanged: 'extensions applied to all profiles are shown as "not in the preset" again; nothing is written',
   },
   {
+    what: "a profile's installed extensions: User/profiles/<location>/extensions.json without its isApplicationScoped entries, plus the isApplicationScoped and isBuiltin entries of the extensions folder's extensions.json; that file alone for Default and for a profile with useDefaultFlags.extensions",
+    usedIn: 'core/extensionsJson.ts, host/builtins.ts, ui/kit.ts',
+    ifChanged:
+      'a file that is not understood: the list comes from code --list-extensions again (slower, nothing wrong). Understood but different from the CLI: wrong missing/extra in the tree until the weekly check, which compares the two, fails',
+  },
+  {
     what: 'extensions folder: one folder per installed extension (every profile installs there), each with its package.json',
     usedIn: 'core/dependencies.ts, host/builtins.ts',
     ifChanged: 'dependencies and extension pack members are shown as "not in the preset" again; nothing is written',
@@ -88,11 +94,15 @@ export const PROFILES_FOLDER = 'profiles';
 /** Settings Sync keeps its last synced copies here (`<userData>/User/sync/`); it stays after Sync is turned off. */
 export const SYNC_FOLDER = 'sync';
 
-// --- extensions.json (Default profile list in the extensions folder, read only) ---
+// --- extensions.json (read only): Default's list in the extensions folder, a profile's own in its profile folder ---
 
 export const EXTENSIONS_MANIFEST = 'extensions.json';
 /** `metadata` flag of an extension VS Code applies to all profiles. */
 export const APPLICATION_SCOPED_FLAG = 'isApplicationScoped';
+/** `metadata` flag of a newer version of an extension that ships with VS Code; Default's entry counts everywhere. */
+export const BUILTIN_FLAG = 'isBuiltin';
+/** `useDefaultFlags` key of a profile that uses Default's extensions: it has no extensions.json of its own. */
+export const SHARED_EXTENSIONS_FLAG = 'extensions';
 
 // --- product.json (`<appRoot>/product.json`) ---
 

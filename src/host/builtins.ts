@@ -1,7 +1,7 @@
 /**
  * Reading what VS Code's own profile features left on disk, and exporting to VS Code's profile file (stage C).
- * Read only for VS Code's files: Default's extensions.json, installed extensions' package.json, product.json, the
- * Settings Sync folder.
+ * Read only for VS Code's files: Default's and each profile's extensions.json, installed extensions' package.json,
+ * product.json, the Settings Sync folder.
  * Shared by the CLI and the extension. docs/PLAN.md section 8-2.
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
@@ -11,21 +11,27 @@ import * as path from 'node:path';
 import {
   codeProfileFileName,
   compareCodeUnits,
+  defaultInstalledIds,
   EXTENSIONS_MANIFEST,
   type ExtensionInfo,
   type ExtensionRelations,
   type ImportedProfile,
+  type ListedExtension,
   parseApplicationScoped,
   parseCodeProfile,
   parseExtensionManifest,
+  parseExtensionsJson,
   parseTemplateList,
   type Preset,
+  profileInstalledIds,
   readErrorSummary,
   relationsById,
   type ProfileTemplate,
   resolveProfile,
   retry,
   serializeCodeProfile,
+  SHARED_EXTENSIONS_FLAG,
+  type StoredProfile,
   templatesUrlFromProduct,
   toCodeProfile,
 } from '../core';
@@ -61,6 +67,70 @@ export function readApplicationScoped(extensionsDir: string): { ids: string[]; p
       problem: `${file} could not be read, so extensions applied to all profiles are not known (${readErrorSummary(error)})`,
     };
   }
+}
+
+/** A profile's installed extensions as VS Code's files give them, or why the files do not say. */
+export type InstalledRead = { ids: string[]; problem?: undefined } | { ids?: undefined; problem: string };
+
+/**
+ * One extensions.json. `entries` is missing without a `problem` when the file is not there (VS Code writes a
+ * profile's list at its first install). The file is read by its real path and only when that is inside `dir`
+ * (canonical path, then containment check, then use, as in readApplicationScoped).
+ */
+function readExtensionsList(
+  dir: string,
+  file: string,
+  label: string,
+): { entries?: ListedExtension[]; problem?: string } {
+  let base: string;
+  let real: string;
+  try {
+    base = realpathSync(dir);
+    real = realpathSync(file);
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') return {};
+    return { problem: `${label} could not be opened (${readErrorSummary(error)})` };
+  }
+  if (!real.startsWith(base + path.sep)) return { problem: `${label} points outside its folder, so it is not read` };
+  try {
+    return { entries: parseExtensionsJson(readFileSync(real, 'utf8')) };
+  } catch (error) {
+    return { problem: `${label} could not be read (${readErrorSummary(error)})` };
+  }
+}
+
+/**
+ * The extensions installed in a profile, lower-case and sorted: what `code --list-extensions --profile X` prints,
+ * read from VS Code's own lists instead of starting a `code` process (docs/PLAN.md section 15).
+ * `profile` is its entry in storage.json; leave it out for Default. A profile with extensions of its own:
+ * `User/profiles/<location>/extensions.json` plus what Default's list (the extensions folder's extensions.json)
+ * applies to all profiles; no file yet means no extensions of its own. Default, and a profile that uses Default's
+ * extensions: Default's list.
+ * Without `ids` the files do not say (missing where VS Code would write one, unreadable, linked from elsewhere, or
+ * not the format Profile Kit knows) and the caller asks the `code` CLI. Read only.
+ */
+export function readInstalledExtensions(
+  paths: UserDataPaths,
+  extensionsDir: string,
+  profile?: Pick<StoredProfile, 'location' | 'useDefaultFlags'>,
+): InstalledRead {
+  const defaultsFile = `${EXTENSIONS_MANIFEST} of the extensions folder`;
+  const defaults = readExtensionsList(extensionsDir, path.join(extensionsDir, EXTENSIONS_MANIFEST), defaultsFile);
+  if (defaults.problem) return { problem: defaults.problem };
+  if (!profile || profile.useDefaultFlags[SHARED_EXTENSIONS_FLAG] === true)
+    return defaults.entries
+      ? { ids: defaultInstalledIds(defaults.entries) }
+      : { problem: `${defaultsFile} is not there` };
+  let file: string;
+  try {
+    file = paths.profileExtensions(profile.location);
+  } catch (error) {
+    return { problem: readErrorSummary(error) };
+  }
+  const own = readExtensionsList(paths.profilesDir, file, `${EXTENSIONS_MANIFEST} of the profile`);
+  if (own.problem) return { problem: own.problem };
+  return { ids: profileInstalledIds(own.entries ?? [], defaults.entries ?? []) };
 }
 
 /** One installed extension's package.json, as far as dependencies go. */

@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Every profile is known from the moment a window opens: the Profiles view no longer waits on "Checking…", and the badge on the Activity Bar and the menu count all profiles before the view has been opened. Profile Kit now reads what is installed in each profile from the lists VS Code keeps on disk. Before, each profile took a `code` process (well over half a second each), and a window only looked at its own profile until the view was shown. `code --list-extensions` is still used when a list cannot be read, and to check an install.
+
+### Fixed
+
+- After an extension pack was installed from outside a window (the `code` command, or another window of the same profile), that window sometimes asked "… was installed in … Add it to other profiles too?" about the pack's members and not about the pack. VS Code had not told the window about the pack. What is new is now taken from the profile's list of installed extensions, so the question is about the pack, once.
+
 ## [1.4.0]
 
 The second release that is not a pre-release. Coming from 1.0.0, it brings what the pre-releases 1.1.0 to 1.3.2 added: the menu behind the status bar and the Get Started guide (1.1.0), a preset stored in Settings and carried by Settings Sync (1.3.0), the reason an extension you did not declare is there (1.3.1), and Profile Kit's changes running one at a time (1.3.2). New since 1.3.2 are the fixes below.

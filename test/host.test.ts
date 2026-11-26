@@ -38,7 +38,12 @@ describe('paths', () => {
   it('profile locations cannot escape User/profiles', () => {
     const p = userDataPaths(path.resolve('ud'));
     expect(p.profileSettings('-529380a5')).toBe(path.join(p.user, 'profiles', '-529380a5', 'settings.json'));
-    for (const bad of ['', '..', '.', 'a/b', 'a\\b']) expect(() => p.profileSettings(bad)).toThrow();
+    expect(p.profileExtensions('-529380a5')).toBe(path.join(p.profilesDir, '-529380a5', 'extensions.json'));
+    expect(p.profilesDir).toBe(path.join(p.user, 'profiles'));
+    for (const bad of ['', '..', '.', 'a/b', 'a\\b']) {
+      expect(() => p.profileSettings(bad)).toThrow();
+      expect(() => p.profileExtensions(bad)).toThrow();
+    }
   });
 });
 

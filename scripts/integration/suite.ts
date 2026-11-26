@@ -20,12 +20,15 @@ import * as vscode from 'vscode';
 import { PROFILE_KIT_ID } from '../../src/core/dependencies';
 import { isRecord, parseJsonc, parsePresetText } from '../../src/core/preset';
 import type { TestApi } from '../../src/extension';
+import { listInstalled } from '../../src/host/installer';
 import type { ManagerState, ToWebview } from '../../src/ui/panel/protocol';
 import {
   COMMON_SETTING,
   IN_CORE,
   type IntegrationConfig,
   INTEGRATION_ENV,
+  MISSED_PACK,
+  MISSED_PACK_MEMBERS,
   PACK,
   PACK_MEMBERS,
   PROFILE_HERE as HERE,
@@ -47,8 +50,12 @@ function say(line: string): void {
   appendFileSync(results, `${line}\n`);
 }
 
+const startedAt = Date.now();
+
+/** One result line, with the seconds since this window started the checks (to see which step a slow run waited in). */
 function check(name: string, ok: boolean, detail?: unknown): void {
-  say(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok || detail === undefined ? '' : `\n      ${JSON.stringify(detail)}`}`);
+  const at = `[${String(Math.round((Date.now() - startedAt) / 1000)).padStart(3)} s]`;
+  say(`${ok ? 'PASS' : 'FAIL'}  ${at} ${name}${ok || detail === undefined ? '' : `\n      ${JSON.stringify(detail)}`}`);
   if (!ok) failed++;
 }
 
@@ -161,6 +168,29 @@ function replaceDialogs(): void {
   };
 }
 
+/**
+ * Makes this window not know an extension: its list of extensions leaves it out and it cannot be looked up, while
+ * VS Code's files have it. That is what a window looked like that had missed an extension installed from outside it
+ * (docs/PLAN.md section 14, #5), which happens too rarely to wait for. Returns the function that undoes it.
+ */
+function hideFromWindow(id: string): () => void {
+  const real = Object.getOwnPropertyDescriptor(vscode.extensions, 'all');
+  const lookUp = vscode.extensions.getExtension.bind(vscode.extensions);
+  const api = vscode.extensions as unknown as Record<string, unknown>;
+  if (!real?.get || !real.configurable) throw new Error('vscode.extensions.all cannot be replaced in this VS Code');
+  const all = real.get.bind(vscode.extensions) as () => readonly vscode.Extension<unknown>[];
+  Object.defineProperty(vscode.extensions, 'all', {
+    configurable: true,
+    enumerable: real.enumerable ?? true,
+    get: () => all().filter((e) => e.id.toLowerCase() !== id),
+  });
+  api.getExtension = (wanted: string) => (wanted.toLowerCase() === id ? undefined : lookUp(wanted));
+  return () => {
+    Object.defineProperty(vscode.extensions, 'all', real);
+    api.getExtension = lookUp;
+  };
+}
+
 const marker = () => vscode.workspace.getConfiguration('profileKit').get<string>('profile') ?? '';
 const asksAboutInstall = (text: string) => /Add it to other profiles too\?/.test(text);
 /** The name Profile Kit's messages use for an extension: its display name, or the ID when that is a placeholder. */
@@ -264,8 +294,8 @@ async function main(config: IntegrationConfig): Promise<void> {
     exists(HERE) && !exists(OTHER),
     kit.refreshStorage().map((p) => p.name),
   );
-  // the Profiles view: once it is shown, every profile is listed (review P5)
-  await vscode.commands.executeCommand('profileKit.profiles.focus');
+  // The Profiles view is not opened here: before 1.5 only this window's profile was listed until a view showed
+  // them all (review P5); now every profile is read from VS Code's files from the start.
 
   // -- apply, pressed twice (1.3.2) --
   press = [{ match: /^Apply the preset\?$/, button: 'Apply' }];
@@ -299,9 +329,19 @@ async function main(config: IntegrationConfig): Promise<void> {
     rows().map((r) => ({ name: r.name, exists: !!r.stored, missing: r.diff?.missing ?? 'not listed' })),
   );
   check(
-    'the Profiles view lists the other profile too once it has been shown',
+    'the other profile is listed too, without the Profiles view having been opened',
     !!kit.installedIn(OTHER)?.includes(IN_CORE),
     kit.installedIn(OTHER) ?? 'not listed',
+  );
+  const fromFiles = [HERE, OTHER].map((name) => kit.installedIn(name)?.join());
+  const fromCli = [
+    (await listInstalled(kit.run, HERE))?.sort().join(),
+    (await listInstalled(kit.run, OTHER))?.sort().join(),
+  ];
+  check(
+    "what Profile Kit read from VS Code's files is what code --list-extensions prints, for both profiles",
+    fromFiles.every((list, i) => list !== undefined && list === fromCli[i]),
+    { files: fromFiles, cli: fromCli },
   );
   await waitFor(() => marker() === HERE, 30_000);
   check(
@@ -408,21 +448,50 @@ async function main(config: IntegrationConfig): Promise<void> {
   );
 
   // -- the user installs an extension pack: one question, about the pack --
+  /**
+   * Installs a pack from outside this window and waits for the question, not for every extension to show up here:
+   * VS Code does not always tell a window about all of them (docs/PLAN.md section 14 #5, section 15). Returns the
+   * ones this window still has not loaded when the question has had time to come, for the NOTE line of the run.
+   */
+  const userInstallsPack = async (pack: string, members: readonly string[]): Promise<string[]> => {
+    await waitFor(() => !kit.changeRunning());
+    await kit.run(['--profile', HERE, '--install-extension', pack]);
+    await waitFor(() => asked(from).length, 120_000);
+    await sleep(NO_QUESTION_MS);
+    return [pack, ...members].filter((id) => !vscode.extensions.getExtension(id));
+  };
+  const onTheList = (ids: readonly string[]) => ids.every((id) => kit.installedIn(HERE)?.includes(id));
   press = [];
   pick = undefined;
   from = shown.length;
-  await userInstalls(USER_PACK);
-  await waitFor(() => USER_PACK_MEMBERS.every((id) => vscode.extensions.getExtension(id)), 120_000);
-  await waitFor(() => asked(from).length, 30_000);
-  await sleep(NO_QUESTION_MS);
+  let unseen = await userInstallsPack(USER_PACK, USER_PACK_MEMBERS);
+  // Since 1.5 the question is about the pack also when VS Code did not tell this window about it; then by its ID,
+  // because the window has no manifest to take the name from.
+  if (unseen.length) say(`NOTE  VS Code did not tell this window about: ${unseen.join(', ')}`);
   check(
     'a pack the user installs is asked about once, and its members are not',
-    asked(from).length === 1 && asked(from)[0].text.startsWith(`${shownName(USER_PACK)} was installed in ${HERE}.`),
-    {
-      asked: asked(from).map((d) => d.text),
-      installed: [USER_PACK, ...USER_PACK_MEMBERS].filter((id) => vscode.extensions.getExtension(id)),
-    },
+    asked(from).length === 1 &&
+      [USER_PACK, shownName(USER_PACK)].some((name) =>
+        asked(from)[0].text.startsWith(`${name} was installed in ${HERE}.`),
+      ) &&
+      onTheList([USER_PACK, ...USER_PACK_MEMBERS]),
+    { asked: asked(from).map((d) => d.text), notLoadedByThisWindow: unseen, listed: kit.installedIn(HERE) },
   );
+
+  // -- the same, in a window that never gets to know the pack: made to happen every time --
+  from = shown.length;
+  const showAgain = hideFromWindow(MISSED_PACK);
+  unseen = (await userInstallsPack(MISSED_PACK, MISSED_PACK_MEMBERS)).filter((id) => id !== MISSED_PACK);
+  if (unseen.length) say(`NOTE  VS Code did not tell this window about: ${unseen.join(', ')}`);
+  check(
+    'a pack this window never loads is asked about once all the same, and its members are not',
+    asked(from).length === 1 &&
+      asked(from)[0].text.startsWith(`${MISSED_PACK} was installed in ${HERE}.`) &&
+      !vscode.extensions.getExtension(MISSED_PACK) &&
+      onTheList([MISSED_PACK, ...MISSED_PACK_MEMBERS]),
+    { asked: asked(from).map((d) => d.text), notLoadedByThisWindow: unseen, listed: kit.installedIn(HERE) },
+  );
+  showAgain();
 
   // -- several windows of one profile: only the window that claimed the question asks (review P6) --
   // First with a claim that is already there, as if another window had been quicker.

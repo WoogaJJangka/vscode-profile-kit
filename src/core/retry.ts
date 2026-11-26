@@ -33,17 +33,3 @@ export async function retry<T>(fn: (attempt: number) => Promise<T>, options: Ret
   }
   throw lastError;
 }
-
-/** `fn` over `items` with at most `limit` running at once; results in input order. */
-export async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array<R>(items.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), items.length) }, worker));
-  return results;
-}
