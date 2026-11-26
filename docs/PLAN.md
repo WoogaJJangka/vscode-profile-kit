@@ -343,9 +343,17 @@ macOS와 VS Code 1.95에서는 돌리지 않는다(되는지 확인하지 않았
   8번 돌려 8번 모두 33개 통과. 최종 코드로 5번: 128, 137, 146, 137, 129초. 그 전 3번(검사 문구·대기 방식을 다듬기 전의 suite, 제품 코드는 같음): 251, 170, 251초.
 - 새 검사가 버그를 잡는지: `InstallWatcher`의 판정만 1.4.0 방식(창이 로드한 것만)으로 되돌려 한 번 돌리면 그 검사 하나만 실패한다(32 통과, 1 실패): 창이 받은 멤버 셋을 묻고 팩은 묻지 않는다. 되돌린 코드는 커밋하지 않았다.
 
+PR #53의 첫 CI(2026-11-26):
+
+- 호환성 점검: Linux의 VS Code 1.95.0(16개 통과, 템플릿 받기 하나는 전부터 건너뜀)·최신 stable 1.148.0·insider 1.149.0, macOS·Windows의 1.148.0에서 17개 모두 통과. 파일 목록 = `--list-extensions` 비교 3개는 다섯 곳 모두 통과했다.
+- 통합 테스트: Linux·Windows에서 33개 모두 통과.
+- SonarQube 품질 게이트는 새 코드 지적 2건으로 실패했다.
+  - `typescript:S2871`(`scripts/compat/check.ts`, 비교 함수 없는 `.sort()`): CLI 목록을 `compareCodeUnits`로 정렬하게 고쳤다. 파일에서 읽은 목록을 정렬하는 그 함수라 순서는 그대로다. 고친 뒤 이 PC에서 호환성 점검 17개 통과.
+  - `tssecurity:S8707`(`host/builtins.ts` `readExtensionsList`의 `readFileSync`): 명령줄 인자에서 온 경로를 읽는다는 지적이다. 인자를 넘기는 호출자는 호환성 점검의 `--data`(점검을 돌리는 사람이 정하는 임시 폴더, VSIX에 없음)뿐이고, 읽기 전에 실제 경로가 폴더의 실제 경로 안인지 본다.
+    같은 순서로 쓴 `readApplicationScoped`의 같은 지적처럼 SonarQube에서 Accept로 닫았다(사용자 결정, 9절과 같은 이유). 13절의 `readInstalledManifest`처럼 파일 경로를 함수 안에서 폴더의 실제 경로에 이어 붙이는 모양이면 닫힐 수도 있는데, 해 보지 않았다.
+
 확인하지 않은 것, 남은 것:
 
-- VS Code 1.95.0, Linux, macOS: 호환성 점검의 비교 3개와 통합 테스트(Linux·Windows)는 PR을 올리면 CI에서 처음 돈다. SonarQube도 그때 본다(새 파일 읽기 `readExtensionsList`는 `readApplicationScoped`와 같은 순서: 실제 경로 → 폴더 안인지 → 읽기).
 - 확장을 Default와 공유하는 프로필은 이 PC의 `Agents` 하나로만 확인했다. CLI로는 만들 수 없어 호환성 점검에 없다(단위 테스트는 있다).
 - 창이 변화를 하나도 받지 못하면(설치한 것을 전부 놓치면) 볼 계기가 없어 묻지 않는다. 프로필의 `extensions.json`을 감시하면 풀리고, 다른 프로필의 설치도 트리에 바로 보인다(ROADMAP에 적어 둔 효과). 이번에는 넣지 않았다.
 - `apply` 미리보기와 CLI `verify`는 여전히 `--list-extensions`로 읽는다. 트리(파일)와 다르게 나오면 호환성 점검의 비교가 깨진 것이다.
