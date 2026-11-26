@@ -19,6 +19,7 @@ import * as vscode from 'vscode';
 
 import { PROFILE_KIT_ID } from '../../src/core/dependencies';
 import { isRecord, parseJsonc, parsePresetText } from '../../src/core/preset';
+import { compareCodeUnits } from '../../src/core/text';
 import type { TestApi } from '../../src/extension';
 import { listInstalled } from '../../src/host/installer';
 import type { ManagerState, ToWebview } from '../../src/ui/panel/protocol';
@@ -502,7 +503,7 @@ async function main(config: IntegrationConfig): Promise<void> {
   const visible = () =>
     vscode.extensions.all
       .map((e) => e.id.toLowerCase())
-      .sort()
+      .sort(compareCodeUnits)
       .join();
   const visibleBefore = visible();
   await waitFor(() => !kit.changeRunning());
