@@ -77,6 +77,9 @@
   SonarQube 게이트는 새 코드 지적 2건으로 실패했다. `scripts/compat/check.ts`의 비교 함수 없는 `.sort()`(S2871)는 `compareCodeUnits`로 고쳤다.
   `builtins.ts` `readExtensionsList`의 S8707(CLI 인자에서 온 경로를 읽음: 그런 호출자는 호환성 점검의 `--data`뿐이고, 실제 경로 → 폴더 안인지 → 읽기 순서다)은 accept(사용자 결정, `readApplicationScoped`의 같은 지적과 같은 이유).
   넣지 않은 것: 프로필 `extensions.json` 감시(다른 프로필의 설치를 바로 보기, 창이 설치를 전부 놓쳤을 때의 알림).
+  목록 파일 감시(같은 날, 그 위의 브랜치 `feat/watch-extension-lists`, 커밋만, `docs/PLAN.md` 15-1절): `Kit`이 확장 폴더의 `extensions.json`과 `User/profiles/*/extensions.json`을 감시한다(읽기만).
+  쓰이면 바로 `Kit.onDidWriteInstalledList`로 알리고(`InstallWatcher`가 이 창의 프로필 목록이면 실행을 연다: 다시 읽기 전이라 `before`가 남는다), 300ms 뒤 쓰인 프로필만 다시 읽는다(Default 목록이나 모르는 프로필이면 전부).
+  단위 테스트 332개, 통합 테스트 35개를 3번 돌려 3번 통과. `InstallWatcher`의 구독만 끄면 "창이 아무것도 전달받지 못한 설치" 검사 하나만 실패한다. 사용자의 `files.watcherExclude`가 `User/profiles`를 빼면 프로필 쪽 감시는 오지 않는다.
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
@@ -125,7 +128,7 @@
 
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
-  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(VS Code의 `extensions.json` 읽기: 모든 프로필에 적용된 확장, 프로필의 설치 목록. 읽기만, `docs/PLAN.md` 15절),
+  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(VS Code의 `extensions.json` 읽기: 모든 프로필에 적용된 확장, 프로필의 설치 목록, 목록이 쓰였을 때 다시 읽을 프로필. 읽기만, `docs/PLAN.md` 15절),
   `installPrompt.ts`(설치 후 알림에서 무엇을 물을지: 프로필 목록의 전후 차이 − 다른 확장이 끌어온 것, 15절),
   `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트), `dependencies.ts`(extra의 이유: 같은 프로필의 다른 확장이 의존·팩으로 끌어온 것, 자기 ID `PROFILE_KIT_ID`는 extra 아님, `docs/PLAN.md` 13절),
   `oneAtATime.ts`(변경 작업은 창마다 하나씩: apply·누락 설치·프로필에 추가·관리 화면 적용이 `Kit.exclusive`로 감싸짐),

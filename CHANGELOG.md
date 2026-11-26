@@ -5,10 +5,12 @@
 ### Changed
 
 - Every profile is known from the moment a window opens: the Profiles view no longer waits on "Checking…", and the badge on the Activity Bar and the menu count all profiles before the view has been opened. Profile Kit now reads what is installed in each profile from the lists VS Code keeps on disk. Before, each profile took a `code` process (well over half a second each), and a window only looked at its own profile until the view was shown. `code --list-extensions` is still used when a list cannot be read, and to check an install.
+- An extension installed into another profile (from another window, or with the `code` command) shows in the Profiles view right away, without pressing Refresh. Profile Kit watches the lists VS Code keeps and reads the changed ones again.
 
 ### Fixed
 
 - After an extension pack was installed from outside a window (the `code` command, or another window of the same profile), that window sometimes asked "… was installed in … Add it to other profiles too?" about the pack's members and not about the pack. VS Code had not told the window about the pack. What is new is now taken from the profile's list of installed extensions, so the question is about the pack, once.
+- An extension installed from outside a window was not asked about at all when VS Code told that window nothing about it. The profile's list being written now counts as a sign too.
 
 ## [1.4.0]
 

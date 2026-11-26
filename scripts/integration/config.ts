@@ -45,6 +45,13 @@ export const MISSED_PACK_MEMBERS = [
   'bierner.markdown-footnotes',
   'bierner.markdown-preview-github-styles',
 ];
+/**
+ * Installed into this window's profile while the window is made not to notice anything of it: VS Code writing the
+ * profile's list is then the only sign (docs/PLAN.md section 15). Small, no dependencies (Marketplace, 2026-11-26).
+ */
+export const UNSEEN_INSTALL = 'formulahendry.auto-rename-tag';
+/** Installed into the other profile from outside: it shows there without a refresh, because the lists are watched. */
+export const OTHER_INSTALL = 'formulahendry.auto-close-tag';
 /** Installed while two windows of the profile are open. */
 export const TWIN_INSTALL = 'codezombiech.gitignore';
 

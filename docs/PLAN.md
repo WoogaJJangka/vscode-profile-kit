@@ -355,6 +355,36 @@ PR #53의 첫 CI(2026-11-26):
 확인하지 않은 것, 남은 것:
 
 - 확장을 Default와 공유하는 프로필은 이 PC의 `Agents` 하나로만 확인했다. CLI로는 만들 수 없어 호환성 점검에 없다(단위 테스트는 있다).
-- 창이 변화를 하나도 받지 못하면(설치한 것을 전부 놓치면) 볼 계기가 없어 묻지 않는다. 프로필의 `extensions.json`을 감시하면 풀리고, 다른 프로필의 설치도 트리에 바로 보인다(ROADMAP에 적어 둔 효과). 이번에는 넣지 않았다.
+- 창이 변화를 하나도 받지 못하면(설치한 것을 전부 놓치면) 볼 계기가 없어 묻지 않는다. 프로필의 `extensions.json`을 감시하면 풀리고, 다른 프로필의 설치도 트리에 바로 보인다(ROADMAP에 적어 둔 효과). 이번에는 넣지 않았다. → 15-1절에서 넣었다.
 - `apply` 미리보기와 CLI `verify`는 여전히 `--list-extensions`로 읽는다. 트리(파일)와 다르게 나오면 호환성 점검의 비교가 깨진 것이다.
 - 창이 로드하지 못한 확장은 알림에 표시 이름 대신 ID로 나온다(확장 폴더의 package.json에서 `displayName`을 읽으면 된다).
+
+### 15-1. 목록 파일 감시 (2026-11-26, 브랜치 `feat/watch-extension-lists`, 15절 브랜치 위)
+
+15절에 남긴 두 가지를 푼다: 다른 프로필에 설치한 것이 다음 갱신 때까지 트리에 안 보이는 것, 창이 설치를 하나도 전달받지 못하면 볼 계기가 없어 묻지 않는 것.
+
+| 바꾼 것 | 이유 |
+| --- | --- |
+| `Kit`이 확장 폴더의 `extensions.json`(Default)과 `User/profiles/*/extensions.json`을 `createFileSystemWatcher`로 본다(읽기만). 300ms 동안 더 쓰이지 않으면 다시 읽는다: 쓰인 프로필만(`refreshProfile`), Default 목록이 쓰였거나 모르는 프로필의 목록이면 전부(`core/extensionsJson.ts` `profilesToReread`) | 설치 한 번이 파일을 여러 번 쓴다. Default 목록의 "모든 프로필에 적용" 항목은 모든 프로필의 목록에 들어간다. 모르는 프로필은 storage.json을 읽은 뒤 VS Code가 만든 것이다 |
+| 프로필 쪽 패턴은 `*/extensions.json`: `/`가 있어 VS Code가 `User/profiles`를 하위 폴더까지 본다. 폴더가 아직 없으면 감시를 만들지 않고 `refresh` 때마다 다시 본다 | 프로필 폴더는 그 프로필의 첫 설치 때 생길 수 있다. 없는 폴더를 감시했을 때의 동작은 VS Code 버전에 기대지 않는다 |
+| `Kit.onDidWriteInstalledList`: 파일이 쓰이면 다시 읽기 **전에** 알린다. `InstallWatcher`는 이 창의 프로필을 이루는 목록(자기 파일 또는 Default 파일, `listCountsFor`)이면 창의 변화와 똑같이 실행을 열거나 늘린다 | 다시 읽은 뒤에 알리면 `before`가 이미 새 목록으로 바뀌어 새 확장을 찾지 못한다. 순서는 "알림 → 실행이 열림 → 300ms 뒤 다시 읽음(실행 중이라 `before`는 그대로)" |
+| `InstallWatcher.changed`: 창의 확장 ID가 전과 같으면(업데이트) 실행을 열지 않는다 | 볼 것이 없고, 목록이 쓰이면 어차피 실행이 열린다 |
+
+규칙은 15절 그대로다(Profile Kit이 바꾸는 중에 걸친 실행은 창에 도착한 것만, 팩은 한 번, 다시 켠 확장은 묻지 않음, 여러 창은 claim으로 한 번).
+목록이 쓰여 열린 실행도 Profile Kit이 바꾸는 중이면 `kitChanged`가 되어 묻지 않는다. 다른 프로필의 목록이 쓰이면 `InstallWatcher`는 아무것도 하지 않고 트리만 갱신된다.
+
+확인(2026-11-26, 이 PC, Windows, VS Code 1.148.0):
+
+- `npm run check` 통과. 단위 테스트 332개(329 + `extensionsJson.test.ts` 3: `profilesToReread`, `listCountsFor`).
+- 통합 테스트: 검사 35개(33 + 2). 3번 돌려 3번 모두 35개 통과(154, 171, 174초).
+  - "창이 아무것도 전달받지 못한 설치를 한 번 묻는다": `hideFromWindow`로 확장 하나(`formulahendry.auto-rename-tag`)를 감춘 채 CLI로 설치한다. VS Code의 변화 알림은 오지만 창의 확장 ID가 그대로라 무시되고, 목록이 쓰인 것만 남는다.
+    세 번 모두 그 사이 창에 다른 변화는 없었다(있으면 `NOTE  the window got a change of its own…` 줄이 찍힌다).
+  - "다른 프로필에 밖에서 설치한 확장이 다시 읽으라고 하지 않아도 보인다": CLI로 Beta에 설치한 뒤 `kit.refresh()` 없이 `kit.installedIn('Beta')`에 나타나는지 본다.
+- 새 검사가 목록 감시에 기대는지: `InstallWatcher`의 구독만 끄고 한 번 돌리면 첫 번째 검사 하나만 실패한다(34 통과, 1 실패: 목록에는 있는데 질문이 없다). 끈 코드는 커밋하지 않았다.
+
+확인하지 않은 것, 남은 것:
+
+- VS Code 1.95.0, Linux, macOS에서 워크스페이스 밖 폴더의 감시가 같은지: 통합 테스트(Linux·Windows 최신 stable)가 PR에서 처음 본다. 1.95와 macOS는 통합 테스트 대상이 아니다.
+- 사용자의 `files.watcherExclude`가 `User/profiles` 아래를 빼면 프로필 쪽 감시는 오지 않는다(하위 폴더까지 보는 감시에만 적용되는 설정). 그러면 15절까지의 동작(창의 변화, 명령 뒤 갱신)으로 돌아간다.
+- VS Code에서 프로필을 새로 만든 것(storage.json)은 감시하지 않는다. 그 프로필에 처음 설치할 때 목록이 쓰이면 전부 다시 읽으면서 나타난다.
+- 실제 창에서 트리가 바로 바뀌는 모양은 화면으로 보지 않았다(값만 확인).
