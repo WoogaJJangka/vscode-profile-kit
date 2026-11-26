@@ -4,8 +4,10 @@
  * and fails when one of the VS Code internals listed in src/core/compat.ts no longer behaves as expected.
  * Covered: the CLI location, "profile not found", creating a profile with --new-window and reading it back from
  * storage.json, batched installs and their output, --list-extensions, one folder with package.json per installed
- * extension, extensions applied to all profiles in extensions.json, and VS Code's profile template list (stage C). Not covered (needs a running window):
- * the profile switch command and VS Code reading a profile's settings.json.
+ * extension, extensions applied to all profiles in extensions.json, the installed list read from VS Code's own
+ * extensions.json files against --list-extensions (1.5), and VS Code's profile template list (stage C).
+ * Not covered (needs a running window): the profile switch command and VS Code reading a profile's settings.json.
+ * Also not covered: a profile that uses Default's extensions (it can only be made in the Profiles editor).
  *
  *   node out/compat.js --code <bin/code> --app-root <resources/app> --data <empty folder>
  */
@@ -13,12 +15,20 @@ import { mkdirSync } from 'node:fs';
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { COMPAT_CHECKED_VERSION, createCodeRunner } from '../../src/core';
+import {
+  COMPAT_CHECKED_VERSION,
+  compareCodeUnits,
+  createCodeRunner,
+  listExtensionsArgs,
+  parseListExtensions,
+  type StoredProfile,
+} from '../../src/core';
 import { readStorage } from '../../src/host/apply';
 import {
   fetchTemplates,
   readApplicationScoped,
   readExtensionRelations,
+  readInstalledExtensions,
   readTemplatesUrl,
 } from '../../src/host/builtins';
 import { findCodeCli } from '../../src/host/codeLocator';
@@ -52,6 +62,17 @@ function check(name: string, ok: boolean, detail?: unknown): void {
   if (!ok) failed++;
 }
 
+/**
+ * Profile Kit reads what is installed from VS Code's own lists (1.5, host/builtins.ts readInstalledExtensions).
+ * That must be exactly what `code --list-extensions` prints for the profile (`profile` left out: Default).
+ */
+async function listsAgree(name: string, profile?: StoredProfile): Promise<void> {
+  const files = readInstalledExtensions(paths, extensionsDir, profile);
+  // the same order as the list read from the files (core/extensionsJson.ts sorts with compareCodeUnits)
+  const cli = parseListExtensions((await run(listExtensionsArgs(profile?.name))).stdout).sort(compareCodeUnits);
+  check(name, !!files.ids && files.ids.join() === cli.join(), { files: files.ids ?? files.problem, cli });
+}
+
 const PROFILE = 'Compat';
 const GOOD = ['editorconfig.editorconfig', 'ms-vscode.wordcount'];
 const BAD = 'profile-kit.does-not-exist';
@@ -81,6 +102,8 @@ async function main(): Promise<void> {
     !!storage.profiles.find((p) => p.name === PROFILE)?.location,
     storage.profiles,
   );
+  const profile = storage.profiles.find((p) => p.name === PROFILE);
+  if (profile) await listsAgree('a new profile: the list read from files is its --list-extensions', profile);
 
   const first = await installExtensions(run, PROFILE, [...GOOD, BAD], { sleep: () => Promise.resolve() });
   const outcome = (id: string) => first.find((r) => r.id === id)?.outcome;
@@ -121,6 +144,14 @@ async function main(): Promise<void> {
   });
   const listed = await listInstalled(run, PROFILE);
   check('an extension applied to all profiles is listed in every profile', !!listed?.includes(LANGUAGE_PACK), listed);
+
+  // 1.5: the same two facts from the files alone, without a `code` process per profile
+  if (profile)
+    await listsAgree(
+      "a profile's extensions.json plus what Default applies to all profiles is its --list-extensions",
+      profile,
+    );
+  await listsAgree("the extensions folder's extensions.json is Default's --list-extensions");
 
   // stage C-4: the template list VS Code shows under New Profile, and each template in the .code-profile format
   const url = readTemplatesUrl(appRoot);

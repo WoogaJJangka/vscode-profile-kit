@@ -3,7 +3,7 @@
 선언형 프리셋(core + groups + profiles) 하나로 VS Code 프로필을 만들고 점검하는 도구. 한국어로 답한다.
 배경·결정·겪은 문제는 `docs/PLAN.md`, 단계와 게이트는 `docs/ROADMAP.md`(Phase 0~5).
 
-## 진행 상태 (2026-11-25)
+## 진행 상태 (2026-11-26)
 
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
   단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
@@ -62,10 +62,21 @@
   PR #50 첫 실행에서 CI 통합 테스트(Linux xvfb·Windows, 31개)와 macOS 호환성 점검(14개)이 통과했다.
   같은 실행에서 SonarQube 게이트는 `scripts/integration/run.ts`의 보안 지적 6건(인자 → 경로·실행 파일, `taskkill`을 PATH에서 찾음)으로 실패해 러너를 바꿨다:
   경로를 인자로 받지 않는다. 데이터 폴더는 임시 폴더에 직접 만들고, VS Code는 저장소의 `.vscode-test/vscode`에 풀어 둔 것, 없으면 설치된 것을 띄운다(`docs/PLAN.md` 14절).
-  통합 테스트의 "직접 설치한 팩은 한 번만 묻는다" 검사는 가끔 실패할 수 있다(이 PC 5번 중 1번, CI 8번 중 0번): VS Code 창이 CLI로 설치한 팩을 놓치면 `InstallWatcher`가 멤버를 묻는다. 1.5.x에서 고친다(사용자 결정 2026-11-25, 14절 "찾은 것" 5).
+  통합 테스트의 "직접 설치한 팩은 한 번만 묻는다" 검사는 가끔 실패할 수 있다(이 PC 5번 중 1번, CI 8번 중 0번): VS Code 창이 CLI로 설치한 팩을 놓치면 `InstallWatcher`가 멤버를 묻는다. 1.5.x에서 고친다(사용자 결정 2026-11-25, 14절 "찾은 것" 5). → 2026-11-26 브랜치에서 고침(아래 "1.5.x 첫 항목").
   1.4.0 게시(2026-11-25, 정식, 1.0.0 다음 두 번째): PR #50(통합 테스트, 설치 알림 수정 둘, macOS 호환성 점검, 방향 문서) + PR #51(version, CHANGELOG, README 지원 범위 문구: 자동 점검이 보는 OS)
   → 태그 `v1.4.0`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.4.0", `--pre-release` 없음) → Marketplace 1.4.0 validated·public, pre-release 아님(게시 약 7분 뒤 반영, 07:25 UTC). 테스트 308개.
   Open VSX는 1.4.0에 넣지 않았다(할지는 여전히 정하지 않음). 다음은 1.5.x pre-release(`docs/ROADMAP.md` "1.5.x 후보와 근거").
+  1.5.x 첫 항목 구현(2026-11-26, 브랜치 `feat/installed-lists-from-files`, PR #53. 머지·버전·게시는 사용자 승인 전): 설치 목록을 파일에서 읽는다(`docs/PLAN.md` 15절).
+  프로필의 `User/profiles/<location>/extensions.json`(`isApplicationScoped` 항목 제외) + 확장 폴더 `extensions.json`의 `isApplicationScoped`·`isBuiltin` 항목 = `code --list-extensions --profile X`.
+  Default와 확장을 Default와 공유하는 프로필은 확장 폴더의 목록 전체. 이 PC의 프로필 11개 모두 같았다(VS Code 1.148.0, 파일 1~8ms, CLI 0.6~0.7초). 못 읽으면 그 프로필만 CLI로 읽는다.
+  그래서 창을 열 때부터 모든 프로필을 읽는다: `Kit.listAll`·`showAllProfiles`·`mapLimit`(동시 3개)은 지웠다. 설치 뒤 확인, `apply` 계획, CLI `verify`는 그대로 `--list-extensions`.
+  설치 후 알림(`InstallWatcher`)은 창의 변화를 "언제 볼지"로만 쓰고, 새 확장은 프로필 목록의 전후 차이, "같이 설치된 것"은 확장 폴더의 package.json으로 판정한다(`core/installPrompt.ts`). 14절 "찾은 것" 5를 고쳤다.
+  단위 테스트 329개, 호환성 점검 17개(파일 목록 = CLI 목록 비교 3개 추가), 통합 테스트 33개를 8번 돌려 8번 통과(이 PC, VS Code 1.148.0: 작업 중 1.147.0에서 자동 업데이트됨).
+  통합 테스트는 창이 팩을 놓친 상태를 매번 만든다(`suite.ts` `hideFromWindow`). 판정을 1.4.0 방식으로 되돌리면 그 검사만 실패한다. VS Code가 창에 멤버를 알리지 않는 일은 확장 5개짜리 팩에서 5번 중 4번 있었다.
+  PR #53 첫 CI(2026-11-26): 호환성 점검이 Linux(VS Code 1.95.0·최신 stable·insider)·macOS·Windows에서, 통합 테스트 33개가 Linux·Windows에서 통과했다(1.95.0은 템플릿 받기 하나만 건너뜀, 전부터 그렇다).
+  SonarQube 게이트는 새 코드 지적 2건으로 실패했다. `scripts/compat/check.ts`의 비교 함수 없는 `.sort()`(S2871)는 `compareCodeUnits`로 고쳤다.
+  `builtins.ts` `readExtensionsList`의 S8707(CLI 인자에서 온 경로를 읽음: 그런 호출자는 호환성 점검의 `--data`뿐이고, 실제 경로 → 폴더 안인지 → 읽기 순서다)은 accept(사용자 결정, `readApplicationScoped`의 같은 지적과 같은 이유).
+  넣지 않은 것: 프로필 `extensions.json` 감시(다른 프로필의 설치를 바로 보기, 창이 설치를 전부 놓쳤을 때의 알림).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
@@ -98,27 +109,28 @@
 
 ## 명령
 
-| 목적                                         | 명령                                                                                                                                                                                                                                                |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 전부 점검 (typecheck + lint + format + test) | `npm run check`                                                                                                                                                                                                                                     |
-| 빌드 (`dist/extension.js`, `dist/cli.js`)    | `npm run build` (`watch`, `build:prod`)                                                                                                                                                                                                             |
-| 단위 테스트                                  | `npm test`                                                                                                                                                                                                                                          |
-| 단위 테스트 + 커버리지 (Sonar CI용)          | `npm run test:coverage`                                                                                                                                                                                                                             |
-| CLI                                          | `node dist/cli.js plan presets/example.json` / `verify ... [--profile X]`                                                                                                                                                                           |
-| CLI apply (격리 VS Code로 시험)              | `node dist/cli.js apply <preset> --user-data-dir <tmp>/u --extensions-dir <tmp>/x --shared-data-dir <tmp>/s [--yes]`                                                                                                                                |
-| 호환성 점검 (실제 VS Code, 격리 폴더)        | `npm run build:compat` → `node out/compat.js --code <bin/code> --app-root <resources/app> --data <빈 폴더>` (창이 하나 열림, 끝나면 그 프로세스만 닫는다)                                                                                           |
-| 통합 테스트 (실제 VS Code, 격리 폴더)        | `npm run build`, `npm run build:integration` → `node out/integration/run.js` (인자 없음: `.vscode-test/vscode` 또는 설치된 VS Code를 띄움. 창 세 개가 열렸다가 스스로 닫힘, 약 2분, 데이터는 임시 폴더에 만들고 통과하면 지움, `docs/PLAN.md` 14절) |
-| VSIX                                         | `npm run package`                                                                                                                                                                                                                                   |
+| 목적                                         | 명령                                                                                                                                                                                                                                                        |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 전부 점검 (typecheck + lint + format + test) | `npm run check`                                                                                                                                                                                                                                             |
+| 빌드 (`dist/extension.js`, `dist/cli.js`)    | `npm run build` (`watch`, `build:prod`)                                                                                                                                                                                                                     |
+| 단위 테스트                                  | `npm test`                                                                                                                                                                                                                                                  |
+| 단위 테스트 + 커버리지 (Sonar CI용)          | `npm run test:coverage`                                                                                                                                                                                                                                     |
+| CLI                                          | `node dist/cli.js plan presets/example.json` / `verify ... [--profile X]`                                                                                                                                                                                   |
+| CLI apply (격리 VS Code로 시험)              | `node dist/cli.js apply <preset> --user-data-dir <tmp>/u --extensions-dir <tmp>/x --shared-data-dir <tmp>/s [--yes]`                                                                                                                                        |
+| 호환성 점검 (실제 VS Code, 격리 폴더)        | `npm run build:compat` → `node out/compat.js --code <bin/code> --app-root <resources/app> --data <빈 폴더>` (창이 하나 열림, 끝나면 그 프로세스만 닫는다)                                                                                                   |
+| 통합 테스트 (실제 VS Code, 격리 폴더)        | `npm run build`, `npm run build:integration` → `node out/integration/run.js` (인자 없음: `.vscode-test/vscode` 또는 설치된 VS Code를 띄움. 창 세 개가 열렸다가 스스로 닫힘, 약 2분 15초, 데이터는 임시 폴더에 만들고 통과하면 지움, `docs/PLAN.md` 14·15절) |
+| VSIX                                         | `npm run package`                                                                                                                                                                                                                                           |
 
 ## 구조
 
 - `src/core/` 순수 로직(VS Code API·fs 없음): `preset.ts`(검증·해석), `diff.ts`, `retry.ts`, `codeCli.ts`(출력 분류·인자·실행기),
   `recommend.ts`, `settings.ts`, `presetEdit.ts`, `profiles.ts`(storage.json 읽기), `workspace.ts`, `applyPlan.ts`(apply 계획·마커 `profileKit.profile`),
-  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(모든 프로필에 적용된 확장, 읽기만),
+  `codeProfile.ts`(`.code-profile` ↔ 프리셋), `templates.ts`, `starters.ts`(내장 프리셋 9개와 추천: 설치된 확장·폴더 파일·열린 파일 언어), `status.ts`(선언한 프로필의 상태 요약: 트리 맨 위 줄·배지·메뉴), `extensionsJson.ts`(VS Code의 `extensions.json` 읽기: 모든 프로필에 적용된 확장, 프로필의 설치 목록. 읽기만, `docs/PLAN.md` 15절),
+  `installPrompt.ts`(설치 후 알림에서 무엇을 물을지: 프로필 목록의 전후 차이 − 다른 확장이 끌어온 것, 15절),
   `presetSource.ts`(프리셋 출처: 설정 → 파일, 설정 값 ↔ 텍스트), `dependencies.ts`(extra의 이유: 같은 프로필의 다른 확장이 의존·팩으로 끌어온 것, 자기 ID `PROFILE_KIT_ID`는 extra 아님, `docs/PLAN.md` 13절),
   `oneAtATime.ts`(변경 작업은 창마다 하나씩: apply·누락 설치·프로필에 추가·관리 화면 적용이 `Kit.exclusive`로 감싸짐),
-  `compat.ts`(공개 API가 아닌 VS Code 동작 11가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
-- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·설치된 확장 폴더의 package.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기).
+  `compat.ts`(공개 API가 아닌 VS Code 동작 12가지와 확인한 버전. 저장소 키·전환 명령·CLI 문구는 여기 상수만 쓴다, `docs/PLAN.md` 10절).
+- `src/host/` Node 전용(fs, child_process): `paths.ts`, `codeLocator.ts`, `installer.ts`, `settingsWriter.ts`, `apply.ts`(계획 수집·실행), `builtins.ts`(extensions.json·설치된 확장 폴더의 package.json·product.json·Sync 폴더 읽기, 템플릿 받기, `.code-profile` 쓰기. 프로필의 설치 목록은 `readInstalledExtensions`).
   CLI(`src/cli/`)와 확장(`src/extension.ts`)이 같이 쓴다. 테스트는 `test/*.test.ts`(vitest), host는 임시 폴더 + 가짜 code 실행기로 시험한다.
 - 현재 프로필은 각 프로필 settings.json의 마커 `profileKit.profile`로 안다(`globalStorageUri`는 프로필마다 같다, PLAN.md 8절).
 - UI 문구는 `vscode.l10n.t`(웹뷰는 `WEBVIEW_STRINGS`)로 쓰고, 한국어는 `l10n/bundle.l10n.ko.json`·`package.nls.ko.json`에 넣는다. `test/l10n.test.ts`가 빠지거나 남은 문구, 자리표시자(`{0}`) 불일치를 잡는다.

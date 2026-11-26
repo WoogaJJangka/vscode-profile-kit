@@ -14,11 +14,13 @@ import {
   CORE_TARGET,
   type ExtensionMeta,
   extensionMetaFromManifest,
-  installedAlongWith,
+  type ExtensionRelations,
+  installsToAskAbout,
   isExtensionId,
   normalizeId,
   parseExtensionManifest,
   parsePresetText,
+  type ProfileExtensions,
   profilesWithExtension,
   type Recommendation,
   recommendProfiles,
@@ -52,9 +54,16 @@ function localExtensionIds(kit: Kit): Set<string> {
   );
 }
 
-/** Extensions of this window that another one of them needs or bundles. */
-function installedAlong(): Set<string> {
-  return installedAlongWith(vscode.extensions.all.flatMap((e) => parseExtensionManifest(e.packageJSON) ?? []));
+/**
+ * What installed extensions need or bundle: the manifests on disk (every profile's, Kit.extensionRelations) and the
+ * ones this window loaded. The window alone is not enough: it can miss an extension that was installed from outside
+ * it, and then the extensions that one brought along looked like the user's own picks (docs/PLAN.md section 14, #5).
+ */
+function knownManifests(kit: Kit): { id: string; relations: ExtensionRelations }[] {
+  return [
+    ...[...kit.extensionRelations].map(([id, relations]) => ({ id, relations })),
+    ...vscode.extensions.all.flatMap((e) => parseExtensionManifest(e.packageJSON) ?? []),
+  ];
 }
 
 function knownMetas(): ExtensionMeta[] {
@@ -75,44 +84,54 @@ const targetLabel = (profile: string) => (profile === CORE_TARGET ? t('every pro
  * extension pack along with it. Asking at each change went wrong twice (seen 2026-11-25, docs/PLAN.md section 14: a
  * pack's two members were asked about and the pack was not): the members before the pack that explains them was
  * there, and the pack was then taken for "installed before", because an earlier change had already made the Kit list
- * the profile again. So new extensions are collected, and looked at together once nothing has changed for SETTLE_MS.
+ * the profile again. So a run of changes is collected, and looked at once nothing has changed for SETTLE_MS.
+ *
+ * The window's changes only say when to look. What is new, and what came along with something else, is decided
+ * from the profile's installed list and the manifests on disk (core/installPrompt.ts): the window can miss an
+ * extension that was installed from outside it (same section, #5; fixed in 1.5).
  */
 export class InstallWatcher implements vscode.Disposable {
-  private snapshot: Set<string>;
-  /** New in the current run of changes, not looked at yet. */
-  private readonly pending = new Set<string>();
+  /** The window's user extensions at its last change. */
+  private loaded: Set<string>;
   /**
-   * The profile's `--list-extensions` from before the current run of changes. It also has disabled extensions, so
-   * one that was only enabled again is not taken for a new install (review P6).
+   * The profile's extensions while nothing was changing: its installed list (which also has disabled extensions, so
+   * one that was only enabled again is not new, review P6) and what the window had loaded. Kept as it is for the
+   * length of a run: the Kit reads the list again at each change, and that list already has the new ones.
    */
-  private listed: ReadonlySet<string> = new Set();
+  private before: ProfileExtensions;
+  /** The run of changes being collected: what arrived in this window, and whether Profile Kit was changing things. */
+  private run: { arrived: Set<string>; kitChanged: boolean } | undefined;
   private settle: ReturnType<typeof setTimeout> | undefined;
   private readonly subscriptions: vscode.Disposable[];
 
   constructor(private readonly kit: Kit) {
-    this.snapshot = localExtensionIds(kit);
+    this.loaded = localExtensionIds(kit);
+    this.before = this.now();
     this.subscriptions = [
       vscode.extensions.onDidChange(() => this.changed()),
-      // while changes are arriving, the Kit's list already has the new ones: keep the one from before
       kit.onDidChange(() => {
-        if (!this.settle) this.remember();
+        if (!this.run) this.before = this.now();
       }),
     ];
   }
 
-  private remember(): void {
+  private now(): ProfileExtensions {
     const current = this.kit.currentProfile()?.name;
-    const list = current ? this.kit.installedIn(current) : undefined;
-    if (list) this.listed = new Set(list);
+    return {
+      listed: current ? this.kit.installedIn(current) : undefined,
+      loaded: [...localExtensionIds(this.kit)],
+    };
   }
 
   private changed(): void {
     const now = localExtensionIds(this.kit);
+    this.run ??= { arrived: new Set(), kitChanged: false };
     // Profile Kit is installing from this window: what shows up now came with that, also the dependencies and pack
     // members VS Code adds by itself, which markInstalling never sees (applying a preset with an extension pack
     // asked about each member, 1.3.2)
-    if (!this.kit.changeRunning()) for (const id of now) if (!this.snapshot.has(id)) this.pending.add(id);
-    this.snapshot = now;
+    if (this.kit.changeRunning()) this.run.kitChanged = true;
+    else for (const id of now) if (!this.loaded.has(id)) this.run.arrived.add(id);
+    this.loaded = now;
     clearTimeout(this.settle);
     this.settle = setTimeout(() => {
       this.settle = undefined;
@@ -121,18 +140,30 @@ export class InstallWatcher implements vscode.Disposable {
   }
 
   private async check(): Promise<void> {
-    const added = [...this.pending].filter((id) => this.snapshot.has(id));
-    this.pending.clear();
-    const before = this.listed;
-    this.remember();
+    // the profile's list as it is now, and the manifests of what was just installed; the run stays open meanwhile
+    const current = this.kit.currentProfile()?.name;
+    if (current) await this.kit.refreshProfile(current).catch(() => undefined);
+    // more changes arrived while reading: all of it is looked at once they have settled
+    if (this.settle || !this.run) return;
+    const run = this.run;
+    this.run = undefined;
+    const before = this.before;
+    const after = this.now();
+    this.before = after;
     const preset = this.kit.preset?.preset;
     if (!preset) return;
+    // VS Code installed the rest along with another extension: the user picked that one, and adding it to a
+    // profile brings them there too
+    const added = installsToAskAbout({
+      before,
+      after,
+      arrived: [...run.arrived],
+      kitChanged: run.kitChanged || this.kit.changeRunning(),
+      manifests: knownManifests(this.kit),
+    });
     const ignored = new Set(this.kit.context.globalState.get<string[]>(IGNORED_KEY, []));
-    // VS Code installed these along with another extension: the user picked that one, and adding it to a profile
-    // brings them there too
-    const along = installedAlong();
     for (const id of added) {
-      if (this.kit.installedByKit(id) || ignored.has(id) || before.has(id) || along.has(id)) continue;
+      if (this.kit.installedByKit(id) || ignored.has(id)) continue;
       // already declared somewhere: the tree shows where it is missing, nothing to ask
       if (profilesWithExtension(preset, id).length) continue;
       if (!(await this.claim(id))) continue;

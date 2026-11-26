@@ -5,7 +5,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { PROFILES_FOLDER, SYNC_FOLDER } from '../core/compat';
+import { EXTENSIONS_MANIFEST, PROFILES_FOLDER, SYNC_FOLDER } from '../core/compat';
 import { PROFILE_KIT_ID } from '../core/dependencies';
 
 /** Folder under `User/globalStorage/` for Profile Kit's own files. One path for all profiles: the extension's
@@ -57,7 +57,11 @@ export interface UserDataPaths {
   syncDir: string;
   /** Old list of managed keys, from before it moved into each settings.json (review P3): read only. */
   managedSettingsFile: string;
+  /** `<userData>/User/profiles`: one folder per profile, named by its location. */
+  profilesDir: string;
   profileSettings(location: string): string;
+  /** A profile's own list of installed extensions: VS Code's file, read only. */
+  profileExtensions(location: string): string;
   /** A new backup folder for one apply run. */
   backupDir(now?: Date): string;
 }
@@ -67,8 +71,15 @@ const stamp = (d: Date) => {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 };
 
+/** A profile's folder name. It comes from storage.json: never let it point outside User/profiles. */
+function profileFolder(location: string): string {
+  if (!location || /[\\/]|^\.\.?$/.test(location)) throw new Error(`unexpected profile location "${location}"`);
+  return location;
+}
+
 export function userDataPaths(userData: string): UserDataPaths {
   const user = path.join(userData, 'User');
+  const profilesDir = path.join(user, PROFILES_FOLDER);
   const stateDir = path.join(user, 'globalStorage', STATE_DIR_NAME);
   return {
     userData,
@@ -78,11 +89,9 @@ export function userDataPaths(userData: string): UserDataPaths {
     stateDir,
     syncDir: path.join(user, SYNC_FOLDER),
     managedSettingsFile: path.join(stateDir, 'managed-settings.json'),
-    profileSettings: (location) => {
-      // location comes from storage.json; never let it point outside User/profiles
-      if (!location || /[\\/]|^\.\.?$/.test(location)) throw new Error(`unexpected profile location "${location}"`);
-      return path.join(user, PROFILES_FOLDER, location, 'settings.json');
-    },
+    profilesDir,
+    profileSettings: (location) => path.join(profilesDir, profileFolder(location), 'settings.json'),
+    profileExtensions: (location) => path.join(profilesDir, profileFolder(location), EXTENSIONS_MANIFEST),
     backupDir: (now = new Date()) => path.join(stateDir, `backup-${stamp(now)}`),
   };
 }

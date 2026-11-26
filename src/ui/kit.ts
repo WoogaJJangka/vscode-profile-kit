@@ -17,7 +17,6 @@ import {
   explainExtras,
   type ExtraReason,
   folderProfile,
-  mapLimit,
   OneAtATime,
   parsePresetText,
   type Preset,
@@ -33,7 +32,12 @@ import {
   type StoredProfile,
 } from '../core';
 import { readStorage } from '../host/apply';
-import { type InstalledManifest, readApplicationScoped, readExtensionRelations } from '../host/builtins';
+import {
+  type InstalledManifest,
+  readApplicationScoped,
+  readExtensionRelations,
+  readInstalledExtensions,
+} from '../host/builtins';
 import { findCodeCli } from '../host/codeLocator';
 import { listInstalled } from '../host/installer';
 import {
@@ -57,7 +61,7 @@ export interface ProfileRow {
   declared: boolean;
   /** Exists in VS Code (storage.json). */
   stored?: StoredProfile;
-  /** `--list-extensions`; undefined while unknown or when the profile does not exist. */
+  /** What is installed in it (Kit.installedIn); undefined while unknown or when the profile does not exist. */
   installed?: string[];
   /** Declared profiles that exist. */
   diff?: ExtensionDiff;
@@ -318,48 +322,54 @@ export class Kit implements vscode.Disposable {
   }
 
   /**
-   * List every profile, not only this window's. Off until something shows all profiles (the tree, the manager):
-   * each list is a `code` process, and every window would start one per profile on start-up (review P5).
-   */
-  private listAll = false;
-
-  /** A view that shows every profile became visible: from now on refresh lists them all. */
-  showAllProfiles(): void {
-    if (this.listAll) return;
-    this.listAll = true;
-    void this.refresh();
-  }
-
-  /**
-   * Re-read storage.json and `--list-extensions`: of every profile once a view shows them all, otherwise of this
-   * window's profile only. At most 3 `code` processes at once.
+   * Re-read storage.json and what is installed in every profile, Default included. The lists come from VS Code's own
+   * files (listProfile), so this starts no `code` process and every window can know every profile from its start.
+   * Before 1.5 each list was a `code` process: a window listed its own profile only until a view showed them all,
+   * at most 3 at once (review P5).
    */
   refresh(): Promise<void> {
     this.refreshing ??= (async () => {
       try {
         this.storage = readStorage(this.paths);
-        this.applicationScoped = new Set(readApplicationScoped(this.extensionsDir).ids);
-        this.relations = await readExtensionRelations(this.extensionsDir, this.manifests).catch(() => new Map());
-        const existing = new Set(this.storage.profiles.map((p) => p.name));
-        const current = this.currentProfile()?.name;
-        const wanted = this.listAll
-          ? [...new Set([...existing, ...this.declaredNames()])]
-          : current && existing.has(current)
-            ? [current]
-            : [];
-        const lists = await mapLimit(wanted, 3, async (name) => {
-          const list = existing.has(name) ? await listInstalled(this.run, name).catch(() => undefined) : undefined;
-          return [name, list] as const;
-        });
-        const installed = new Map([...this.installed].filter(([name]) => existing.has(name)));
-        for (const [name, list] of lists) installed.set(name, list);
-        this.installed = installed;
+        await this.readExtensionsFolder();
+        const names = [DEFAULT_PROFILE, ...this.storage.profiles.map((p) => p.name)];
+        for (const name of [...this.installed.keys()]) if (!names.includes(name)) this.installed.delete(name);
+        // one after the other: a profile that needs the CLI (listProfile) is then one `code` process at a time
+        for (const name of names) this.installed.set(name, await this.listProfile(name));
       } finally {
         this.refreshing = undefined;
         this.changed.fire();
       }
     })();
     return this.refreshing;
+  }
+
+  /** What every profile shares: extensions applied to all profiles, and what the installed ones need or bundle. */
+  private async readExtensionsFolder(): Promise<void> {
+    this.applicationScoped = new Set(readApplicationScoped(this.extensionsDir).ids);
+    this.relations = await readExtensionRelations(this.extensionsDir, this.manifests).catch(() => new Map());
+  }
+
+  private readonly listProblems = new Set<string>();
+
+  /**
+   * What is installed in a profile: read from VS Code's own lists (host/builtins.ts readInstalledExtensions), which
+   * takes no `code` process. When they cannot be read or understood, `code --list-extensions` says, as before 1.5.
+   * Undefined for a profile that does not exist, or when neither way gave a list. Default is only read from its
+   * list: Profile Kit does not manage it, and its list is only used to tell what is new in a Default window.
+   */
+  private async listProfile(name: string): Promise<string[] | undefined> {
+    const stored = this.storage.profiles.find((p) => p.name === name);
+    if (!stored)
+      return name === DEFAULT_PROFILE ? readInstalledExtensions(this.paths, this.extensionsDir).ids : undefined;
+    const read = readInstalledExtensions(this.paths, this.extensionsDir, stored);
+    if (read.ids) return read.ids;
+    const note = `${name}: ${read.problem}; asking the code CLI instead`;
+    if (!this.listProblems.has(note)) {
+      this.listProblems.add(note);
+      this.log(`! ${note}`);
+    }
+    return listInstalled(this.run, name).catch(() => undefined);
   }
 
   /** Re-read storage.json only (cheap; used while waiting for a new profile). */
@@ -383,21 +393,34 @@ export class Kit implements vscode.Disposable {
 
   /**
    * Extensions VS Code applies to all profiles ("Apply Extension to all Profiles", Default's extensions.json).
-   * They show up in every profile's `--list-extensions`.
+   * They are in every profile's installed list.
    */
   appliedToAll(id: string): boolean {
     return this.applicationScoped.has(id.toLowerCase());
   }
 
-  /** Last `--list-extensions` of a profile; undefined when not listed yet or the profile does not exist. */
+  /**
+   * What is installed in a profile (`Default` for the Default profile), as last read; undefined when not read yet
+   * or the profile does not exist.
+   */
   installedIn(name: string): readonly string[] | undefined {
     return this.installed.get(name);
   }
 
-  /** Re-list one profile only (after installing into it). */
+  /** What installed extensions need or bundle, by ID: every profile's, from the package.json files on disk. */
+  get extensionRelations(): ReadonlyMap<string, ExtensionRelations> {
+    return this.relations;
+  }
+
+  /**
+   * Read one profile again (after installing into it, after this window's extensions changed), and the extensions
+   * folder with it: what was just installed has new manifests. Unlike refresh, a call never shares the reads of one
+   * that is already running, so what it leaves is at least as new as the call.
+   */
   async refreshProfile(name: string): Promise<void> {
     this.storage = readStorage(this.paths);
-    this.installed.set(name, await listInstalled(this.run, name).catch(() => undefined));
+    await this.readExtensionsFolder();
+    this.installed.set(name, await this.listProfile(name));
     this.changed.fire();
   }
 

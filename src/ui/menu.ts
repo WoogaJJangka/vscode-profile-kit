@@ -125,8 +125,6 @@ function switchItems(kit: Kit): MenuItem[] {
 }
 
 export async function showMenu(kit: Kit): Promise<void> {
-  // the menu shows every profile's state, like the tree (review P5: only once something shows them all)
-  kit.showAllProfiles();
   const hasPreset = kit.hasPreset();
   const items = hasPreset
     ? [...switchItems(kit), ...presetItems(kit)]

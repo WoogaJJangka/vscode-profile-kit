@@ -11,6 +11,7 @@ import {
   fetchTemplates,
   readApplicationScoped,
   readExtensionRelations,
+  readInstalledExtensions,
   readTemplatesUrl,
   syncedBefore,
 } from '../src/host/builtins';
@@ -117,6 +118,100 @@ describe('files VS Code leaves on disk (read only)', () => {
       return; // no symlink rights
     }
     expect([...(await readExtensionRelations(extDir)).keys()]).toEqual(['a.b']);
+  });
+
+  describe('installed extensions of a profile, from the lists VS Code keeps', () => {
+    const entry = (id: string, metadata: Record<string, unknown> = {}) => ({
+      identifier: { id },
+      version: '1.0.0',
+      location: { $mid: 1, path: `/x/${id}-1.0.0`, scheme: 'file' },
+      relativeLocation: `${id}-1.0.0`,
+      metadata,
+    });
+    const own = { location: '-1a2b3c4d', useDefaultFlags: {} };
+    let extDir: string;
+    let paths: ReturnType<typeof userDataPaths>;
+    const writeDefaults = (...entries: unknown[]) =>
+      writeFileSync(path.join(extDir, 'extensions.json'), JSON.stringify(entries));
+    const writeOwn = (text: string, location = own.location) => {
+      mkdirSync(path.dirname(paths.profileExtensions(location)), { recursive: true });
+      writeFileSync(paths.profileExtensions(location), text);
+    };
+    beforeEach(() => {
+      extDir = path.join(dir, 'x');
+      mkdirSync(extDir);
+      paths = userDataPaths(path.join(dir, 'u'));
+    });
+
+    it("a profile's own list plus what Default applies to all profiles", () => {
+      writeDefaults(entry('z.default-only'), entry('MS-CEINTL.vscode-language-pack-ko', { isApplicationScoped: true }));
+      writeOwn(JSON.stringify([entry('ms-python.python'), entry('A.B')]));
+      expect(readInstalledExtensions(paths, extDir, own)).toEqual({
+        ids: ['a.b', 'ms-ceintl.vscode-language-pack-ko', 'ms-python.python'],
+      });
+    });
+
+    it('a profile without a list yet has no extensions of its own', () => {
+      writeDefaults(entry('z.default-only'), entry('a.scoped', { isApplicationScoped: true }));
+      // no User/profiles folder at all, then the profile's folder without the file
+      expect(readInstalledExtensions(paths, extDir, own)).toEqual({ ids: ['a.scoped'] });
+      mkdirSync(path.dirname(paths.profileExtensions(own.location)), { recursive: true });
+      expect(readInstalledExtensions(paths, extDir, own)).toEqual({ ids: ['a.scoped'] });
+      // and without Default's list nothing is applied to all profiles
+      rmSync(path.join(extDir, 'extensions.json'));
+      expect(readInstalledExtensions(paths, extDir, own)).toEqual({ ids: [] });
+    });
+
+    it("Default, and a profile that uses Default's extensions: the extensions folder's list", () => {
+      writeDefaults(entry('z.default-only'), entry('a.scoped', { isApplicationScoped: true }));
+      const shared = { location: '-5e6f7a8b', useDefaultFlags: { extensions: true, settings: true } };
+      // a list of its own, if one is there, is not what VS Code uses for such a profile
+      writeOwn(JSON.stringify([entry('left.over')]), shared.location);
+      expect(readInstalledExtensions(paths, extDir)).toEqual({ ids: ['a.scoped', 'z.default-only'] });
+      expect(readInstalledExtensions(paths, extDir, shared)).toEqual({ ids: ['a.scoped', 'z.default-only'] });
+      // only the extensions flag decides
+      const settingsOnly = { location: shared.location, useDefaultFlags: { settings: true } };
+      expect(readInstalledExtensions(paths, extDir, settingsOnly)).toEqual({ ids: ['a.scoped', 'left.over'] });
+    });
+
+    it('says why when the files do not tell, without quoting them', () => {
+      // Default's list is where VS Code writes it at its first start: without it Default is not known
+      expect(readInstalledExtensions(paths, extDir).problem).toMatch(/extensions folder is not there/);
+      writeDefaults(entry('a.b'));
+      writeOwn('secret-token-123 { broken');
+      const broken = readInstalledExtensions(paths, extDir, own);
+      expect(broken.ids).toBeUndefined();
+      expect(broken.problem).toMatch(/of the profile could not be read \(not valid JSON\)/);
+      expect(broken.problem).not.toContain('secret-token');
+      // a format Profile Kit does not know: not taken for a list
+      writeOwn(JSON.stringify({ extensions: [entry('a.b')] }));
+      expect(readInstalledExtensions(paths, extDir, own).problem).toMatch(/not a list/);
+      writeOwn(JSON.stringify([{ id: 'a.b' }]));
+      expect(readInstalledExtensions(paths, extDir, own).problem).toMatch(/without an extension ID/);
+      // a broken list of Default: neither Default nor what it applies to all profiles is known
+      writeOwn('[]');
+      writeFileSync(path.join(extDir, 'extensions.json'), '{ broken');
+      expect(readInstalledExtensions(paths, extDir, own).problem).toMatch(/extensions folder could not be read/);
+      expect(readInstalledExtensions(paths, extDir).problem).toMatch(/extensions folder could not be read/);
+      // a location that would leave User/profiles is refused before any file is touched
+      writeDefaults();
+      expect(readInstalledExtensions(paths, extDir, { location: '..', useDefaultFlags: {} }).problem).toMatch(
+        /unexpected profile location/,
+      );
+    });
+
+    it("a profile's list linked from outside User/profiles is not read", () => {
+      writeDefaults();
+      const outside = path.join(dir, 'outside.json');
+      writeFileSync(outside, JSON.stringify([entry('x.y')]));
+      mkdirSync(path.dirname(paths.profileExtensions(own.location)), { recursive: true });
+      try {
+        symlinkSync(outside, paths.profileExtensions(own.location), 'file');
+      } catch {
+        return; // no symlink rights
+      }
+      expect(readInstalledExtensions(paths, extDir, own).problem).toMatch(/points outside/);
+    });
   });
 
   it('Settings Sync folder', () => {

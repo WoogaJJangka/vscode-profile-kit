@@ -34,6 +34,17 @@ export const PACK_MEMBERS = ['ms-vscode-remote.remote-ssh-edit', 'ms-vscode.remo
 /** A pack installed "by the user"; its members also depend on it (Marketplace data, 2026-11-25). */
 export const USER_PACK = 'ms-vscode.remote-repositories';
 export const USER_PACK_MEMBERS = ['github.remotehub', 'ms-vscode.azure-repos'];
+/**
+ * A pack installed "by the user" that the window is made not to notice, the way VS Code missed USER_PACK once
+ * (docs/PLAN.md section 14, #5). Members: Marketplace data, 2026-11-26.
+ */
+export const MISSED_PACK = 'bierner.github-markdown-preview';
+export const MISSED_PACK_MEMBERS = [
+  'bierner.markdown-checkbox',
+  'bierner.markdown-emoji',
+  'bierner.markdown-footnotes',
+  'bierner.markdown-preview-github-styles',
+];
 /** Installed while two windows of the profile are open. */
 export const TWIN_INSTALL = 'codezombiech.gitignore';
 

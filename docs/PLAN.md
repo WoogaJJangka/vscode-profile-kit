@@ -158,13 +158,13 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 
 ## 10. VS Code 내부 의존과 호환성 점검 (2026-11-21~, 단계 D)
 
-공개 API가 아닌 VS Code 동작 11가지(6가지 + 단계 C의 4가지, 8-2절 + 확장 폴더의 package.json, 13절)는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
+공개 API가 아닌 VS Code 동작 12가지(6가지 + 단계 C의 4가지, 8-2절 + 확장 폴더의 package.json, 13절 + 프로필의 `extensions.json`, 15절)는 `src/core/compat.ts`의 `PRIVATE_DEPENDENCIES`에 모았다(쓰는 곳, 바뀌면 생기는 일). 저장소 키, 프로필 폴더 이름, 전환 명령, CLI 출력 문구, `bin/` 위치는 여기 상수로만 쓴다.
 손으로 확인한 버전은 `COMPAT_CHECKED_VERSION`(1.147.0). 확장은 시작할 때 출력 창 첫 줄에 VS Code 버전과 이 버전을 적는다(버그 보고용, `.github/ISSUE_TEMPLATE/bug_report.yml`).
 
 호환성 점검 `.github/workflows/compat.yml`: 매주 월요일, 수동, 그리고 CLI·host 코드를 고친 PR에서. VS Code를 공식 다운로드 주소(`update.code.visualstudio.com`, `@vscode/test-electron`과 같은 주소)에서 받아,
 세 데이터 폴더를 모두 임시 폴더로 준 채 `scripts/compat/check.ts`(빌드: `npm run build:compat` → `out/compat.js`)가 Profile Kit의 host 함수를 그대로 돌린다.
 대상: Linux 1.95.0(엔진 하한)·최신 stable·insiders, Windows 최신 stable, macOS 최신 stable(2026-11-25 추가, `darwin-universal` 압축 파일의 `.app` 안 `Contents/Resources/app/bin/code`. PR #50의 첫 실행에서 VS Code 1.147.0으로 14개 모두 통과). 필수 검사는 아니다(다운로드·Marketplace 네트워크에 기대므로).
-확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`. 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
+확인하는 것: appRoot에서 CLI 찾기, "profile not found", `--profile X --new-window`로 만들기 + storage.json 읽기, 묶음 설치와 출력, `--list-extensions`, 파일로 읽은 설치 목록이 `--list-extensions`와 같은지(15절). 창이 있어야 하는 것(전환 명령, 프로필 settings.json 반영)은 못 본다.
 첫 예약 실행(2026-11-23, 월 03:17 UTC 예약이 12:44 UTC에 돔)에서 insiders job만 템플릿 7개 중 Doc Writer 하나를 못 받아 FAIL이 났다. 같은 시각 stable job은 같은 파일을 읽었고, 파일은 2025-03 뒤 바뀌지 않았고, 다음 날 수동 실행은 모두 통과했다.
 그래서 `fetchTemplates`는 실패를 받기(`download`: 네트워크·시간 초과·HTTP 오류)와 읽기(`read`: 받았는데 프로필 파일이 아님)로 나누고, 점검은 받기를 한 번 더 시도한 뒤에도 못 받은 템플릿은 SKIP, 받은 것만 형식을 본다. 확장 화면은 그대로 한 번만 받는다(오프라인일 때 기다림이 늘지 않게).
 
@@ -172,7 +172,7 @@ Automatic Analysis가 켜져 있으면 CI 스캔이 "You are running CI analysis
 `Extension 'a' v1 was successfully installed.` / `... is already installed. Use '--force' ... for example: 'a@1.2.3'.` / 없는 ID는 `Extension 'x' not found.` + 끝에 `Failed Installing Extensions: x`. 프로필이 없으면 `Profile 'Nope' not found.` 한 줄.
 
 단계 D에서 같이 고친 것 (`docs/REVIEW-2026-11-21.md` 2절):
-- P5: 창을 열 때는 이 창의 프로필만 `--list-extensions` 한다. 트리가 보이거나 관리 화면을 열면 그때부터 전체를 한 번에 최대 3개씩.
+- P5: 창을 열 때는 이 창의 프로필만 `--list-extensions` 한다. 트리가 보이거나 관리 화면을 열면 그때부터 전체를 한 번에 최대 3개씩. → 1.5에서 목록을 파일로 읽으면서 둘 다 없앴다(15절).
 - P6: 설치 후 알림은 같은 프로필의 창들 중 한 창에서만 묻는다(globalState에 "이 창이 묻는다"를 쓰고 1.5초 뒤 다시 읽어 자기 것이 남은 창만). 직전 `--list-extensions`에 있던 확장(사용 안 함 → 사용)은 묻지 않는다. 여러 창에서의 동작은 아직 실제로 확인하지 않았다. → 2026-11-25 같은 프로필의 창 두 개로 확인(14절).
 - P7: 프로필을 만들려고 연 창은 닫아도 된다고 확인 창·결과 알림·CLI 출력에 적는다. 자동으로 닫는 공식 방법은 없다.
 - P8: 설치는 10개씩 한 번에(`--install-extension a --install-extension b ...`), 끝나면 목록으로 확인하고 없는 것만 하나씩 재시도.
@@ -291,7 +291,70 @@ macOS에서 찾는 위치(`Visual Studio Code.app/Contents/MacOS/Electron`)는 �
    그 창의 `InstallWatcher`는 팩을 모르니 멤버 둘을 물었다(검사 "a pack the user installs is asked about once, and its members are not" 실패). 새 확장인지와 "같이 설치된 것"인지를 그 창에 로드된 확장(`vscode.extensions.all`)만으로 판정하기 때문이다.
    그 창의 확장 화면에서 설치할 때는 해당이 없고, CLI나 같은 프로필의 다른 창에서 설치할 때만 생길 수 있다. 고치려면 프로필의 설치 목록과 확장 폴더의 package.json(트리가 쓰는 `Kit.relations`)으로 판정해야 한다. 1.5.x "설치 목록을 파일에서 읽기"와 같은 방향이다.
    그때까지 이 검사는 가끔 실패할 수 있다: 마지막 제품 코드로 이 PC 5번 중 1번, CI 8번(네 push × Linux·Windows) 중 0번. 사용자 결정(2026-11-25): 1.4.0에서는 두고 1.5.x에서 고친다. 임시 폴더를 C: 드라이브로 옮긴 것이 이 PC에서 더 자주 나게 하는지는 모른다.
+   → 2026-11-26 고침(15절): 새 확장과 "같이 설치된 것"을 프로필의 설치 목록과 확장 폴더의 package.json으로 판정한다.
 
 CI: `.github/workflows/integration.yml`(매주 월요일, 수동, `src/**`·`scripts/integration/**`를 고친 PR, Linux·Windows 최신 stable, 필수 검사 아님).
 첫 실행(PR #50, 2026-11-25, VS Code 1.147.0): Linux(`xvfb-run`)와 Windows 모두 31개 통과(job 1분 31초, 2분 20초). 창이 여러 개 열리는 흐름은 xvfb에서도 된다.
 macOS와 VS Code 1.95에서는 돌리지 않는다(되는지 확인하지 않았다).
+
+## 15. 1.5.x: 설치 목록을 파일에서 읽기, 설치 알림을 그 목록으로 (2026-11-26)
+
+목적(`docs/ROADMAP.md` "1.5.x 후보와 근거"의 첫 항목): 프로필마다 `code --list-extensions`(프로세스 하나, 이 PC에서 0.6~0.7초)를 띄우는 대신 VS Code가 디스크에 둔 목록을 읽는다.
+같은 목록으로 설치 후 알림을 판정해 14절 "찾은 것" 5(창이 밖에서 설치한 팩을 놓치면 멤버를 묻는다)를 고친다.
+
+| 바꾼 것 | 이유·근거 |
+| --- | --- |
+| `core/extensionsJson.ts` `parseExtensionsJson`·`profileInstalledIds`·`defaultInstalledIds`, `host/builtins.ts` `readInstalledExtensions(paths, extensionsDir, profile?)` | 규칙은 VS Code가 프로필을 읽는 코드 그대로다(1.148.0의 `cliProcessMain.js`에서 `scanExtensionsFromProfile`을 읽음): 프로필의 `User/profiles/<location>/extensions.json`에서 `isApplicationScoped` 항목을 빼고, 확장 폴더의 `extensions.json`(Default)에서 `isApplicationScoped`이거나 `isBuiltin`인 항목을 더한다. Default와 `useDefaultFlags.extensions` 프로필은 확장 폴더의 목록 전체. 프로필 파일이 없으면 자기 확장 0개(VS Code는 첫 설치 때 만든다) |
+| 파일을 못 읽으면(깨진 JSON, 목록이 아님, ID 없는 항목, 폴더 밖을 가리키는 링크) 목록을 주지 않는다 | 모르는 형식을 목록으로 착각하면 "빠짐"·"추가"가 조용히 틀린다. `Kit`은 그 프로필만 `code --list-extensions`로 다시 읽고 출력 창에 이유를 한 번 적는다 |
+| `Kit.refresh`는 Default와 있는 프로필 전부를 읽는다. `Kit.listAll`·`showAllProfiles()`·`mapLimit`(동시 3개)을 지웠다 | P5의 제한은 목록 하나가 프로세스 하나였기 때문이다. 파일은 프로필당 1~8ms라 창을 열 때부터 전부 읽어도 된다. 대체 경로(CLI)는 하나씩 차례로 돌아 창마다 `code` 프로세스가 동시에 하나를 넘지 않는다. 형식이 통째로 바뀌면 창마다 프로필 수만큼 차례로 뜨는데(1.4.0에서 트리를 연 창과 같은 양), 그 경우는 주간 호환성 점검이 먼저 알린다 |
+| `refreshProfile`은 확장 폴더의 package.json도 다시 읽는다 | 방금 설치된 확장의 관계(팩·의존성)가 있어야 알림을 판정한다. 폴더 이름별 캐시라 새 폴더만 읽는다 |
+| `compat.ts` 12번째 항목(+ `BUILTIN_FLAG`, `SHARED_EXTENSIONS_FLAG`), `scripts/compat/check.ts`에 비교 3개 | 새 프로필(파일 없음), 확장 2개 + 모든 프로필에 적용된 언어 팩이 있는 프로필, Default에서 파일 목록 = `--list-extensions`. 주간 실행이 Linux 1.95.0·stable·insiders, Windows·macOS stable에서 본다 |
+| `core/installPrompt.ts` `installsToAskAbout`, `InstallWatcher`(`ui/installFlow.ts`) | 아래 "설치 알림" |
+| 그대로 둔 것: 설치 뒤 확인(`host/installer.ts`), `apply` 계획(`host/apply.ts` `buildPlans`), CLI `verify` | 설치 결과와 적용 계획은 VS Code 자신에게 묻는다. CLI는 명령 한 번에 프로세스가 어차피 뜬다 |
+
+설치 알림: 창의 `vscode.extensions.onDidChange`는 이제 "언제 볼지"만 정한다(3초 잠잠해지면). 무엇이 새것인지는 프로필 목록의 전후 차이로, 무엇이 "같이 설치된 것"인지는
+지금 프로필에 설치된 확장들의 package.json(확장 폴더, `Kit.extensionRelations` + 창이 로드한 것)으로 정한다. 창이 팩을 끝까지 로드하지 못해도 목록과 폴더에는 팩이 있으므로 팩 하나만 묻는다.
+1.4.0의 규칙은 그대로다:
+
+- Profile Kit이 바꾸는 중(끝나고 5초까지)에 걸친 변화는 목록 차이를 쓰지 않고 1.4.0처럼 "그 사이가 아닐 때 창에 도착한 것"만 본다. 그 사이에 온 것은 묻지 않는다.
+- 다시 켠 확장은 전후 목록에 다 있으므로 새것이 아니다. 전 목록을 모르는 경우(창을 열자마자, 프로필을 모르는 창)도 1.4.0처럼 도착한 것만 본다(목록만으로는 새것과 꺼 둔 것을 구분할 수 없다).
+- 여러 창의 claim, "이 확장은 묻지 않기", 프리셋에 이미 있는 확장은 그대로.
+- 팩의 package.json을 못 읽으면(폴더가 확장 폴더 밖 등) 1.4.0과 같은 결과(멤버를 묻는다)가 된다. 창이 알림에 쓰는 이름은 로드하지 못한 확장이면 표시 이름 대신 ID다.
+
+찾은 것:
+
+1. **이 PC의 프로필 11개 모두 파일 목록 = CLI 목록**(2026-11-26, 읽기만, VS Code 1.148.0): Default 30, Agents 30(`useDefaultFlags.extensions`, 자기 파일 없음), Core 30, Python-Data 46, Java 38, C-Cpp 37, Web-JS 36, CSharp-Unity 34, Go 31, Docker-Infra 34, CTF 49.
+   파일은 프로필당 0.8~7.8ms, CLI는 570~705ms. Default의 `extensions.json`은 항목 31개에 목록 30개다(같은 확장의 두 버전): ID로 중복을 없앤다.
+2. **1.148.0은 폴더가 없는 항목도 목록에 넣는다**(코드로 읽음, 돌려 보지는 않음): `scanExtension`이 프로필 항목을 받았으면 package.json을 못 읽어도 "유효하지 않은 확장"으로 돌려주고 CLI는 그것도 출력한다.
+   그래서 항목의 폴더가 있는지는 검사하지 않는다(검사하면 CLI와 달라진다). 옛 버전이 같은지는 호환성 점검의 비교가 본다(정상 설치에서는 차이가 없다).
+3. **이 PC의 VS Code가 작업 중에 1.147.0 → 1.148.0으로 올라갔다**(2026-11-26 10:22~10:28, 자동 업데이트). 아래 확인은 모두 1.148.0이다. `COMPAT_CHECKED_VERSION`(손으로 확인한 버전, 1.147.0)은 바꾸지 않았다.
+4. **놓친 팩을 통합 테스트에서 매번 만든다.** 드물게만 생기는 일이라(이 PC 5번 중 1번) 기다릴 수 없다. `suite.ts`의 `hideFromWindow`가 그 창의 `vscode.extensions.all`·`getExtension`에서 팩 하나를 감춘 채 CLI로 설치한다:
+   프로필 목록과 확장 폴더에는 팩과 멤버가 다 있고 창은 멤버만 안다(#5에서 본 상태 그대로). 검사는 "팩을 ID로 한 번 묻고 멤버는 묻지 않는다". 팩은 `bierner.github-markdown-preview`(멤버 4개, 작은 Markdown 미리보기 확장).
+   VS Code가 실제로 놓친 실행에는 결과에 `NOTE  VS Code did not load …` 줄이 찍힌다.
+5. **창이 밖에서 설치한 확장을 놓치는 일은 드물지 않다.** 확장 5개가 한꺼번에 들어오는 위의 팩에서, 최종 코드로 돌린 5번 중 4번은 VS Code가 그 창에 멤버 1~2개를 끝내 알리지 않았다(질문이 나오고 8초 뒤 기준, 실행마다 다른 멤버).
+   그 전 실행 하나는 멤버가 다 로드되기를 120초 기다려도 오지 않았다. 확장 3개짜리 `ms-vscode.remote-repositories`에서는 그 5번 모두 창이 셋을 다 받았다. 놓친 것이 멤버여도 질문은 팩 하나다.
+   그래서 통합 테스트의 두 팩 검사는 "창이 전부 로드할 때까지"가 아니라 질문이 나올 때까지 기다린다(전에는 놓치면 120초를 그냥 썼다). 결과 줄에는 시작부터의 초가 붙는다(`PASS  [ 73 s] …`).
+
+확인(2026-11-26, 이 PC, Windows, VS Code 1.148.0):
+
+- `npm run check` 통과. 단위 테스트 329개(308 − `mapLimit` 1 + 22: `extensionsJson.test.ts` 7, `installPrompt.test.ts` 10, `builtins.test.ts`의 파일 읽기 5).
+- 호환성 점검 `out/compat.js`(격리 폴더): 17개 모두 통과(14 + 비교 3).
+- 통합 테스트: 검사 33개(31 + "파일로 읽은 목록 = `--list-extensions`, 두 프로필" + "창이 로드하지 못한 팩"). "다른 프로필도 목록을 읽는다"는 이제 Profiles 뷰를 열지 않고 본다.
+  8번 돌려 8번 모두 33개 통과. 최종 코드로 5번: 128, 137, 146, 137, 129초. 그 전 3번(검사 문구·대기 방식을 다듬기 전의 suite, 제품 코드는 같음): 251, 170, 251초.
+- 새 검사가 버그를 잡는지: `InstallWatcher`의 판정만 1.4.0 방식(창이 로드한 것만)으로 되돌려 한 번 돌리면 그 검사 하나만 실패한다(32 통과, 1 실패): 창이 받은 멤버 셋을 묻고 팩은 묻지 않는다. 되돌린 코드는 커밋하지 않았다.
+
+PR #53의 첫 CI(2026-11-26):
+
+- 호환성 점검: Linux의 VS Code 1.95.0(16개 통과, 템플릿 받기 하나는 전부터 건너뜀)·최신 stable 1.148.0·insider 1.149.0, macOS·Windows의 1.148.0에서 17개 모두 통과. 파일 목록 = `--list-extensions` 비교 3개는 다섯 곳 모두 통과했다.
+- 통합 테스트: Linux·Windows에서 33개 모두 통과.
+- SonarQube 품질 게이트는 새 코드 지적 2건으로 실패했다.
+  - `typescript:S2871`(`scripts/compat/check.ts`, 비교 함수 없는 `.sort()`): CLI 목록을 `compareCodeUnits`로 정렬하게 고쳤다. 파일에서 읽은 목록을 정렬하는 그 함수라 순서는 그대로다. 고친 뒤 이 PC에서 호환성 점검 17개 통과.
+  - `tssecurity:S8707`(`host/builtins.ts` `readExtensionsList`의 `readFileSync`): 명령줄 인자에서 온 경로를 읽는다는 지적이다. 인자를 넘기는 호출자는 호환성 점검의 `--data`(점검을 돌리는 사람이 정하는 임시 폴더, VSIX에 없음)뿐이고, 읽기 전에 실제 경로가 폴더의 실제 경로 안인지 본다.
+    같은 순서로 쓴 `readApplicationScoped`의 같은 지적처럼 SonarQube에서 Accept로 닫았다(사용자 결정, 9절과 같은 이유). 13절의 `readInstalledManifest`처럼 파일 경로를 함수 안에서 폴더의 실제 경로에 이어 붙이는 모양이면 닫힐 수도 있는데, 해 보지 않았다.
+
+확인하지 않은 것, 남은 것:
+
+- 확장을 Default와 공유하는 프로필은 이 PC의 `Agents` 하나로만 확인했다. CLI로는 만들 수 없어 호환성 점검에 없다(단위 테스트는 있다).
+- 창이 변화를 하나도 받지 못하면(설치한 것을 전부 놓치면) 볼 계기가 없어 묻지 않는다. 프로필의 `extensions.json`을 감시하면 풀리고, 다른 프로필의 설치도 트리에 바로 보인다(ROADMAP에 적어 둔 효과). 이번에는 넣지 않았다.
+- `apply` 미리보기와 CLI `verify`는 여전히 `--list-extensions`로 읽는다. 트리(파일)와 다르게 나오면 호환성 점검의 비교가 깨진 것이다.
+- 창이 로드하지 못한 확장은 알림에 표시 이름 대신 ID로 나온다(확장 폴더의 package.json에서 `displayName`을 읽으면 된다).

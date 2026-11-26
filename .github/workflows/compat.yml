@@ -2,7 +2,8 @@ name: VS Code compatibility
 
 # Runs Profile Kit's host functions against real VS Code builds (scripts/compat/check.ts, review P9 / stage D-2):
 # the code CLI location, "profile not found", creating a profile with --new-window and reading storage.json,
-# batched installs and --list-extensions. A failure means a VS Code internal in src/core/compat.ts changed.
+# batched installs, --list-extensions, and the installed list read from VS Code's extensions.json files against it.
+# A failure means a VS Code internal in src/core/compat.ts changed.
 # Not a required check: it downloads VS Code and the Marketplace extensions it installs, so it can also fail
 # on the network. Weekly, by hand, and on pull requests that touch the code it checks.
 
