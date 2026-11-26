@@ -17,6 +17,7 @@ import {
   type ExtensionRelations,
   installsToAskAbout,
   isExtensionId,
+  listCountsFor,
   normalizeId,
   parseExtensionManifest,
   parsePresetText,
@@ -89,6 +90,8 @@ const targetLabel = (profile: string) => (profile === CORE_TARGET ? t('every pro
  * The window's changes only say when to look. What is new, and what came along with something else, is decided
  * from the profile's installed list and the manifests on disk (core/installPrompt.ts): the window can miss an
  * extension that was installed from outside it (same section, #5; fixed in 1.5).
+ * VS Code writing the profile's list says when to look as well: a window is sometimes told about none of an install
+ * (section 15), and then nothing else would.
  */
 export class InstallWatcher implements vscode.Disposable {
   /** The window's user extensions at its last change. */
@@ -109,6 +112,7 @@ export class InstallWatcher implements vscode.Disposable {
     this.before = this.now();
     this.subscriptions = [
       vscode.extensions.onDidChange(() => this.changed()),
+      kit.onDidWriteInstalledList((location) => this.listWritten(location)),
       kit.onDidChange(() => {
         if (!this.run) this.before = this.now();
       }),
@@ -123,15 +127,30 @@ export class InstallWatcher implements vscode.Disposable {
     };
   }
 
+  /** The window's extensions changed. */
   private changed(): void {
     const now = localExtensionIds(this.kit);
-    this.run ??= { arrived: new Set(), kitChanged: false };
+    // the same extensions as before (one was updated): nothing a run could find
+    if (now.size === this.loaded.size && [...now].every((id) => this.loaded.has(id))) return;
+    this.open();
     // Profile Kit is installing from this window: what shows up now came with that, also the dependencies and pack
     // members VS Code adds by itself, which markInstalling never sees (applying a preset with an extension pack
     // asked about each member, 1.3.2)
-    if (this.kit.changeRunning()) this.run.kitChanged = true;
-    else for (const id of now) if (!this.loaded.has(id)) this.run.arrived.add(id);
+    if (!this.kit.changeRunning()) for (const id of now) if (!this.loaded.has(id)) this.run?.arrived.add(id);
     this.loaded = now;
+  }
+
+  /** VS Code wrote a list of installed extensions: a change like one of the window's when this profile is made of it. */
+  private listWritten(location: string | undefined): void {
+    const current = this.kit.currentProfile()?.name;
+    if (!current) return;
+    if (listCountsFor(location, this.kit.profiles.find((p) => p.name === current)?.location)) this.open();
+  }
+
+  /** A change belongs to the run being collected, a new one if none is. The run ends SETTLE_MS after its last change. */
+  private open(): void {
+    this.run ??= { arrived: new Set(), kitChanged: false };
+    if (this.kit.changeRunning()) this.run.kitChanged = true;
     clearTimeout(this.settle);
     this.settle = setTimeout(() => {
       this.settle = undefined;

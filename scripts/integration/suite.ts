@@ -19,6 +19,7 @@ import * as vscode from 'vscode';
 
 import { PROFILE_KIT_ID } from '../../src/core/dependencies';
 import { isRecord, parseJsonc, parsePresetText } from '../../src/core/preset';
+import { compareCodeUnits } from '../../src/core/text';
 import type { TestApi } from '../../src/extension';
 import { listInstalled } from '../../src/host/installer';
 import type { ManagerState, ToWebview } from '../../src/ui/panel/protocol';
@@ -29,12 +30,14 @@ import {
   INTEGRATION_ENV,
   MISSED_PACK,
   MISSED_PACK_MEMBERS,
+  OTHER_INSTALL,
   PACK,
   PACK_MEMBERS,
   PROFILE_HERE as HERE,
   PROFILE_OTHER as OTHER,
   SECOND_INSTALL,
   TWIN_INSTALL,
+  UNSEEN_INSTALL,
   USER_INSTALLED,
   USER_PACK,
   USER_PACK_MEMBERS,
@@ -491,7 +494,44 @@ async function main(config: IntegrationConfig): Promise<void> {
       onTheList([MISSED_PACK, ...MISSED_PACK_MEMBERS]),
     { asked: asked(from).map((d) => d.text), notLoadedByThisWindow: unseen, listed: kit.installedIn(HERE) },
   );
+
+  // -- an install this window is told nothing about: VS Code writing the profile's list is the only sign --
+  // VS Code still reports its change here, but with the extension hidden the window's extensions are the same as
+  // before, which Profile Kit takes for no change. The pack stays hidden too, so that its showing up is not one.
+  from = shown.length;
+  const showUnseen = hideFromWindow(UNSEEN_INSTALL);
+  const visible = () =>
+    vscode.extensions.all
+      .map((e) => e.id.toLowerCase())
+      .sort(compareCodeUnits)
+      .join();
+  const visibleBefore = visible();
+  await waitFor(() => !kit.changeRunning());
+  await kit.run(['--profile', HERE, '--install-extension', UNSEEN_INSTALL]);
+  await waitFor(() => asked(from).length, 60_000);
+  await sleep(NO_QUESTION_MS);
+  // an extension of the pack that VS Code brings late would be a change of the window's own in this run
+  if (visible() !== visibleBefore) say('NOTE  the window got a change of its own meanwhile: not the list alone');
+  check(
+    'an install this window is told nothing about is asked about once, because VS Code wrote the list',
+    asked(from).length === 1 &&
+      asked(from)[0].text.startsWith(`${UNSEEN_INSTALL} was installed in ${HERE}.`) &&
+      !vscode.extensions.getExtension(UNSEEN_INSTALL) &&
+      onTheList([UNSEEN_INSTALL]),
+    { asked: asked(from).map((d) => d.text), listed: kit.installedIn(HERE) },
+  );
+  showUnseen();
   showAgain();
+
+  // -- an install into another profile shows by itself: the lists are watched (section 15) --
+  await kit.run(['--profile', OTHER, '--install-extension', OTHER_INSTALL]);
+  // no kit.refresh() here: only VS Code writing the other profile's list can bring it in
+  const showedByItself = await waitFor(() => kit.installedIn(OTHER)?.includes(OTHER_INSTALL), 30_000);
+  check(
+    'an extension installed into the other profile from outside shows without Profile Kit being told to read again',
+    !!showedByItself,
+    kit.installedIn(OTHER) ?? 'not listed',
+  );
 
   // -- several windows of one profile: only the window that claimed the question asks (review P6) --
   // First with a claim that is already there, as if another window had been quicker.

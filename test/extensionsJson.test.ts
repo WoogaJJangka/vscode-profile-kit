@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultInstalledIds, parseExtensionsJson, profileInstalledIds } from '../src/core/extensionsJson';
+import {
+  defaultInstalledIds,
+  listCountsFor,
+  parseExtensionsJson,
+  profileInstalledIds,
+  profilesToReread,
+} from '../src/core/extensionsJson';
 
 /** An entry the way VS Code 1.147 writes it (only the parts that matter here). */
 const entry = (id: string, metadata: Record<string, unknown> = {}, folder = `${id.toLowerCase()}-1.0.0`) => ({
@@ -99,5 +105,36 @@ describe('what code --list-extensions prints, from the lists', () => {
       'ms-ceintl.vscode-language-pack-ko',
       'ms-vscode.js-debug',
     ]);
+  });
+});
+
+describe('when VS Code writes a list', () => {
+  const profiles = [
+    { name: 'Core', location: '-1a2b3c4d' },
+    { name: 'Web-JS', location: '5E6F7A8B' },
+  ];
+
+  it('reads only the profiles whose own list was written', () => {
+    expect(profilesToReread(['-1a2b3c4d'], profiles)).toEqual(['Core']);
+    expect(profilesToReread(['5e6f7a8b', '-1a2b3c4d', '5e6f7a8b'], profiles)).toEqual(['Web-JS', 'Core']);
+    expect(profilesToReread([], profiles)).toEqual([]);
+  });
+
+  it("reads everything when Default's list was written, or a list of a profile it does not know", () => {
+    // what Default applies to all profiles is in every profile's list
+    expect(profilesToReread(['-1a2b3c4d', undefined], profiles)).toBe('all');
+    // a profile VS Code made after storage.json was read
+    expect(profilesToReread(['-99999999'], profiles)).toBe('all');
+    expect(profilesToReread([undefined], [])).toBe('all');
+  });
+
+  it("counts for a profile: its own list and Default's, not another profile's", () => {
+    expect(listCountsFor('-1a2b3c4d', '-1a2b3c4d')).toBe(true);
+    expect(listCountsFor('-1A2B3C4D', '-1a2b3c4d')).toBe(true);
+    expect(listCountsFor(undefined, '-1a2b3c4d')).toBe(true);
+    expect(listCountsFor('5e6f7a8b', '-1a2b3c4d')).toBe(false);
+    // a Default window (no location of its own): only Default's list
+    expect(listCountsFor(undefined, undefined)).toBe(true);
+    expect(listCountsFor('-1a2b3c4d', undefined)).toBe(false);
   });
 });

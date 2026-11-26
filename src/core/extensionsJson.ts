@@ -13,6 +13,7 @@
  */
 import { APPLICATION_SCOPED_FLAG, BUILTIN_FLAG } from './compat';
 import { isRecord, normalizeId, stripBom } from './preset';
+import type { StoredProfile } from './profiles';
 import { compareCodeUnits } from './text';
 
 /** Lower-case IDs of extensions VS Code applies to all profiles. Throws when the text is not a JSON list. */
@@ -76,4 +77,37 @@ export function profileInstalledIds(own: readonly ListedExtension[], defaults: r
     ...own.filter((e) => !e.applicationScoped).map((e) => e.id),
     ...defaults.filter((e) => e.applicationScoped || e.builtin).map((e) => e.id),
   ]);
+}
+
+// --- when VS Code writes these lists (ui/kit.ts watches them) ---
+
+const sameLocation = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+/**
+ * Which profiles to read again after VS Code wrote some lists. Each entry of `changed` is a profile's location for
+ * its own list, or undefined for Default's list in the extensions folder.
+ * 'all' when Default's list changed (what it applies to all profiles is in every profile's list), or when a list
+ * belongs to no known profile (one VS Code made after storage.json was last read). Otherwise the profiles' names.
+ */
+export function profilesToReread(
+  changed: Iterable<string | undefined>,
+  profiles: readonly Pick<StoredProfile, 'name' | 'location'>[],
+): 'all' | string[] {
+  const names = new Set<string>();
+  for (const location of changed) {
+    if (location === undefined) return 'all';
+    const owner = profiles.find((p) => sameLocation(p.location, location));
+    if (!owner) return 'all';
+    names.add(owner.name);
+  }
+  return [...names];
+}
+
+/**
+ * Whether a list VS Code wrote is part of a profile's installed list: its own list, or Default's (every profile's
+ * list has what Default applies to all profiles, and Default's is all there is for Default itself and for a profile
+ * that uses Default's extensions). `changed` and `own` are locations; undefined stands for Default.
+ */
+export function listCountsFor(changed: string | undefined, own: string | undefined): boolean {
+  return changed === undefined || (own !== undefined && sameLocation(changed, own));
 }

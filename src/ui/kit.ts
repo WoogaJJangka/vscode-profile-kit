@@ -12,6 +12,7 @@ import {
   COMPAT_CHECKED_VERSION,
   createCodeRunner,
   diffExtensions,
+  EXTENSIONS_MANIFEST,
   type ExtensionDiff,
   type ExtensionRelations,
   explainExtras,
@@ -27,6 +28,7 @@ import {
   syncedPresetText,
   type PresetStatus,
   profileNames,
+  profilesToReread,
   resolveProfile,
   type StorageProfiles,
   type StoredProfile,
@@ -71,6 +73,8 @@ export interface ProfileRow {
 }
 
 export const DEFAULT_PROFILE = 'Default';
+/** The lists are read again when VS Code has not written one for this long (an install writes several times). */
+const LISTS_QUIET_MS = 300;
 
 /** PROFILE_KIT_CODE_ARGS: a JSON list of `code` options for an isolated VS Code (launch.json, scripts/integration). */
 function testCodeArgs(): string[] {
@@ -104,6 +108,17 @@ export class Kit implements vscode.Disposable {
   /** Fires after the preset, the profile list or an installed list changed. */
   readonly onDidChange = this.changed.event;
   private watcher: vscode.FileSystemWatcher | undefined;
+  private readonly listWritten = new vscode.EventEmitter<string | undefined>();
+  /**
+   * VS Code wrote a list of installed extensions: a profile's own (its location), or Default's in the extensions
+   * folder (undefined). Fires at once, while this Kit still has the lists from before the write; onDidChange follows
+   * when they have been read again.
+   */
+  readonly onDidWriteInstalledList = this.listWritten.event;
+  private defaultListWatcher: vscode.Disposable | undefined;
+  private profileListsWatcher: vscode.Disposable | undefined;
+  private readonly writtenLists = new Set<string | undefined>();
+  private rereadTimer: ReturnType<typeof setTimeout> | undefined;
   private refreshing: Promise<void> | undefined;
   private readonly ownId: string;
 
@@ -128,6 +143,64 @@ export class Kit implements vscode.Disposable {
     this.log(
       `VS Code ${vscode.version}, ${process.platform}; VS Code internals last checked on ${COMPAT_CHECKED_VERSION} (compat.ts)`,
     );
+    this.watchLists();
+  }
+
+  /**
+   * Watch the lists of installed extensions VS Code keeps (read only): Default's in the extensions folder, and each
+   * profile's own under User/profiles. An install made anywhere (another profile, another window, the `code` CLI)
+   * then shows without anything asking for a refresh, and InstallWatcher learns of an install its window was told
+   * nothing about (docs/PLAN.md section 15).
+   * Also called from refresh: a folder that is not there yet (no profile made so far) is watched once it exists.
+   * The pattern for the profiles has a `/`, which makes VS Code watch User/profiles with its subfolders: a
+   * profile's folder may only appear with the profile's first install.
+   */
+  private watchLists(): void {
+    this.defaultListWatcher ??= this.watchList(this.extensionsDir, EXTENSIONS_MANIFEST, () => undefined);
+    this.profileListsWatcher ??= this.watchList(this.paths.profilesDir, `*/${EXTENSIONS_MANIFEST}`, (file) =>
+      path.basename(path.dirname(file)),
+    );
+  }
+
+  private watchList(
+    dir: string,
+    pattern: string,
+    listOf: (file: string) => string | undefined,
+  ): vscode.Disposable | undefined {
+    if (!existsSync(dir)) return undefined;
+    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(dir), pattern));
+    const written = (uri: vscode.Uri) => this.noteWrittenList(listOf(uri.fsPath));
+    watcher.onDidChange(written);
+    watcher.onDidCreate(written);
+    watcher.onDidDelete(written);
+    return watcher;
+  }
+
+  private noteWrittenList(location: string | undefined): void {
+    // listeners first, while the lists here are still the ones from before the write (InstallWatcher keeps them)
+    this.listWritten.fire(location);
+    this.writtenLists.add(location);
+    clearTimeout(this.rereadTimer);
+    this.rereadTimer = setTimeout(() => void this.rereadWrittenLists(), LISTS_QUIET_MS);
+  }
+
+  /** Read again what VS Code wrote: only the profiles concerned, or everything (core/extensionsJson.ts). */
+  private async rereadWrittenLists(): Promise<void> {
+    const written = [...this.writtenLists];
+    this.writtenLists.clear();
+    try {
+      // storage.json first: a profile VS Code made since the last read is in it by now
+      const which = profilesToReread(written, readStorage(this.paths).profiles);
+      if (which === 'all') {
+        // not the reads of a refresh that was already running when the list was written
+        await this.refreshing?.catch(() => undefined);
+        await this.refresh();
+      } else for (const name of which) await this.refreshProfile(name);
+    } catch (error) {
+      this.log(
+        `! reading the installed extensions again failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /**
@@ -330,6 +403,7 @@ export class Kit implements vscode.Disposable {
   refresh(): Promise<void> {
     this.refreshing ??= (async () => {
       try {
+        this.watchLists();
         this.storage = readStorage(this.paths);
         await this.readExtensionsFolder();
         const names = [DEFAULT_PROFILE, ...this.storage.profiles.map((p) => p.name)];
@@ -529,7 +603,11 @@ export class Kit implements vscode.Disposable {
   }
 
   dispose(): void {
+    clearTimeout(this.rereadTimer);
     this.watcher?.dispose();
+    this.defaultListWatcher?.dispose();
+    this.profileListsWatcher?.dispose();
+    this.listWritten.dispose();
     this.changed.dispose();
     this.output.dispose();
   }
