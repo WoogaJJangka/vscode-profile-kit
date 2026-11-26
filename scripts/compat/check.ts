@@ -17,6 +17,7 @@ import { parseArgs } from 'node:util';
 
 import {
   COMPAT_CHECKED_VERSION,
+  compareCodeUnits,
   createCodeRunner,
   listExtensionsArgs,
   parseListExtensions,
@@ -67,7 +68,8 @@ function check(name: string, ok: boolean, detail?: unknown): void {
  */
 async function listsAgree(name: string, profile?: StoredProfile): Promise<void> {
   const files = readInstalledExtensions(paths, extensionsDir, profile);
-  const cli = parseListExtensions((await run(listExtensionsArgs(profile?.name))).stdout).sort();
+  // the same order as the list read from the files (core/extensionsJson.ts sorts with compareCodeUnits)
+  const cli = parseListExtensions((await run(listExtensionsArgs(profile?.name))).stdout).sort(compareCodeUnits);
   check(name, !!files.ids && files.ids.join() === cli.join(), { files: files.ids ?? files.problem, cli });
 }
 
