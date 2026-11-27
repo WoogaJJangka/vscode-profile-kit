@@ -3,7 +3,7 @@
 선언형 프리셋(core + groups + profiles) 하나로 VS Code 프로필을 만들고 점검하는 도구. 한국어로 답한다.
 배경·결정·겪은 문제는 `docs/PLAN.md`, 단계와 게이트는 `docs/ROADMAP.md`(Phase 0~5).
 
-## 진행 상태 (2026-11-26)
+## 진행 상태 (2026-11-27)
 
 - 구조(2026-11-21 사용자 결정): **모든 기능은 GUI로 보인다.** 확장이 주 화면, `src/core`는 공유, CLI는 새 PC 일괄 적용·CI 점검용 보조.
   단계 M0~M7(승인된 계획): M0 실험(`docs/PLAN.md` 8절), M1 core, M2 host + CLI `apply`, M3 GUI(트리·상태 표시줄·전환·누락 설치·적용), M4(설치 후 알림·Install to Profiles·프리셋 갱신), M5(Webview 관리 화면: 확장 매트릭스·설정 표), M6(폴더 추천·전환 목록 추천), M7(문서·한국어 UI) 완료.
@@ -66,7 +66,7 @@
   1.4.0 게시(2026-11-25, 정식, 1.0.0 다음 두 번째): PR #50(통합 테스트, 설치 알림 수정 둘, macOS 호환성 점검, 방향 문서) + PR #51(version, CHANGELOG, README 지원 범위 문구: 자동 점검이 보는 OS)
   → 태그 `v1.4.0`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.4.0", `--pre-release` 없음) → Marketplace 1.4.0 validated·public, pre-release 아님(게시 약 7분 뒤 반영, 07:25 UTC). 테스트 308개.
   Open VSX는 1.4.0에 넣지 않았다(할지는 여전히 정하지 않음). 다음은 1.5.x pre-release(`docs/ROADMAP.md` "1.5.x 후보와 근거").
-  1.5.x 첫 항목(2026-11-26, PR #53, 같은 날 머지: main `789a128`. 버전·게시는 사용자 승인 전): 설치 목록을 파일에서 읽는다(`docs/PLAN.md` 15절).
+  1.5.x 첫 항목(2026-11-26, PR #53, 같은 날 머지: main `789a128`. 1.5.0으로 게시, 아래 "1.5.0 게시"): 설치 목록을 파일에서 읽는다(`docs/PLAN.md` 15절).
   프로필의 `User/profiles/<location>/extensions.json`(`isApplicationScoped` 항목 제외) + 확장 폴더 `extensions.json`의 `isApplicationScoped`·`isBuiltin` 항목 = `code --list-extensions --profile X`.
   Default와 확장을 Default와 공유하는 프로필은 확장 폴더의 목록 전체. 이 PC의 프로필 11개 모두 같았다(VS Code 1.148.0, 파일 1~8ms, CLI 0.6~0.7초). 못 읽으면 그 프로필만 CLI로 읽는다.
   그래서 창을 열 때부터 모든 프로필을 읽는다: `Kit.listAll`·`showAllProfiles`·`mapLimit`(동시 3개)은 지웠다. 설치 뒤 확인, `apply` 계획, CLI `verify`는 그대로 `--list-extensions`.
@@ -77,11 +77,15 @@
   SonarQube 게이트는 새 코드 지적 2건으로 실패했다. `scripts/compat/check.ts`의 비교 함수 없는 `.sort()`(S2871)는 `compareCodeUnits`로 고쳤다.
   `builtins.ts` `readExtensionsList`의 S8707(CLI 인자에서 온 경로를 읽음: 그런 호출자는 호환성 점검의 `--data`뿐이고, 실제 경로 → 폴더 안인지 → 읽기 순서다)은 accept(사용자 결정, `readApplicationScoped`의 같은 지적과 같은 이유).
   두 번째 실행에서 16개 검사와 품질 게이트가 모두 통과해 머지했다. #53에 넣지 않은 것: 프로필 `extensions.json` 감시(다른 프로필의 설치를 바로 보기, 창이 설치를 전부 놓쳤을 때의 알림).
-  목록 파일 감시(같은 날, PR #54, 같은 날 머지: main `5958b10`. 버전·게시는 사용자 승인 전, `docs/PLAN.md` 15-1절): `Kit`이 확장 폴더의 `extensions.json`과 `User/profiles/*/extensions.json`을 감시한다(읽기만).
+  목록 파일 감시(같은 날, PR #54, 같은 날 머지: main `5958b10`. 1.5.0으로 게시, `docs/PLAN.md` 15-1절): `Kit`이 확장 폴더의 `extensions.json`과 `User/profiles/*/extensions.json`을 감시한다(읽기만).
   쓰이면 바로 `Kit.onDidWriteInstalledList`로 알리고(`InstallWatcher`가 이 창의 프로필 목록이면 실행을 연다: 다시 읽기 전이라 `before`가 남는다), 300ms 뒤 쓰인 프로필만 다시 읽는다(Default 목록이나 모르는 프로필이면 전부).
   단위 테스트 332개, 통합 테스트 35개를 3번 돌려 3번 통과(main 위로 옮긴 뒤 다시 3번 중 3번). `InstallWatcher`의 구독만 끄면 "창이 아무것도 전달받지 못한 설치" 검사 하나만 실패한다. 사용자의 `files.watcherExclude`가 `User/profiles`를 빼면 프로필 쪽 감시는 오지 않는다.
   PR #54의 CI(2026-11-26): 16개 검사와 품질 게이트가 모두 통과했다(SonarQube 지적 없음). 통합 테스트 35개가 Linux·Windows에서 통과해, Linux에서도 워크스페이스 밖 폴더의 감시가 동작한다.
   VS Code 1.95.0과 macOS에서의 감시는 확인하지 않았다(통합 테스트가 거기서는 돌지 않는다).
+  1.5.0 게시(2026-11-27, 사용자 결정 pre-release): PR #53(설치 목록을 파일에서 읽기) + PR #54(목록 파일 감시) + PR #55(문서) + PR #56(version, CHANGELOG)
+  → 태그 `v1.5.0`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.5.0", `--pre-release`) → Marketplace 1.5.0 validated·pre-release(게시 약 4분 뒤 반영, 00:39 UTC). 테스트 332개.
+  게시 전 확인(`docs/RELEASE.md` 2단계, 이 PC, VS Code 1.148.0): pre-release VSIX를 격리 VS Code에 설치해 1.5.0으로 나오는 것, 통합 테스트 35개 1번 통과. 정식 1.4.0을 쓰는 설치는 "Switch to Pre-Release Version"을 눌러야 1.5.0을 받는다.
+  다음은 1.5.x의 나머지 후보(`docs/ROADMAP.md` "1.5.x 후보와 근거": 새 프리셋 기본 위치를 설정으로, extra 처리)다. 어느 것부터 할지는 정하지 않았다.
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
