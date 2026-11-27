@@ -62,7 +62,7 @@
   PR #50 첫 실행에서 CI 통합 테스트(Linux xvfb·Windows, 31개)와 macOS 호환성 점검(14개)이 통과했다.
   같은 실행에서 SonarQube 게이트는 `scripts/integration/run.ts`의 보안 지적 6건(인자 → 경로·실행 파일, `taskkill`을 PATH에서 찾음)으로 실패해 러너를 바꿨다:
   경로를 인자로 받지 않는다. 데이터 폴더는 임시 폴더에 직접 만들고, VS Code는 저장소의 `.vscode-test/vscode`에 풀어 둔 것, 없으면 설치된 것을 띄운다(`docs/PLAN.md` 14절).
-  통합 테스트의 "직접 설치한 팩은 한 번만 묻는다" 검사는 가끔 실패할 수 있다(이 PC 5번 중 1번, CI 8번 중 0번): VS Code 창이 CLI로 설치한 팩을 놓치면 `InstallWatcher`가 멤버를 묻는다. 1.5.x에서 고친다(사용자 결정 2026-11-25, 14절 "찾은 것" 5). → 2026-11-26 브랜치에서 고침(아래 "1.5.x 첫 항목").
+  통합 테스트의 "직접 설치한 팩은 한 번만 묻는다" 검사는 가끔 실패할 수 있다(이 PC 5번 중 1번, CI 8번 중 0번): VS Code 창이 CLI로 설치한 팩을 놓치면 `InstallWatcher`가 멤버를 묻는다. 1.5.x에서 고친다(사용자 결정 2026-11-25, 14절 "찾은 것" 5). → 2026-11-26 PR #53에서 고침(아래 "1.5.x 첫 항목").
   1.4.0 게시(2026-11-25, 정식, 1.0.0 다음 두 번째): PR #50(통합 테스트, 설치 알림 수정 둘, macOS 호환성 점검, 방향 문서) + PR #51(version, CHANGELOG, README 지원 범위 문구: 자동 점검이 보는 OS)
   → 태그 `v1.4.0`(Claude가 push, 사용자 결정) → Release 성공("Published ... v1.4.0", `--pre-release` 없음) → Marketplace 1.4.0 validated·public, pre-release 아님(게시 약 7분 뒤 반영, 07:25 UTC). 테스트 308개.
   Open VSX는 1.4.0에 넣지 않았다(할지는 여전히 정하지 않음). 다음은 1.5.x pre-release(`docs/ROADMAP.md` "1.5.x 후보와 근거").
@@ -77,9 +77,11 @@
   SonarQube 게이트는 새 코드 지적 2건으로 실패했다. `scripts/compat/check.ts`의 비교 함수 없는 `.sort()`(S2871)는 `compareCodeUnits`로 고쳤다.
   `builtins.ts` `readExtensionsList`의 S8707(CLI 인자에서 온 경로를 읽음: 그런 호출자는 호환성 점검의 `--data`뿐이고, 실제 경로 → 폴더 안인지 → 읽기 순서다)은 accept(사용자 결정, `readApplicationScoped`의 같은 지적과 같은 이유).
   두 번째 실행에서 16개 검사와 품질 게이트가 모두 통과해 머지했다. #53에 넣지 않은 것: 프로필 `extensions.json` 감시(다른 프로필의 설치를 바로 보기, 창이 설치를 전부 놓쳤을 때의 알림).
-  목록 파일 감시(같은 날, 브랜치 `feat/watch-extension-lists`, #53이 머지된 뒤 main 위로 옮김, `docs/PLAN.md` 15-1절): `Kit`이 확장 폴더의 `extensions.json`과 `User/profiles/*/extensions.json`을 감시한다(읽기만).
+  목록 파일 감시(같은 날, PR #54, 같은 날 머지: main `5958b10`. 버전·게시는 사용자 승인 전, `docs/PLAN.md` 15-1절): `Kit`이 확장 폴더의 `extensions.json`과 `User/profiles/*/extensions.json`을 감시한다(읽기만).
   쓰이면 바로 `Kit.onDidWriteInstalledList`로 알리고(`InstallWatcher`가 이 창의 프로필 목록이면 실행을 연다: 다시 읽기 전이라 `before`가 남는다), 300ms 뒤 쓰인 프로필만 다시 읽는다(Default 목록이나 모르는 프로필이면 전부).
   단위 테스트 332개, 통합 테스트 35개를 3번 돌려 3번 통과(main 위로 옮긴 뒤 다시 3번 중 3번). `InstallWatcher`의 구독만 끄면 "창이 아무것도 전달받지 못한 설치" 검사 하나만 실패한다. 사용자의 `files.watcherExclude`가 `User/profiles`를 빼면 프로필 쪽 감시는 오지 않는다.
+  PR #54의 CI(2026-11-26): 16개 검사와 품질 게이트가 모두 통과했다(SonarQube 지적 없음). 통합 테스트 35개가 Linux·Windows에서 통과해, Linux에서도 워크스페이스 밖 폴더의 감시가 동작한다.
+  VS Code 1.95.0과 macOS에서의 감시는 확인하지 않았다(통합 테스트가 거기서는 돌지 않는다).
   저장소 public 전환(R2)은 당분간 하지 않는다(2026-11-21 사용자 결정, 아래 "git"). 실제 창 상태 표시줄은 8개 프로필 모두 마커로 맞게 나옴(2026-11-21, 사용자 확인).
 - 실제 PC 설정 공유 끄기 끝(2026-11-21): 백업 `Documents/vscode-profiles-setup/backup-20261121-211455-before-unshare`(Default·8개 프로필 settings.json, storage.json)
   → Default settings.json에 `workbench.settings.applyToAllProfiles` = Default 키 55개 전부(언어 블록 제외, 사용자 승인) → 사용자가 Profiles 편집기에서 8개 프로필의 Settings 공유를 끔
