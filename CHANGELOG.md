@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [1.5.0] - pre-release
+
+Profile Kit knows what is installed in every profile as soon as a window opens, and notices an install made anywhere else without a refresh.
 
 ### Changed
 
