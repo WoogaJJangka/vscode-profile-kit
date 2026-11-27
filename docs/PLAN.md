@@ -64,7 +64,7 @@
 - [x] 현재 PC: Default 정리 → Core에 없는 53개를 Default에서만 `code --uninstall-extension`으로 제거(2026-11-21, 사용자 요청, uninstall 금지 규칙의 1회 예외). Default = Core 27개, 다른 8개 프로필은 `verify`로 그대로인 것 확인. 의존 관계 때문에 한 번에 안 지워지는 것(.NET Install Tool, C# Dev Kit, Container Tools, Java 디버거·언어 지원)은 두 번째 패스에서 지워짐. 백업 `extensions-backup-20261121-104351-before-core-match.txt`(80개). Settings Sync로 다른 PC의 Default에도 전파될 수 있음
 - [x] 타당성 검증 후 구조 결정 → 8절 (확장 중심 GUI + 공유 core + 보조 CLI)
 - [x] 저장소 초기화, CI, 문서, 테스트
-- [x] 배포: publisher 생성과 계정 작업은 사용자가 직접 했다. 0.1.0 pre-release(2026-11-21)부터 정식 1.4.0(2026-11-25)까지 Release workflow(Trusted Publishing)로 게시. 절차는 `docs/RELEASE.md`
+- [x] 배포: publisher 생성과 계정 작업은 사용자가 직접 했다. 0.1.0 pre-release(2026-11-21)부터 1.5.0 pre-release(2026-11-27)까지 Release workflow(Trusted Publishing)로 게시(최신 정식은 1.4.0, 2026-11-25). 절차는 `docs/RELEASE.md`
 
 ## 8. Phase 2 실험 결과 (2026-11-21, VS Code 1.147.0, Windows)
 
@@ -397,3 +397,8 @@ PR #54의 CI(2026-11-26):
 - 사용자의 `files.watcherExclude`가 `User/profiles` 아래를 빼면 프로필 쪽 감시는 오지 않는다(하위 폴더까지 보는 감시에만 적용되는 설정). 그러면 15절까지의 동작(창의 변화, 명령 뒤 갱신)으로 돌아간다.
 - VS Code에서 프로필을 새로 만든 것(storage.json)은 감시하지 않는다. 그 프로필에 처음 설치할 때 목록이 쓰이면 전부 다시 읽으면서 나타난다.
 - 실제 창에서 트리가 바로 바뀌는 모양은 화면으로 보지 않았다(값만 확인).
+
+게시(2026-11-27): 15절과 15-1절이 1.5.0 pre-release로 나갔다. PR #56(version 1.5.0, CHANGELOG) → 태그 `v1.5.0` → Release 성공 → Marketplace 1.5.0 validated·pre-release(게시 약 4분 뒤 반영).
+
+- 게시 전 확인(`docs/RELEASE.md` 2단계, 이 PC, Windows, VS Code 1.148.0): `npm run check` 통과(332개), `vsce package --no-dependencies --pre-release`로 만든 VSIX(파일 22개)를 임시 데이터 폴더 세 개의 VS Code에 설치해 `woogajjangka.vscode-profile-kit@1.5.0` 확인, 통합 테스트 1번 35개 통과(132초).
+- PR #56의 CI는 9개 검사였다: 통합 테스트와 호환성 점검은 `src`·`scripts`가 바뀔 때만 돌아서, version과 CHANGELOG만 바꾼 PR에서는 돌지 않는다.
